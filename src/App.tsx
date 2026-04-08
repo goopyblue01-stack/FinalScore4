@@ -46,39 +46,32 @@ export default function App() {
     try {
       const targetDate = dates[selectedDateIdx].dateStr;
       const res = await fetch(`/api/matches?date=${targetDate}`);
-      const html = await res.text();
+      const data = await res.json(); // .text()가 아니라 .json()으로 받습니다.
 
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(html, 'text/html');
-      
-      // 봉다 사이트의 실제 데이터 태그 분석 후 추출
-      const matchItems = doc.querySelectorAll('.match-item, .item-match');
-      const results: any[] = [];
+      // 봉다 API 데이터 구조에 맞춰 추출 (예시 구조)
+      const results = (data.data || []).map((m: any, idx: number) => {
+        const rawLeague = m.league_name || "기타 리그";
+        const rawHome = m.home_team_name || "홈팀";
+        const rawAway = m.away_team_name || "원정팀";
 
-      matchItems.forEach((item, idx) => {
-        const rawHome = item.querySelector('.team-home')?.textContent || "홈팀";
-        const rawAway = item.querySelector('.team-away')?.textContent || "원정팀";
-        const rawLeague = item.closest('.league-group')?.querySelector('.league-name')?.textContent || "기타 리그";
-
-        // [번역 엔진 가동] 대회명과 구단명을 한글로 변경
-        const home = translateToKorean(rawHome);
-        const away = translateToKorean(rawAway);
-        const league = translateToKorean(rawLeague);
-
-        // 사장님 비즈니스 핵심: AI 예상 스코어 (ID 기반 가중치 계산)
-        const predictHome = (idx % 3) + 1;
-        const predictAway = ((idx + 2) % 3);
-
-        results.push({
-          id: `match-${targetDate}-${idx}`,
-          league,
-          home,
-          away,
-          score: item.querySelector('.score')?.textContent?.trim() || "vs",
-          time: item.querySelector('.time')?.textContent?.trim() || "00:00",
-          predict: { home: predictHome, away: predictAway }
-        });
+        return {
+          id: m.id || `match-${idx}`,
+          league: translateToKorean(rawLeague),
+          home: translateToKorean(rawHome),
+          away: translateToKorean(rawAway),
+          score: m.score || "vs",
+          time: m.match_time || "00:00",
+          predict: { home: (idx % 3), away: ((idx + 1) % 2) } // 사장님 예상 로직
+        };
       });
+
+      setMatches(results);
+    } catch (e) {
+      console.error("데이터 처리 실패:", e);
+    } finally {
+      setLoading(false);
+    }
+  };
 
       setMatches(results);
     } catch (e) {
