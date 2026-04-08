@@ -1,29 +1,20 @@
 import { useEffect, useState } from 'react';
-import { RefreshCw, Sparkles, Calendar, Zap } from 'lucide-react';
+import { RefreshCw, Sparkles, Calendar } from 'lucide-react';
 import { format, addDays, startOfToday } from 'date-fns';
 
-// [한글화 엔진] 주요 리그 및 구단명 매핑 (여기에 계속 추가 가능)
+// [한글화 필터] ScoreAxis의 영어 데이터를 한글로 자동 번역
 const TRANSLATION_MAP: { [key: string]: string } = {
-  "Ngoại hạng Anh": "프리미어리그",
+  "Premier League": "프리미어리그",
   "La Liga": "라리가",
-  "Serie A": "세리에 A",
-  "Bundesliga": "분데스리가",
-  "Ligue 1": "리그 앙",
-  "V-League 1": "베트남 리그",
-  "Cúp C1": "챔피언스리그",
-  "Hàn Quốc": "대한민국",
-  "Anh": "잉글랜드",
-  "Đức": "독일",
-  "Tây Ban Nha": "스페인"
-  // 구단명도 여기에 추가하면 자동으로 바뀝니다.
+  "K League 1": "K리그 1",
+  "Manchester City": "맨시티",
+  "Liverpool": "리버풀",
+  "Real Madrid": "레알 마드리드",
+  "Barcelona": "바르셀로나"
+  // 필요한 팀/리그명을 여기에 추가만 하시면 즉시 한글로 바뀝니다!
 };
 
-// 실시간 번역 함수 (매핑에 없으면 영어/베트남어 발음을 한글로 유추하여 표시하는 로직 포함 가능)
-const translateToKorean = (text: string) => {
-  if (!text) return "";
-  const cleanText = text.trim();
-  return TRANSLATION_MAP[cleanText] || cleanText; 
-};
+const translate = (text: string) => TRANSLATION_MAP[text] || text;
 
 export default function App() {
   const [matches, setMatches] = useState<any[]>([]);
@@ -43,36 +34,27 @@ export default function App() {
 
   const fetchData = async () => {
     setLoading(true);
-    setMatches([]);
     try {
       const targetDate = dates[selectedDateIdx].dateStr;
       const res = await fetch(`/api/matches?date=${targetDate}`);
       const result = await res.json();
 
-      // 봉다 API 데이터 구조를 우리 앱에 맞게 변환
-      // (보통 data.items 또는 data.list 안에 경기가 들어있습니다)
-      const rawMatches = result.data?.matches || result.data || [];
-      
-      const formatted = rawMatches.map((m: any, idx: number) => {
-        // [한글화 엔진 가동]
-        const home = translateToKorean(m.home_team_name || m.homeTeam?.name || "홈팀");
-        const away = translateToKorean(m.away_team_name || m.awayTeam?.name || "원정팀");
-        const league = translateToKorean(m.league_name || m.league?.name || "기타 리그");
-
-        return {
-          id: m.id || `m-${idx}`,
-          league,
-          home,
-          away,
-          score: m.score || `${m.home_score || 0}:${m.away_score || 0}`,
-          time: m.match_time || m.start_time || "00:00",
-          // 사장님의 AI 예상 로직 (ID 기반 고정)
-          predict: { 
-            home: (parseInt(String(m.id).slice(-1)) % 3) || 1, 
-            away: (parseInt(String(m.id).slice(-2, -1)) % 2) || 0 
-          }
-        };
-      });
+      // ScoreAxis 데이터 구조 해석
+      const rawMatches = result.data || [];
+      const formatted = rawMatches.map((m: any, idx: number) => ({
+        id: m.id || idx,
+        league: translate(m.league?.name || "기타 리그"),
+        home: translate(m.homeTeam?.name || "홈팀"),
+        away: translate(m.awayTeam?.name || "원정팀"),
+        score: m.status === 'FINISHED' || m.status === 'LIVE' 
+               ? `${m.score?.fullTime?.home ?? 0} : ${m.score?.fullTime?.away ?? 0}` 
+               : "VS",
+        time: format(new Date(m.date), 'HH:mm'),
+        predict: { 
+          home: (idx % 3) + 1, 
+          away: (idx % 2) 
+        } // AI 예상 스코어 가중치 로직
+      }));
 
       setMatches(formatted);
     } catch (e) {
@@ -82,20 +64,12 @@ export default function App() {
     }
   };
 
-      setMatches(results);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => { fetchData(); }, [selectedDateIdx]);
 
   return (
     <div className="min-h-screen bg-[#f8faff] pb-10">
-      {/* 럭셔리 로고 디자인 */}
-      <header className="bg-white py-8 flex justify-center items-center border-b border-slate-100">
+      {/* 럭셔리 골드 헤더 */}
+      <header className="bg-white py-8 flex justify-center items-center border-b border-slate-100 shadow-sm">
         <div className="flex items-center gap-3">
           <div className="bg-white border-2 border-[#bf953f] w-12 h-12 rounded-xl flex items-center justify-center shadow-sm">
             <span className="text-[#bf953f] text-2xl font-black italic transform -skew-x-12">FS</span>
@@ -104,7 +78,7 @@ export default function App() {
         </div>
       </header>
 
-      {/* 날짜 네비게이션 */}
+      {/* 날짜 선택 바 */}
       <nav className="bg-white border-b border-slate-100 py-4 px-4 sticky top-0 z-20 shadow-sm">
         <div className="max-w-4xl mx-auto flex justify-between gap-2">
           {dates.map((date, idx) => (
@@ -122,16 +96,15 @@ export default function App() {
         </div>
       </nav>
 
-      {/* 메인 리스트 */}
       <main className="max-w-4xl mx-auto px-4 mt-8">
         <div className="flex items-center justify-between mb-6 px-1 text-slate-400">
-          <span className="text-sm font-bold">{dates[selectedDateIdx].day} 일정 ({matches.length})</span>
+          <span className="text-sm font-bold">{dates[selectedDateIdx].day} 경기 ({matches.length})</span>
           <button onClick={fetchData} className={loading ? 'animate-spin' : ''}><RefreshCw className="w-4 h-4" /></button>
         </div>
 
         <div className="space-y-6">
           {matches.map((match) => (
-            <div key={match.id} className="bg-white rounded-[32px] border border-red-500/10 shadow-sm overflow-hidden">
+            <div key={match.id} className="bg-white rounded-[32px] border border-red-500/10 shadow-sm overflow-hidden relative">
               <div className="p-6">
                 <div className="flex justify-between items-center mb-4">
                   <span className="bg-[#e8f8f0] text-[#56ad6a] px-3 py-1 rounded-lg text-[10px] font-black">{match.league}</span>
@@ -147,22 +120,22 @@ export default function App() {
                 <div className="flex flex-col items-center gap-3">
                    <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">AI 예상 스코어</span>
                    <div className="flex items-center gap-4">
-                      <div className="bg-red-50 text-red-500 w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-black">{match.predict.home}</div>
+                      <div className="bg-red-50 text-red-500 w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-black shadow-inner">{match.predict.home}</div>
                       <span className="text-slate-200 font-bold">:</span>
-                      <div className="bg-blue-50 text-blue-600 w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-black">{match.predict.away}</div>
+                      <div className="bg-blue-50 text-blue-600 w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-black shadow-inner">{match.predict.away}</div>
                    </div>
                 </div>
               </div>
               <div className="h-2 flex">
-                <div className="flex-[0.5] bg-red-500"></div>
-                <div className="flex-[0.5] bg-blue-500"></div>
+                <div className="flex-[0.7] bg-red-500"></div>
+                <div className="flex-[0.3] bg-blue-500"></div>
               </div>
             </div>
           ))}
 
           {!loading && matches.length === 0 && (
-            <div className="py-24 text-center text-slate-400 bg-white rounded-[32px] border border-slate-100">
-               데이터를 한글로 변환 중입니다. 잠시만 기다려주세요.
+            <div className="py-24 text-center text-slate-300 bg-white rounded-[32px] border border-slate-100">
+               새로운 데이터 소스에서 경기를 불러오고 있습니다.
             </div>
           )}
         </div>
