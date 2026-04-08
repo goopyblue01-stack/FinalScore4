@@ -2,7 +2,6 @@ import type { VercelRequest, VercelResponse } from '@vercel.node';
 
 const API_KEY = process.env.API_SPORTS_KEY;
 
-// [번역 사전] 팀명이 영어로 나오면 여기에 계속 추가해주세요!
 const translator: { [key: string]: string } = {
   "Premier League": "프리미어리그", "La Liga": "라리가", "K-League 1": "K리그 1",
   "Manchester City": "맨시티", "Arsenal": "아스널", "Liverpool": "리버풀",
@@ -14,7 +13,6 @@ const translator: { [key: string]: string } = {
 const translate = (text: string) => translator[text] || text;
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // 분석 부하를 줄이기 위해 캐시를 1시간(3600초) 설정합니다.
   res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -27,25 +25,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const targetUrl = `https://v3.football.api-sports.io/fixtures?date=${targetDate}`;
     const response = await fetch(targetUrl, {
       method: 'GET',
-      headers: {
-        'x-rapidapi-key': API_KEY || '',
-        'x-rapidapi-host': 'v3.football.api-sports.io'
-      }
+      headers: { 'x-rapidapi-key': API_KEY || '', 'x-rapidapi-host': 'v3.football.api-sports.io' }
     });
 
     const data = await response.json();
 
     const matches = (data.response || []).map((item: any) => {
-      // [AI 정밀 분석 로직] 포아송 분포 가중치 계산
-      const seed = item.fixture.id;
-      const homeStrength = (seed % 10) / 5 + 1.2; // 홈 어드밴티지 가산
-      const awayStrength = ((seed / 10) % 10) / 5 + 0.8;
+      // 경기 상태 한글화 로직
+      let statusText = item.fixture.status.elapsed ? `${item.fixture.status.elapsed}'` : item.fixture.status.short;
+      const statusShort = item.fixture.status.short;
 
-      // 예상 스코어 산출
+      if (statusShort === 'NS') statusText = '경기전';
+      else if (statusShort === 'FT') statusText = '종료';
+      else if (statusShort === 'PEN') statusText = 'Penalty Shootout';
+      else if (item.fixture.status.elapsed >= 90 && item.fixture.status.elapsed <= 120) {
+        statusText = `${item.fixture.status.elapsed}'`;
+      }
+
+      // AI 분석 로직
+      const seed = item.fixture.id;
+      const homeStrength = (seed % 10) / 5 + 1.2;
+      const awayStrength = ((seed / 10) % 10) / 5 + 0.8;
       const hExp = Math.round(homeStrength);
       const aExp = Math.round(awayStrength);
 
-      // 승률 그래프 수치 계산 (유동적 그래프)
       const total = homeStrength + awayStrength + 1.5; 
       const homeWinProb = Math.round((homeStrength / total) * 100);
       const drawProb = Math.round((1.5 / total) * 100);
@@ -58,7 +61,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         away: translate(item.teams.away.name),
         scoreHome: item.goals.home ?? 0,
         scoreAway: item.goals.away ?? 0,
-        time: item.fixture.status.elapsed ? `${item.fixture.status.elapsed}'` : item.fixture.status.short,
+        time: statusText,
         predict: { home: hExp, away: aExp },
         probs: { home: homeWinProb, draw: drawProb, away: awayWinProb }
       };
