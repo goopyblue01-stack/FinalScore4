@@ -25,7 +25,26 @@ export default function App() {
       const targetDate = dates[selectedDateIdx].dateStr;
       const res = await fetch(`/api/matches?date=${targetDate}`);
       const json = await res.json();
-      setMatches(json.matches || []);
+      
+      const rawMatches = json.matches || [];
+
+      // [정렬 로직 적용] 
+      // 1순위: 진행중 (LIVE, PEN 등)
+      // 2순위: 예정 (NS) - 시간순
+      // 3순위: 종료 (FT 등) - 시간순
+      const sortedMatches = rawMatches.sort((a: any, b: any) => {
+        const isLive = (s: string) => !['NS', 'FT', 'CANC', 'ABD'].includes(s);
+        
+        if (isLive(a.status) && !isLive(b.status)) return -1;
+        if (!isLive(a.status) && isLive(b.status)) return 1;
+        
+        if (a.status === 'NS' && b.status === 'FT') return -1;
+        if (a.status === 'FT' && b.status === 'NS') return 1;
+        
+        return a.timestamp - b.timestamp;
+      });
+
+      setMatches(sortedMatches);
     } catch (e) {
       console.error("Fetch Error:", e);
     } finally {
@@ -66,6 +85,7 @@ export default function App() {
       <main className="max-w-4xl mx-auto px-4 mt-8">
         <div className="space-y-6">
           {matches.map((match) => {
+            const isLive = !['NS', 'FT', 'CANC', 'ABD'].includes(match.status);
             const isHomeLiveWin = match.scoreHome > match.scoreAway;
             const isAwayLiveWin = match.scoreAway > match.scoreHome;
             const hExp = match.predict.home;
@@ -74,36 +94,39 @@ export default function App() {
             const isAwayPredWin = aExp > hExp;
             const isPredDraw = hExp === aExp;
 
-            const darkGrey = "#475569"; // 기본 회색
-            const orangeHighlight = "#f97316"; // 주황색 (가공후 가시성 높은 색)
+            const darkGrey = "#475569"; 
+            const orangeHighlight = "#f97316"; 
 
-            // 경기 상태 텍스트 및 스타일 결정
             let displayStatus = "";
             let statusColor = darkGrey;
             let statusWeight = "font-medium";
 
             if (match.status === 'NS') {
-              displayStatus = match.korTime; // 경기전 -> 시간 표시
+              displayStatus = match.korTime;
               statusWeight = "font-normal";
             } else if (match.status === 'FT') {
-              displayStatus = 'FT'; // 종료 -> FT
+              displayStatus = 'FT';
               statusWeight = "font-normal";
             } else if (match.status === 'PEN') {
-              displayStatus = 'PS'; // 승부차기 -> PS
+              displayStatus = 'PS';
               statusColor = orangeHighlight;
               statusWeight = "font-bold";
             } else {
-              // 경기 중 (연장 포함)
               displayStatus = `${match.elapsed}'`;
               statusColor = orangeHighlight;
               statusWeight = "font-bold";
             }
 
             return (
-              <div key={match.id} className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden relative">
+              <div key={match.id} 
+                   className={`rounded-[32px] border shadow-sm overflow-hidden relative transition-colors ${
+                     isLive ? 'bg-[#fff1f2] border-rose-100' : 'bg-white border-slate-100'
+                   }`}>
                 <div className="p-6">
                   <div className="flex justify-between items-center mb-4">
-                    <span className="bg-[#e8f8f0] text-[#56ad6a] px-3 py-1 rounded-lg text-[10px] font-black uppercase">{match.league}</span>
+                    <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase ${
+                      isLive ? 'bg-rose-100 text-rose-500' : 'bg-[#e8f8f0] text-[#56ad6a]'
+                    }`}>{match.league}</span>
                     <span className={`text-xs ${statusWeight}`} style={{ color: statusColor }}>{displayStatus}</span>
                   </div>
                   
@@ -116,19 +139,19 @@ export default function App() {
                     <div className="flex items-center gap-2 text-2xl">
                       <span className={`${isHomeLiveWin ? 'font-black text-red-500' : 'font-semibold'}`} 
                             style={{ color: !isHomeLiveWin ? darkGrey : undefined }}>{match.scoreHome}</span>
-                      <span className="text-slate-200">:</span>
+                      <span className="text-slate-200 text-lg">:</span>
                       <span className={`${isAwayLiveWin ? 'font-black text-red-500' : 'font-semibold'}`} 
                             style={{ color: !isAwayLiveWin ? darkGrey : undefined }}>{match.scoreAway}</span>
                     </div>
 
-                    <div className={`flex-1 text-left text-lg truncate ${isAwayLiveWin ? 'font-black text-slate-900' : 'font-semibold'}`} 
-                         style={{ color: !isAwayLiveWin ? darkGrey : undefined }}>
+                    <div className={`flex-1 text-left text-lg truncate ${isAwayWin ? 'font-black text-slate-900' : 'font-semibold'}`} 
+                         style={{ color: !isAwayWin ? darkGrey : undefined }}>
                       {match.away}
                     </div>
                   </div>
 
                   <div className="flex flex-col items-center gap-3">
-                     <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">예상 스코어</span>
+                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">예상 스코어</span>
                      <div className="flex items-center gap-4">
                         <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-sm ${
                           isPredDraw ? 'font-black bg-slate-100 text-slate-900' : 
