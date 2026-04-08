@@ -71,49 +71,52 @@ export default function App() {
 
         <div className="space-y-6">
           {matches.map((match) => {
-            // [실시간 승패 판정]
             const isHomeLiveWin = match.scoreHome > match.scoreAway;
             const isAwayLiveWin = match.scoreAway > match.scoreHome;
             const isLiveDraw = match.scoreHome === match.scoreAway;
 
-            // [AI 예상 승패 판정]
             const hExp = match.predict.home;
             const aExp = match.predict.away;
             const isHomePredWin = hExp > aExp;
             const isAwayPredWin = aExp > hExp;
             const isPredDraw = hExp === aExp;
 
+            // 무승부나 패배팀을 위해 더 진하게 설정된 색상
+            const darkGrey = "#475569"; 
+
             return (
               <div key={match.id} className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden relative">
                 <div className="p-6">
                   <div className="flex justify-between items-center mb-4">
                     <span className="bg-[#e8f8f0] text-[#56ad6a] px-3 py-1 rounded-lg text-[10px] font-black">{match.league}</span>
-                    <span className="text-slate-400 text-xs font-bold">{match.time}</span>
+                    <span className="text-slate-500 text-xs font-bold">{match.time}</span>
                   </div>
                   
                   <div className="flex items-center justify-center gap-4 mb-6">
                     {/* 홈팀 이름 */}
                     <div className={`flex-1 text-right text-lg truncate ${
-                      isHomeLiveWin ? 'font-black text-slate-900' : 'font-normal text-slate-500'
-                    }`}>
+                      isHomeLiveWin ? 'font-black text-slate-900' : 'font-semibold'
+                    }`} style={{ color: !isHomeLiveWin ? darkGrey : undefined }}>
                       {match.home}
                     </div>
 
                     {/* 실시간 스코어 */}
                     <div className="flex items-center gap-2 text-2xl">
-                      <span className={`${isHomeLiveWin ? 'font-black text-red-500' : 'font-normal text-slate-500'}`}>
+                      <span className={`${isHomeLiveWin ? 'font-black text-red-500' : 'font-semibold'}`} 
+                            style={{ color: !isHomeLiveWin ? darkGrey : undefined }}>
                         {match.scoreHome}
                       </span>
                       <span className="text-slate-200">:</span>
-                      <span className={`${isAwayLiveWin ? 'font-black text-red-500' : 'font-normal text-slate-500'}`}>
+                      <span className={`${isAwayLiveWin ? 'font-black text-red-500' : 'font-semibold'}`} 
+                            style={{ color: !isAwayLiveWin ? darkGrey : undefined }}>
                         {match.scoreAway}
                       </span>
                     </div>
 
                     {/* 원정팀 이름 */}
                     <div className={`flex-1 text-left text-lg truncate ${
-                      isAwayLiveWin ? 'font-black text-slate-900' : 'font-normal text-slate-500'
-                    }`}>
+                      isAwayLiveWin ? 'font-black text-slate-900' : 'font-semibold'
+                    }`} style={{ color: !isAwayLiveWin ? darkGrey : undefined }}>
                       {match.away}
                     </div>
                   </div>
@@ -122,39 +125,31 @@ export default function App() {
                   <div className="flex flex-col items-center gap-3">
                      <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">AI 예상 스코어</span>
                      <div className="flex items-center gap-4">
-                        {/* 홈 예상: 이기면 볼드, 무승부면 검정볼드, 지면 일반 */}
                         <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-sm ${
                           isPredDraw ? 'font-black bg-slate-100 text-slate-900' : 
-                          isHomePredWin ? 'font-black bg-red-50 text-red-500' : 'font-normal bg-slate-50 text-slate-400'
+                          isHomePredWin ? 'font-black bg-red-50 text-red-500' : 'font-medium bg-slate-50 text-slate-500'
                         }`}>
                           {hExp}
                         </div>
                         <span className="text-slate-200 font-bold">:</span>
-                        {/* 원정 예상: 이기면 볼드, 무승부면 검정볼드, 지면 일반 */}
                         <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-sm ${
                           isPredDraw ? 'font-black bg-slate-100 text-slate-900' : 
-                          isAwayPredWin ? 'font-black bg-blue-50 text-blue-600' : 'font-normal bg-slate-50 text-slate-400'
+                          isAwayPredWin ? 'font-black bg-blue-50 text-blue-600' : 'font-medium bg-slate-50 text-slate-500'
                         }`}>
                           {aExp}
                         </div>
                      </div>
                   </div>
 
-                  {/* 승부 예측 그래프 */}
-                  <div className="mt-6">
-                    <div className="flex justify-between text-[10px] font-bold mb-2 text-slate-400 px-1">
-                      <span>승 {match.probs.home}%</span>
-                      <span>무 {match.probs.draw}%</span>
-                      <span>패 {match.probs.away}%</span>
-                    </div>
-                    <div className="h-2 flex rounded-full overflow-hidden bg-slate-100">
+                  {/* 수정된 승부 예측 그래프 (숫자 삭제, 상단 얇은 선 삭제) */}
+                  <div className="mt-8">
+                    <div className="h-2.5 flex rounded-full overflow-hidden bg-slate-100 shadow-inner">
                       <div style={{ width: `${match.probs.home}%` }} className="bg-red-500"></div>
                       <div style={{ width: `${match.probs.draw}%` }} className="bg-slate-300"></div>
                       <div style={{ width: `${match.probs.away}%` }} className="bg-blue-500"></div>
                     </div>
                   </div>
                 </div>
-                <div className="h-1.5 flex"><div className="flex-[0.7] bg-red-500"></div><div className="flex-[0.3] bg-blue-500"></div></div>
               </div>
             );
           })}
