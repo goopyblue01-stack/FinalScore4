@@ -10,40 +10,45 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const targetDate = typeof date === 'string' ? date.replace(/-/g, '') : getTodayString();
 
   try {
-    // [전략] 7m의 가장 확실한 데이터 주머니 (vxml)
-    const targetUrl = targetDate === getTodayString() 
-      ? 'https://bf.7m.com.cn/vxml/bf_all_en.xml'
-      : `https://bf.7m.com.cn/vxml/bf_${targetDate}_en.xml`;
+    // [비밀 통로 변경] 한글 데이터가 실시간으로 가장 많이 쌓이는 경로입니다.
+    // 오늘이면 bf_all.js, 날짜가 있으면 bf_YYYYMMDD.js 를 사용합니다.
+    let targetUrl = `https://bf.7m.com.cn/vxml/bf_${targetDate}.js`;
+    if (targetDate === getTodayString()) {
+      targetUrl = 'https://bf.7m.com.cn/vxml/bf_all.js';
+    }
 
-    // ScraperAPI 호출 (충분한 대기시간 부여)
-    const proxyUrl = `https://api.scraperapi.com?api_key=${API_KEY}&url=${encodeURIComponent(targetUrl)}&render=false`;
+    // ScraperAPI 호출 (자바스크립트 렌더링 없이 원본 데이터만 빠르게 낚아옵니다)
+    const proxyUrl = `https://api.scraperapi.com?api_key=${API_KEY}&url=${encodeURIComponent(targetUrl)}`;
 
     const response = await fetch(proxyUrl);
-    const xmlText = await response.text();
+    const rawData = await response.text();
 
     const matches: any[] = [];
     
-    // 7m XML 파싱 (가장 튼튼한 정규식으로 교체)
-    const matchBlocks = xmlText.match(/<m>([\s\S]*?)<\/m>/g) || [];
+    // 7m 특유의 데이터 구조 sDt[번호]=[...] 를 낚아챕니다.
+    const rows = rawData.match(/sDt\[\d+\]=\[([\s\S]*?)\];/g) || [];
 
-    matchBlocks.forEach((block, idx) => {
-      const data = block.replace(/<\/?m>/g, '').split(',');
-      
-      // 데이터가 5개 이상만 있으면 일단 가져옵니다.
-      if (data.length > 5) {
-        matches.push({
-          id: `7m-${targetDate}-${idx}`,
-          league: data[2] || "리그",
-          home: data[5] || "홈팀",
-          away: data[6] || "원정팀",
-          score: `${data[13] || 0}:${data[14] || 0}`,
-          time: data[12] === '1' ? '전반' : (data[12] === '3' ? '후반' : (data[12] === '-1' ? '종료' : '대기')),
-          predict: { 
-            // NaN을 절대 안 만드는 안전한 예상 점수 로직
-            home: (idx % 3), 
-            away: (idx % 2) 
-          }
-        });
+    rows.forEach((row, idx) => {
+      const content = row.match(/\[([\s\S]*?)\]/)?.[1];
+      if (content) {
+        // 따옴표와 쉼표로 구분된 데이터를 쪼갭니다.
+        const d = content.split(',').map(item => item.replace(/'/g, "").trim());
+
+        // d[2]: 홈팀(한글), d[3]: 원정팀(한글), d[0]: 리그명(한글)
+        if (d.length > 10) {
+          matches.push({
+            id: `7m-${targetDate}-${idx}`,
+            league: d[0] || "리그",
+            home: d[2] || "홈팀",
+            away: d[3] || "원정팀",
+            score: (d[14] && d[15]) ? `${d[14]}:${d[15]}` : "VS",
+            time: d[12] === '1' ? '전반' : (d[12] === '3' ? '후반' : '대기'),
+            predict: { 
+              home: Math.abs(idx % 4), 
+              away: Math.abs(idx % 3) 
+            }
+          });
+        }
       }
     });
 
@@ -51,7 +56,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({ matches });
     }
 
-    // 데이터가 진짜 없을 때만 알림
     return res.status(200).json({ matches: getEmptyMsg(targetDate) });
 
   } catch (error) {
@@ -61,10 +65,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
 function getTodayString() {
   const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, '0');
-  const d = String(now.getDate()).padStart(2, '0');
-  return `${y}${m}${d}`;
+  return `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
 }
 
 function getEmptyMsg(dateStr: string) {
@@ -72,7 +73,7 @@ function getEmptyMsg(dateStr: string) {
     id: 'e', 
     league: '알림', 
     home: `${dateStr} 경기`, 
-    away: '목록 업데이트 중', 
+    away: '데이터 수집 중', 
     score: 'VS', 
     time: '-', 
     predict: { home: 0, away: 0 } 
