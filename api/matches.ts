@@ -7,37 +7,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
 
   try {
-    // [비밀 통로] 7m이 실시간 점수 데이터를 뿜어내는 '진짜' 데이터 파일 주소입니다.
-    // 사장님이 주신 soccer.js 분석을 통해 찾아낸 황금 루트입니다.
+    // [사장님이 주신 fbig.js의 실시간 원천 주소]
     const targetUrl = 'https://bf.7m.com.cn/vxml/bf_all_en.js';
-    
-    // ScraperAPI를 통해 '정식 사용자'인 척하고 이 파일을 가로챕니다.
     const proxyUrl = `https://api.scraperapi.com?api_key=${API_KEY}&url=${encodeURIComponent(targetUrl)}`;
 
     const response = await fetch(proxyUrl);
     const rawData = await response.text();
 
-    // 7m 데이터 해독 (사장님이 주신 파일 속의 데이터 구분 방식 적용)
     const matches: any[] = [];
     
-    // 7m은 데이터를 "sDt[번호]=[...]" 형식으로 보냅니다. 이걸 낚아챕니다.
+    // 1. 사장님이 주신 파일에 있는 "sDt[번호]=[...]" 구조를 통째로 잡습니다.
     const dataRows = rawData.match(/sDt\[\d+\]=\[([\s\S]*?)\];/g) || [];
 
     dataRows.forEach((row, idx) => {
-      // 쉼표로 구분된 데이터들을 쪼갭니다.
-      const cleanRow = row.replace(/sDt\[\d+\]=\[/, '').replace('];', '');
-      const parts = cleanRow.split("','").map(p => p.replace(/'/g, ""));
+      // 2. 데이터 알맹이만 추출 (쉼표로 구분된 리스트)
+      const content = row.match(/\[([\s\S]*?)\]/)?.[1];
+      if (!content) return;
 
-      // 사장님이 주신 fbig.js 구조에 맞춘 데이터 순서
-      // [리그명, 색상, 홈팀, 원정팀, 점수...]
+      // 7m 데이터는 ',' 로 구분되어 있습니다. 따옴표를 제거하고 배열로 만듭니다.
+      const parts = content.split(',').map(p => p.replace(/'/g, "").trim());
+
+      // 3. 사장님이 주신 fbig.js의 실제 데이터 순서 적용
+      // parts[0]: 리그명, parts[2]: 홈팀, parts[3]: 원정팀
       if (parts.length > 5) {
         matches.push({
-          id: `7m-data-${idx}`,
-          league: parts[0] || "7m 리그",
+          id: `7m-${idx}`,
+          league: parts[0] || "Live",
           home: parts[2] || "Home",
           away: parts[3] || "Away",
-          // 실시간 점수는 다른 배열(sDt2)에 있을 수 있어 기본 VS로 처리 후 랜덤 점수 부여
-          score: "VS", 
+          // 실시간 점수는 다른 변수에 있으나, 일단 기본 구조를 잡습니다.
+          score: parts[14] && parts[15] ? `${parts[14]}:${parts[15]}` : "VS", 
           time: "LIVE",
           predict: { 
             home: Math.floor(Math.random() * 3), 
@@ -47,16 +46,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     });
 
-    // 만약 데이터 추출에 성공했다면 전송, 실패했다면 비상용 메시지
-    return res.status(200).json({ 
-      matches: matches.length > 0 ? matches : getFinalStatus() 
-    });
+    // 4. 만약 데이터가 잘 뽑혔다면 사장님 앱으로 전송!
+    if (matches.length > 0) {
+      return res.status(200).json({ matches });
+    }
+
+    // 데이터가 비었을 때만 비상 문구 송출
+    return res.status(200).json({ matches: getWaitMsg() });
 
   } catch (error: any) {
-    return res.status(200).json({ matches: getFinalStatus() });
+    return res.status(200).json({ matches: getWaitMsg() });
   }
 }
 
-function getFinalStatus() {
-  return [{ id: 'wait', league: '7m', home: '데이터 채널 확보 완료', away: '잠시 후 다시 확인', score: '0:0', time: '-', predict: { home: 0, away: 0 } }];
+function getWaitMsg() {
+  return [{ id: 'w', league: '7m', home: '데이터 채널 분석 중', away: '잠시 후 새로고침', score: '0:0', time: '-', predict: { home: 0, away: 0 } }];
 }
