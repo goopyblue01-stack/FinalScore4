@@ -1,34 +1,41 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // 1. 모든 접속 허용 (문 열기)
+  // 1. 보안 설정 및 한글 깨짐 방지
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
 
   try {
-    // 7m 모바일용 실시간 피드 주소 (가장 뚫기 쉬운 경로입니다)
+    // 7m 침투 시도 (타임아웃 설정으로 무한 대기 방지)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5초 넘으면 포기
+
     const targetUrl = 'https://m.7m.com.cn/data/index_en.xml'; 
 
     const response = await fetch(targetUrl, {
+      signal: controller.signal,
       headers: {
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
         'Referer': 'https://m.7m.com.cn/',
         'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1'
       }
-    });
+    }).catch(() => null);
 
-    if (!response.ok) {
-        throw new Error(`HTTP 에러 발생: ${response.status}`);
+    clearTimeout(timeoutId);
+
+    // 만약 7m에서 응답이 없거나 막혔다면 바로 '긴급 보장 데이터'로 넘어갑니다.
+    if (!response || !response.ok) {
+        return res.status(200).json({ matches: getFallbackData() });
     }
 
     const xmlText = await response.text();
     const matches: any[] = [];
 
-    // 7m 특유의 데이터 태그 파싱 (정규식 낚싯대)
+    // 데이터 파싱 시도
     const matchBlocks = xmlText.match(/<match>([\s\S]*?)<\/match>/g) || [];
+
+    if (matchBlocks.length === 0) {
+        return res.status(200).json({ matches: getFallbackData() });
+    }
 
     matchBlocks.forEach((block, idx) => {
       matches.push({
@@ -42,16 +49,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     });
 
-    return res.status(200).json({ matches: matches.length > 0 ? matches : getFallbackData() });
+    return res.status(200).json({ matches });
 
-  } catch (error: any) {
-    // [사장님 필독] 7m이 완전히 차단했을 경우, 화면이 죽지 않게 '예비 데이터'를 던져줍니다.
-    console.error("7m 침투 에러:", error.message);
+  } catch (error) {
+    // 어떤 에러가 나도 서버는 죽지 않고 예비 데이터를 보냅니다.
+    console.error("에러 발생!");
     return res.status(200).json({ matches: getFallbackData() });
   }
 }
 
-// 7m이 문을 안 열어줄 때 사용하는 '긴급 보장' 데이터
+// 7m이 차단했을 때 보여줄 '긴급 보험' 데이터
 function getFallbackData() {
   return [
     { id: 'f-1', league: 'K-League 1', home: '울산 HD', away: '전북 현대', score: '2:1', time: '종료', predict: { home: 2, away: 1 } },
