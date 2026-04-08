@@ -194,3 +194,30 @@ export default function App() {
                   <div className="flex justify-between items-center mb-2">
                     <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase ${isLive ? 'bg-rose-100/50 text-rose-500' : 'bg-[#e8f8f0] text-[#56ad6a]'}`}>{match.league}</span>
                     <span className="text-[10px] font-bold" style={{ color: isLive ? "#f97316" : "#475569" }}>{displayStatus}</span>
+                  </div>
+                  <div className="flex items-center justify-center gap-3 mb-3">
+                    <div className={`flex-1 text-right text-sm md:text-base truncate ${isHomeLiveWin ? 'font-black text-slate-900' : 'font-semibold text-slate-700'}`}>{match.home}</div>
+                    <div className="flex items-center gap-2 text-xl font-bold min-w-[60px] justify-center">
+                        {match.status === 'NS' ? <span className="text-slate-200 text-sm">VS</span> : 
+                        <><span style={{ color: isHomeLiveWin ? '#ef4444' : '#475569' }}>{match.scoreHome}</span><span className="text-slate-200">:</span><span style={{ color: isAwayLiveWin ? '#ef4444' : '#475569' }}>{match.scoreAway}</span></>}
+                    </div>
+                    <div className={`flex-1 text-left text-sm md:text-base truncate ${isAwayLiveWin ? 'font-black text-slate-900' : 'font-semibold text-slate-700'}`}>{match.away}</div>
+                  </div>
+                  <div className="flex flex-col items-center gap-2">
+                     <span className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">예상 스코어</span>
+                     <div className="flex items-center gap-3 font-black text-lg">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${isPredDraw ? 'bg-slate-200 border-slate-300 text-slate-900' : isHomePredWin ? 'bg-red-50 border-red-100 text-red-500' : 'bg-slate-50 border-slate-100 text-slate-700 font-semibold'}`}>{hExp}</div>
+                        <span className="text-slate-200">:</span>
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${isPredDraw ? 'bg-slate-200 border-slate-300 text-slate-900' : isAwayPredWin ? 'bg-blue-50 border-blue-100 text-blue-600' : 'bg-slate-50 border-slate-100 text-slate-700 font-semibold'}`}>{aExp}</div>
+                     </div>
+                  </div>
+                  <div className="mt-4"><div className="h-1.5 flex rounded-full overflow-hidden bg-slate-100/50"><div style={{ width: `${match.probs.home}%` }} className="bg-red-500"></div><div style={{ width: `${match.probs.draw}%` }} className="bg-slate-300"></div><div style={{ width: `${match.probs.away}%` }} className="bg-blue-500"></div></div></div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </main>
+    </div>
+  );
+}
