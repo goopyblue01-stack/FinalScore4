@@ -114,11 +114,11 @@ export default function App() {
                   <div className="flex-1 text-left text-lg font-black text-slate-800 truncate">{match.away}</div>
                 </div>
                 <div className="flex flex-col items-center gap-3">
-                   <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">AI Prediction</span>
+                   <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">예상 스코어</span>
                    <div className="flex items-center gap-4">
                       <div className="bg-red-50 text-red-500 w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-black shadow-sm">{match.predict.home}</div>
                       <span className="text-slate-200 font-bold">:</span>
-                      <div className="bg-blue-50 text-blue-600 w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-black shadow-sm">{match.predict.away}</div>
+                      <div className="bg-blue-50 text-blue-600 w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-black shadow-sm">{match.predict.away || 0}</div>
                    </div>
                 </div>
               </div>
