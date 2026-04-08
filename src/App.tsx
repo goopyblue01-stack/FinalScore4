@@ -1,119 +1,196 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { RefreshCw, ArrowLeft, TrendingUp, Info, ChevronUp, ChevronDown, FlaskConical } from 'lucide-react';
+import { format, addDays, startOfToday } from 'date-fns';
 
-// [1. 스코어 색상 로직 함수]
-const getScoreStyle = (team: 'home' | 'away', scoreHome: number, scoreAway: number) => {
-  if (scoreHome > scoreAway) {
-    return team === 'home' 
-      ? { color: '#FF0000', fontWeight: 'bold' } 
-      : { color: '#333', fontWeight: 'normal' };
-  } else if (scoreAway > scoreHome) {
-    return team === 'away' 
-      ? { color: '#0000FF', fontWeight: 'bold' } 
-      : { color: '#333', fontWeight: 'normal' };
-  } else {
-    return { color: '#333', fontWeight: 'normal' };
-  }
-};
+// [상세 페이지 컴포넌트]
+function MatchDetail({ match, onBack }: { match: any, onBack: () => void }) {
+  const getRank1Style = (h: number, a: number) => {
+    if (h > a) return { h: "text-red-500 font-black", a: "text-white font-normal" };
+    if (a > h) return { h: "text-white font-normal", a: "text-blue-400 font-black" };
+    return { h: "text-white font-normal", a: "text-white font-normal" };
+  };
 
-const App = () => {
-  const [matches, setMatches] = useState<any[]>([]);
-  const [selectedMatch, setSelectedMatch] = useState<any>(null);
+  const getNormalStyle = (h: number, a: number) => {
+    if (h > a) return { h: "text-red-500 font-black", a: "text-slate-700 font-normal" };
+    if (a > h) return { h: "text-slate-700 font-normal", a: "text-blue-600 font-black" };
+    return { h: "text-slate-800 font-normal", a: "text-slate-800 font-normal" };
+  };
 
-  useEffect(() => {
-    fetch('/api/matches')
-      .then(res => res.json())
-      .then(data => {
-        if (data.matches) setMatches(data.matches);
-      })
-      .catch(err => console.error("Data Error:", err));
-  }, []);
+  const topPredictions = [
+    { h: match.predict.home, a: match.predict.away, prob: "32%", rank: 1 },
+    { h: match.predict.home + 1, a: match.predict.away, prob: "18%", rank: 2 },
+    { h: match.predict.home, a: match.predict.away + 1, prob: "14%", rank: 3 },
+    { h: match.predict.home + 1, a: match.predict.away + 1, prob: "9%", rank: 4 },
+    { h: Math.max(0, match.predict.home - 1), a: match.predict.away, prob: "7%", rank: 5 },
+  ];
 
-  // [상세 페이지 - 디자인 복구 버전]
-  if (selectedMatch) {
-    return (
-      <div style={{ padding: '20px', maxWidth: '600px', margin: '0 auto', fontFamily: '"Noto Sans KR", sans-serif' }}>
-        <button 
-          onClick={() => setSelectedMatch(null)} 
-          style={{ marginBottom: '20px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '16px', color: '#666' }}
-        >
-          ← 뒤로가기
-        </button>
-        
-        <div style={{ background: '#fff', border: '1px solid #eee', borderRadius: '20px', padding: '40px 20px', boxShadow: '0 10px 25px rgba(0,0,0,0.05)', textAlign: 'center' }}>
-          <div style={{ fontSize: '14px', color: '#999', marginBottom: '20px' }}>{selectedMatch.league}</div>
-          
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ ...getScoreStyle('home', selectedMatch.scoreHome, selectedMatch.scoreAway), fontSize: '20px' }}>{selectedMatch.home}</div>
-            </div>
-            
-            <div style={{ flex: 1, fontSize: '40px', fontWeight: 'bold', display: 'flex', justifyContent: 'center', gap: '15px' }}>
-              <span style={getScoreStyle('home', selectedMatch.scoreHome, selectedMatch.scoreAway)}>{selectedMatch.scoreHome}</span>
-              <span style={{ color: '#eee' }}>:</span>
-              <span style={getScoreStyle('away', selectedMatch.scoreHome, selectedMatch.scoreAway)}>{selectedMatch.scoreAway}</span>
-            </div>
-
-            <div style={{ flex: 1 }}>
-              <div style={{ ...getScoreStyle('away', selectedMatch.scoreHome, selectedMatch.scoreAway), fontSize: '20px' }}>{selectedMatch.away}</div>
-            </div>
-          </div>
-        </div>
-
-        {/* AI 확률 그래프 - 경기별 데이터 적용 */}
-        <div style={{ marginTop: '50px' }}>
-          <div style={{ textAlign: 'center', fontWeight: 'bold', marginBottom: '20px', fontSize: '18px' }}>AI 승패 예측 분석</div>
-          <div style={{ height: '45px', display: 'flex', borderRadius: '25px', overflow: 'hidden', backgroundColor: '#f0f0f0' }}>
-            <div style={{ width: `${selectedMatch.probs?.home || 33}%`, backgroundColor: '#ff4d4f', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 'bold' }}>
-              홈 {selectedMatch.probs?.home || 33}%
-            </div>
-            <div style={{ width: `${selectedMatch.probs?.draw || 34}%`, backgroundColor: '#8c8c8c', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 'bold' }}>
-              무 {selectedMatch.probs?.draw || 34}%
-            </div>
-            <div style={{ width: `${selectedMatch.probs?.away || 33}%`, backgroundColor: '#1890ff', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 'bold' }}>
-              원정 {selectedMatch.probs?.away || 33}%
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+  const orangeHighlight = "#f97316";
+  const darkGrey = "#475569";
+  
+  let displayStatus = "";
+  let statusColor = darkGrey;
+  if (match.status === 'NS') displayStatus = match.korTime;
+  else if (match.status === 'FT') displayStatus = 'FT';
+  else {
+    displayStatus = match.elapsed ? `${match.elapsed}'` : 'LIVE';
+    statusColor = orangeHighlight;
   }
 
-  // [메인 리스트 - 스크린샷 기반 디자인 복구]
   return (
-    <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto', backgroundColor: '#f9f9f9', minHeight: '100vh', fontFamily: '"Noto Sans KR", sans-serif' }}>
-      <h1 style={{ textAlign: 'center', fontSize: '24px', fontWeight: '300', marginBottom: '40px', color: '#333' }}>ScoreLab</h1>
-      
-      {matches.map((match: any) => (
-        <div 
-          key={match.id} 
-          onClick={() => setSelectedMatch(match)}
-          style={{ background: '#fff', border: '1px solid #eee', borderRadius: '15px', padding: '25px', marginBottom: '20px', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}
-        >
-          <div style={{ fontSize: '13px', color: '#aaa', marginBottom: '15px' }}>{match.league} | {match.korTime}</div>
-          
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ flex: 1.5, fontSize: '18px', ...getScoreStyle('home', match.scoreHome, match.scoreAway) }}>
-              {match.home}
-            </div>
-            
-            <div style={{ flex: 1, textAlign: 'center', fontSize: '22px', fontWeight: '500' }}>
-              <span style={getScoreStyle('home', match.scoreHome, match.scoreAway)}>{match.scoreHome}</span>
-              <span style={{ margin: '0 10px', color: '#eee' }}>:</span>
-              <span style={getScoreStyle('away', match.scoreHome, match.scoreAway)}>{match.scoreAway}</span>
-            </div>
-            
-            <div style={{ flex: 1.5, textAlign: 'right', fontSize: '18px', ...getScoreStyle('away', match.scoreHome, match.scoreAway) }}>
-              {match.away}
-            </div>
+    <div className="min-h-screen bg-[#f8faff] pb-10">
+      <header className="bg-white py-6 flex items-center px-4 border-b border-slate-100 sticky top-0 z-30 shadow-sm">
+        <button onClick={onBack} className="p-2 hover:bg-slate-50 rounded-full transition-colors">
+          <ArrowLeft className="w-6 h-6 text-slate-600" />
+        </button>
+        <h2 className="flex-1 text-center font-black text-slate-800 pr-10 text-sm">{match.league}</h2>
+      </header>
+
+      <main className="max-w-4xl mx-auto px-3 mt-6">
+        <div className={`rounded-[32px] p-6 mb-6 shadow-sm border ${
+          !['NS', 'FT'].includes(match.status) ? 'bg-rose-50/40 border-rose-100' : 'bg-white border-slate-100'
+        }`}>
+          <div className="text-center text-xs mb-4 font-bold" style={{ color: statusColor }}>
+            {match.status === 'FT' ? '경기 종료' : match.status === 'NS' ? '경기전' : displayStatus}
           </div>
-          
-          <div style={{ fontSize: '12px', color: '#ccc', marginTop: '20px', textAlign: 'center' }}>
-            해외 배당: {match.odds?.home || '-'} | {match.odds?.draw || '-'} | {match.odds?.away || '-'}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex-1 text-right font-black text-sm md:text-xl text-slate-800">{match.home}</div>
+            <div className="flex-shrink-0 flex items-center justify-center gap-1 min-w-[80px]">
+              {match.status === 'NS' ? <span className="text-slate-200 text-2xl font-black">VS</span> : 
+              <><span className="text-2xl md:text-4xl font-black text-slate-900">{match.scoreHome}</span><span className="text-xl md:text-3xl font-black text-slate-200">:</span><span className="text-2xl md:text-4xl font-black text-slate-900">{match.scoreAway}</span></>}
+            </div>
+            <div className="flex-1 text-left font-black text-sm md:text-xl text-slate-800">{match.away}</div>
           </div>
         </div>
-      ))}
+
+        {/* 예상 스코어 순위 Top 5 */}
+        <div className="bg-white rounded-[24px] p-6 border border-slate-100 shadow-sm mb-4">
+          <div className="flex items-center gap-2 mb-6 text-[#56ad6a] font-bold">
+            <TrendingUp className="w-5 h-5" />
+            <span>예상 스코어 순위 (Top 5)</span>
+          </div>
+          <div className="flex flex-col gap-2.5">
+            {topPredictions.map((p) => {
+              const isRank1 = p.rank === 1;
+              const style = isRank1 ? getRank1Style(p.h, p.a) : getNormalStyle(p.h, p.a);
+              return (
+                <div key={p.rank} className={`flex items-center justify-between p-3.5 rounded-2xl border transition-all ${
+                    isRank1 ? 'bg-slate-900 border-slate-800 scale-[1.01] shadow-md' : 
+                    p.rank <= 3 ? 'bg-white border-slate-200' : 'bg-slate-50/50 border-slate-100 opacity-70'
+                }`}>
+                  <div className="flex items-center gap-3">
+                    <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${isRank1 ? 'bg-[#56ad6a] text-white' : 'bg-slate-200 text-slate-500'}`}>{p.rank}위</span>
+                    <div className="flex items-center gap-2 text-base">
+                      <span className={style.h}>{p.h}</span><span className={isRank1 ? 'text-slate-600' : 'text-slate-200'}>:</span><span className={style.a}>{p.a}</span>
+                    </div>
+                  </div>
+                  <span className={`font-bold text-[10px] ${isRank1 ? 'text-[#56ad6a]' : 'text-slate-400'}`}>{p.prob}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* 해외 배당 정보 */}
+        <div className="bg-white rounded-[24px] p-6 border border-slate-100 shadow-sm mb-6">
+          <div className="flex items-center gap-2 mb-6 text-[#bf953f] font-bold"><Info className="w-5 h-5" /><span>해외 배당 정보</span></div>
+          {match.odds ? (
+            <div className="grid grid-cols-3 gap-3 text-center">
+              <div className="flex flex-col items-center p-4 bg-red-50 rounded-2xl border border-red-100">
+                <span className="text-[10px] font-bold text-red-400 mb-1">승</span>
+                <div className="flex items-center gap-1"><ChevronDown className="w-4 h-4 text-red-500" strokeWidth={3}/><span className="text-lg font-black text-red-500">{match.odds.home}</span></div>
+              </div>
+              <div className="flex flex-col items-center p-4 bg-slate-50 rounded-2xl border border-slate-100"><span className="text-[10px] font-bold text-slate-400 mb-1">무</span><span className="text-lg font-black text-slate-800">{match.odds.draw}</span></div>
+              <div className="flex flex-col items-center p-4 bg-blue-50 rounded-2xl border border-blue-100">
+                <span className="text-[10px] font-bold text-blue-400 mb-1">패</span>
+                <div className="flex items-center gap-1"><ChevronUp className="w-4 h-4 text-blue-600" strokeWidth={3}/><span className="text-lg font-black text-blue-600">{match.odds.away}</span></div>
+              </div>
+            </div>
+          ) : (
+            <div className="py-10 text-center text-slate-400 text-xs italic bg-slate-50 rounded-2xl border border-dashed">이 경기는 현재 해외 배당 준비 중입니다.</div>
+          )}
+          <p className="mt-5 text-[10px] text-center text-slate-400 italic">"본 데이터는 해외 배당 정보이며, 베팅을 권하지 않습니다."</p>
+        </div>
+      </main>
     </div>
   );
-};
+}
 
-export default App;
+// [메인 앱 컴포넌트]
+export default function App() {
+  const [matches, setMatches] = useState<any[]>([]);
+  const [selectedDateIdx, setSelectedDateIdx] = useState(2);
+  const [selectedMatch, setSelectedMatch] = useState<any | null>(null);
+
+  const today = startOfToday();
+  const dates = Array.from({ length: 5 }, (_, i) => {
+    const date = addDays(today, i - 2);
+    return { date, dateStr: format(date, 'yyyy-MM-dd'), day: format(date, 'M월 d일'), label: i === 2 ? '(today)' : '' };
+  });
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const res = await fetch(`/api/matches?date=${dates[selectedDateIdx].dateStr}`);
+        const json = await res.json();
+        setMatches(json.matches || []);
+      } catch (e) { console.error(e); }
+    };
+    fetchData();
+  }, [selectedDateIdx]);
+
+  if (selectedMatch) return <MatchDetail match={selectedMatch} onBack={() => setSelectedMatch(null)} />;
+
+  return (
+    <div className="min-h-screen bg-[#f8faff] pb-10 text-slate-900 font-sans tracking-tight">
+      {/* [변경] ScoreLab 로고 및 타이틀 헤더 */}
+      <header className="bg-white py-6 flex justify-center items-center border-b border-slate-100 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="bg-[#56ad6a] w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shadow-green-100">
+            <FlaskConical className="text-white w-6 h-6" />
+          </div>
+          <h1 className="text-3xl font-black tracking-tighter text-slate-800">
+            Score<span className="text-[#56ad6a]">Lab</span>
+          </h1>
+        </div>
+      </header>
+
+      <nav className="bg-white border-b border-slate-100 py-4 px-4 sticky top-0 z-20 shadow-sm">
+        <div className="max-w-4xl mx-auto flex justify-between gap-2">
+          {dates.map((date, idx) => (
+            <button key={idx} onClick={() => setSelectedDateIdx(idx)}
+              className={`flex-1 h-12 rounded-xl flex flex-col items-center justify-center transition-all ${
+                selectedDateIdx === idx ? 'bg-[#56ad6a] text-white shadow-md' : 'bg-slate-50 text-slate-400'
+              }`}>
+              <span className="text-sm font-bold">{date.day}</span>
+              <span className="text-[9px]">{date.label}</span>
+            </button>
+          ))}
+        </div>
+      </nav>
+
+      <main className="max-w-4xl mx-auto px-4 mt-6">
+        <div className="space-y-3">
+          {matches.map((match) => {
+            const isLive = !['NS', 'FT', 'CANC', 'ABD'].includes(match.status);
+            const isHomeLiveWin = match.scoreHome > match.scoreAway;
+            const isAwayLiveWin = match.scoreAway > match.scoreHome;
+            const hExp = match.predict.home;
+            const aExp = match.predict.away;
+            const isHomePredWin = hExp > aExp;
+            const isAwayPredWin = aExp > hExp;
+            const isPredDraw = hExp === aExp;
+            
+            let displayStatus = "";
+            if (match.status === 'NS') displayStatus = match.korTime;
+            else if (match.status === 'FT') displayStatus = 'FT';
+            else displayStatus = match.elapsed ? `${match.elapsed}'` : 'LIVE';
+
+            return (
+              <div key={match.id} onClick={() => setSelectedMatch(match)}
+                   className={`rounded-[24px] border shadow-sm overflow-hidden relative cursor-pointer transition-all hover:scale-[1.005] ${
+                     isLive ? 'bg-rose-50/40 border-rose-100' : 'bg-white border-slate-100'
+                   }`}>
+                <div className="p-3 md:p-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase ${isLive ? 'bg-rose-100/50 text-rose-500' : 'bg-[#e8f8f0] text-[#56ad6a]'}`}>{match.league}</span>
+                    <span className="text-[10px] font-bold" style={{ color: isLive ? "#f97316" : "#475569" }}>{displayStatus}</span>
