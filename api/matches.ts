@@ -2,12 +2,15 @@ import type { VercelRequest, VercelResponse } from '@vercel.node';
 
 const API_KEY = process.env.API_SPORTS_KEY;
 
-// [한글 번역 사전] 자주 나오는 팀들을 여기에 추가하세요!
+// [번역 사전] 사장님, 여기에 팀명이 보일 때마다 한글을 추가하시면 앱이 점점 완벽해집니다!
 const translator: { [key: string]: string } = {
-  "Man City": "맨시티", "Arsenal": "아스널", "Liverpool": "리버풀", "Real Madrid": "레알 마드리드",
-  "Barcelona": "바르셀로나", "Bayern Munich": "뮌헨", "Tottenham": "토트넘", "Man United": "맨유",
-  "Philippine Army": "필리핀 아미", "Kaya": "카야 FC", "PFL": "필리핀 리그", "Premier League": "EPL"
+  "Premier League": "프리미어리그", "La Liga": "라리가", "K-League 1": "K리그 1",
+  "Manchester City": "맨시티", "Arsenal": "아스널", "Liverpool": "리버풀",
+  "Real Madrid": "레알 마드리드", "FC Barcelona": "바르셀로나",
+  "Philippine Army": "필리핀 아미", "Kaya": "카야 FC", "PFL": "필리핀 리그"
 };
+
+const translate = (text: string) => translator[text] || text;
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate');
@@ -25,23 +28,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
     const data = await response.json();
 
-    const matches = (data.response || []).map((item: any) => {
-      const hName = item.teams.home.name;
-      const aName = item.teams.away.name;
-      const lName = item.league.name;
-
-      return {
-        id: item.fixture.id,
-        league: translator[lName] || lName,
-        home: translator[hName] || hName, // 사전에 있으면 한글, 없으면 영어
-        away: translator[aName] || aName,
-        scoreHome: item.goals.home ?? 0,
-        scoreAway: item.goals.away ?? 0,
-        scoreText: item.goals.home !== null ? `${item.goals.home}:${item.goals.away}` : "VS",
-        time: item.fixture.status.elapsed ? `${item.fixture.status.elapsed}'` : item.fixture.status.short,
-        predict: { home: Math.floor(Math.random() * 3), away: Math.floor(Math.random() * 2) }
-      };
-    });
+    const matches = (data.response || []).map((item: any) => ({
+      id: item.fixture.id,
+      league: translate(item.league.name), // 서버에서 번역
+      home: translate(item.teams.home.name), // 서버에서 번역
+      away: translate(item.teams.away.name), // 서버에서 번역
+      scoreHome: item.goals.home ?? 0,
+      scoreAway: item.goals.away ?? 0,
+      time: item.fixture.status.elapsed ? `${item.fixture.status.elapsed}'` : item.fixture.status.short,
+      predict: { 
+        home: (parseInt(String(item.fixture.id).slice(-1)) % 3) + 1, 
+        away: (parseInt(String(item.fixture.id).slice(-2, -1)) % 2) 
+      }
+    }));
 
     return res.status(200).json({ matches: matches.slice(0, 50) });
   } catch (error) {
