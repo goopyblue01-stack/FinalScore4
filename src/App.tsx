@@ -5,15 +5,15 @@ import { format, addDays, startOfToday } from 'date-fns';
 // [상세 페이지 컴포넌트]
 function MatchDetail({ match, onBack }: { match: any, onBack: () => void }) {
   const getRank1Style = (h: number, a: number) => {
-    if (h > a) return { h: "text-red-500 font-black", a: "text-white font-normal" };
-    if (a > h) return { h: "text-white font-normal", a: "text-blue-400 font-black" };
-    return { h: "text-white font-normal", a: "text-white font-normal" };
+    if (h > a) return { h: "text-red-500 font-black", a: "text-slate-400 font-normal" };
+    if (a > h) return { h: "text-slate-400 font-normal", a: "text-red-500 font-black" };
+    return { h: "text-white font-bold", a: "text-white font-bold" };
   };
 
   const getNormalStyle = (h: number, a: number) => {
-    if (h > a) return { h: "text-red-500 font-black", a: "text-slate-700 font-normal" };
-    if (a > h) return { h: "text-slate-700 font-normal", a: "text-blue-600 font-black" };
-    return { h: "text-slate-800 font-normal", a: "text-slate-800 font-normal" };
+    if (h > a) return { h: "text-red-500 font-black", a: "text-slate-400 font-normal" };
+    if (a > h) return { h: "text-slate-400 font-normal", a: "text-red-500 font-black" };
+    return { h: "text-slate-800 font-bold", a: "text-slate-800 font-bold" };
   };
 
   const topPredictions = [
@@ -36,11 +36,14 @@ function MatchDetail({ match, onBack }: { match: any, onBack: () => void }) {
     statusColor = orangeHighlight;
   }
 
-  // [수정] 상세 페이지 스코어 색상 및 굵기 로직 추가
   const isHomeWin = match.scoreHome > match.scoreAway;
   const isAwayWin = match.scoreAway > match.scoreHome;
-  const homeScoreClass = isHomeWin ? "text-red-500 font-black" : isAwayWin ? "text-slate-500 font-normal" : "text-slate-800 font-bold";
-  const awayScoreClass = isAwayWin ? "text-blue-600 font-black" : isHomeWin ? "text-slate-500 font-normal" : "text-slate-800 font-bold";
+  
+  const homeScoreClass = isHomeWin ? "text-red-500 font-black" : isAwayWin ? "text-slate-400 font-normal" : "text-slate-800 font-bold";
+  const awayScoreClass = isAwayWin ? "text-red-500 font-black" : isHomeWin ? "text-slate-400 font-normal" : "text-slate-800 font-bold";
+  
+  const homeNameClass = isHomeWin ? "font-black text-slate-900" : isAwayWin ? "font-medium text-slate-400" : "font-black text-slate-800";
+  const awayNameClass = isAwayWin ? "font-black text-slate-900" : isHomeWin ? "font-medium text-slate-400" : "font-black text-slate-800";
 
   return (
     <div className="min-h-screen bg-[#f8faff] pb-10">
@@ -59,17 +62,17 @@ function MatchDetail({ match, onBack }: { match: any, onBack: () => void }) {
             {match.status === 'FT' ? '경기 종료' : match.status === 'NS' ? '경기전' : displayStatus}
           </div>
           <div className="flex items-center justify-between gap-2">
-            <div className="flex-1 text-right font-black text-sm md:text-xl text-slate-800">{match.home}</div>
+            <div className={`flex-1 text-right text-sm md:text-xl ${homeNameClass}`}>{match.home}</div>
             <div className="flex-shrink-0 flex items-center justify-center gap-1 min-w-[80px]">
-              {match.status === 'NS' ? <span className="text-slate-200 text-2xl font-black">VS</span> : 
+              {match.status === 'NS' ? <span className="text-slate-300 text-2xl font-black">VS</span> : 
               <>
-                {/* [수정] 위에서 만든 로직을 적용하여 색상과 굵기 분리 */}
                 <span className={`text-2xl md:text-4xl ${homeScoreClass}`}>{match.scoreHome}</span>
-                <span className="text-xl md:text-3xl font-black text-slate-200">:</span>
+                {/* [수정] 콜론 색상을 더 진하게 변경 (text-slate-400) */}
+                <span className="text-xl md:text-3xl font-black text-slate-400">:</span>
                 <span className={`text-2xl md:text-4xl ${awayScoreClass}`}>{match.scoreAway}</span>
               </>}
             </div>
-            <div className="flex-1 text-left font-black text-sm md:text-xl text-slate-800">{match.away}</div>
+            <div className={`flex-1 text-left text-sm md:text-xl ${awayNameClass}`}>{match.away}</div>
           </div>
         </div>
 
@@ -87,7 +90,8 @@ function MatchDetail({ match, onBack }: { match: any, onBack: () => void }) {
                   <div className="flex items-center gap-3">
                     <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${isRank1 ? 'bg-[#56ad6a] text-white' : 'bg-slate-200 text-slate-500'}`}>{p.rank}위</span>
                     <div className="flex items-center gap-2 text-base">
-                      <span className={style.h}>{p.h}</span><span className={isRank1 ? 'text-slate-600' : 'text-slate-200'}>:</span><span className={style.a}>{p.a}</span>
+                      {/* [수정] 콜론 색상을 더 진하게 변경 */}
+                      <span className={style.h}>{p.h}</span><span className={isRank1 ? 'text-slate-600' : 'text-slate-400'}>:</span><span className={style.a}>{p.a}</span>
                     </div>
                   </div>
                   <span className={`font-bold text-[10px] ${isRank1 ? 'text-[#56ad6a]' : 'text-slate-400'}`}>{p.prob}</span>
@@ -179,8 +183,10 @@ export default function App() {
         <div className="space-y-3">
           {matches.map((match) => {
             const isLive = !['NS', 'FT', 'CANC', 'ABD'].includes(match.status);
+            
             const isHomeWin = match.scoreHome > match.scoreAway;
             const isAwayWin = match.scoreAway > match.scoreHome;
+            
             const hExp = match.predict.home;
             const aExp = match.predict.away;
             const isHomePredWin = hExp > aExp;
@@ -192,9 +198,18 @@ export default function App() {
             else if (match.status === 'FT') displayStatus = 'FT';
             else displayStatus = match.elapsed ? `${match.elapsed}'` : 'LIVE';
 
-            // [수정] 메인 페이지 스코어 색상 및 굵기 로직 추가
-            const homeListScoreClass = isHomeWin ? "text-red-500 font-black" : isAwayWin ? "text-slate-500 font-normal" : "text-slate-700 font-bold";
-            const awayListScoreClass = isAwayWin ? "text-blue-600 font-black" : isHomeWin ? "text-slate-500 font-normal" : "text-slate-700 font-bold";
+            const homeListScoreClass = isHomeWin ? "text-red-500 font-black" : isAwayWin ? "text-slate-400 font-normal" : "text-slate-800 font-bold";
+            const awayListScoreClass = isAwayWin ? "text-red-500 font-black" : isHomeWin ? "text-slate-400 font-normal" : "text-slate-800 font-bold";
+
+            const homeListNameClass = isHomeWin ? "font-black text-slate-900" : isAwayWin ? "font-medium text-slate-400" : "font-bold text-slate-700";
+            const awayListNameClass = isAwayWin ? "font-black text-slate-900" : isHomeWin ? "font-medium text-slate-400" : "font-bold text-slate-700";
+
+            const predWinBoxClass = "bg-red-50 border-red-100 text-red-500 font-black";
+            const predLoseBoxClass = "bg-slate-50 border-slate-100 text-slate-400 font-normal";
+            const predDrawBoxClass = "bg-slate-200 border-slate-300 text-slate-900 font-bold";
+
+            const homePredBoxClass = isPredDraw ? predDrawBoxClass : isHomePredWin ? predWinBoxClass : predLoseBoxClass;
+            const awayPredBoxClass = isPredDraw ? predDrawBoxClass : isAwayPredWin ? predWinBoxClass : predLoseBoxClass;
 
             return (
               <div key={match.id} onClick={() => setSelectedMatch(match)}
@@ -207,26 +222,27 @@ export default function App() {
                     <span className="text-[10px] font-bold" style={{ color: isLive ? "#f97316" : "#475569" }}>{displayStatus}</span>
                   </div>
                   <div className="flex items-center justify-center gap-3 mb-3">
-                    <div className={`flex-1 text-right text-sm md:text-base truncate ${isHomeWin ? 'font-black text-slate-900' : 'font-semibold text-slate-700'}`}>{match.home}</div>
+                    <div className={`flex-1 text-right text-sm md:text-base truncate ${homeListNameClass}`}>{match.home}</div>
                     
-                    {/* [수정] font-bold를 전체 컨테이너에서 빼고 스코어에 각각 다르게 적용했습니다. */}
                     <div className="flex items-center gap-2 text-xl min-w-[60px] justify-center">
-                        {match.status === 'NS' ? <span className="text-slate-200 text-sm font-bold">VS</span> : 
+                        {match.status === 'NS' ? <span className="text-slate-300 text-sm font-bold">VS</span> : 
                         <>
                           <span className={homeListScoreClass}>{match.scoreHome}</span>
-                          <span className="text-slate-200 font-bold">:</span>
+                          {/* [수정] 콜론 색상을 더 진하게 변경 (text-slate-400) */}
+                          <span className="text-slate-400 font-bold">:</span>
                           <span className={awayListScoreClass}>{match.scoreAway}</span>
                         </>}
                     </div>
 
-                    <div className={`flex-1 text-left text-sm md:text-base truncate ${isAwayWin ? 'font-black text-slate-900' : 'font-semibold text-slate-700'}`}>{match.away}</div>
+                    <div className={`flex-1 text-left text-sm md:text-base truncate ${awayListNameClass}`}>{match.away}</div>
                   </div>
                   <div className="flex flex-col items-center gap-2">
                      <span className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">예상 스코어</span>
-                     <div className="flex items-center gap-3 font-black text-lg">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${isPredDraw ? 'bg-slate-200 border-slate-300 text-slate-900' : isHomePredWin ? 'bg-red-50 border-red-100 text-red-500' : 'bg-slate-50 border-slate-100 text-slate-700 font-semibold'}`}>{hExp}</div>
-                        <span className="text-slate-200">:</span>
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${isPredDraw ? 'bg-slate-200 border-slate-300 text-slate-900' : isAwayPredWin ? 'bg-blue-50 border-blue-100 text-blue-600' : 'bg-slate-50 border-slate-100 text-slate-700 font-semibold'}`}>{aExp}</div>
+                     <div className="flex items-center gap-3 text-lg">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-all ${homePredBoxClass}`}>{hExp}</div>
+                        {/* [수정] 콜론 색상을 더 진하게 변경 (text-slate-400) */}
+                        <span className="text-slate-400 font-bold">:</span>
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-all ${awayPredBoxClass}`}>{aExp}</div>
                      </div>
                   </div>
                   <div className="mt-4"><div className="h-1.5 flex rounded-full overflow-hidden bg-slate-100/50"><div style={{ width: `${match.probs.home}%` }} className="bg-red-500"></div><div style={{ width: `${match.probs.draw}%` }} className="bg-slate-300"></div><div style={{ width: `${match.probs.away}%` }} className="bg-blue-500"></div></div></div>
