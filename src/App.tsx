@@ -43,31 +43,40 @@ export default function App() {
 
   const fetchData = async () => {
     setLoading(true);
+    setMatches([]);
     try {
       const targetDate = dates[selectedDateIdx].dateStr;
       const res = await fetch(`/api/matches?date=${targetDate}`);
-      const data = await res.json(); // .text()가 아니라 .json()으로 받습니다.
+      const result = await res.json();
 
-      // 봉다 API 데이터 구조에 맞춰 추출 (예시 구조)
-      const results = (data.data || []).map((m: any, idx: number) => {
-        const rawLeague = m.league_name || "기타 리그";
-        const rawHome = m.home_team_name || "홈팀";
-        const rawAway = m.away_team_name || "원정팀";
+      // 봉다 API 데이터 구조를 우리 앱에 맞게 변환
+      // (보통 data.items 또는 data.list 안에 경기가 들어있습니다)
+      const rawMatches = result.data?.matches || result.data || [];
+      
+      const formatted = rawMatches.map((m: any, idx: number) => {
+        // [한글화 엔진 가동]
+        const home = translateToKorean(m.home_team_name || m.homeTeam?.name || "홈팀");
+        const away = translateToKorean(m.away_team_name || m.awayTeam?.name || "원정팀");
+        const league = translateToKorean(m.league_name || m.league?.name || "기타 리그");
 
         return {
-          id: m.id || `match-${idx}`,
-          league: translateToKorean(rawLeague),
-          home: translateToKorean(rawHome),
-          away: translateToKorean(rawAway),
-          score: m.score || "vs",
-          time: m.match_time || "00:00",
-          predict: { home: (idx % 3), away: ((idx + 1) % 2) } // 사장님 예상 로직
+          id: m.id || `m-${idx}`,
+          league,
+          home,
+          away,
+          score: m.score || `${m.home_score || 0}:${m.away_score || 0}`,
+          time: m.match_time || m.start_time || "00:00",
+          // 사장님의 AI 예상 로직 (ID 기반 고정)
+          predict: { 
+            home: (parseInt(String(m.id).slice(-1)) % 3) || 1, 
+            away: (parseInt(String(m.id).slice(-2, -1)) % 2) || 0 
+          }
         };
       });
 
-      setMatches(results);
+      setMatches(formatted);
     } catch (e) {
-      console.error("데이터 처리 실패:", e);
+      console.error("데이터 연동 실패:", e);
     } finally {
       setLoading(false);
     }
