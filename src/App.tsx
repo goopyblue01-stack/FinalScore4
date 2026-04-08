@@ -126,7 +126,7 @@ export default function App() {
             </div>
           ))}
           {!loading && matches.length === 0 && (
-            <div className="py-24 text-center text-slate-300 bg-white rounded-[32px]">플래시스코어 데이터를 스크래핑 중입니다...</div>
+            <div className="py-24 text-center text-slate-300 bg-white rounded-[32px]">데이터를 불러오는 중입니다...</div>
           )}
         </div>
       </main>
