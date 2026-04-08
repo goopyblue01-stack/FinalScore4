@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { RefreshCw, ArrowLeft, TrendingUp, Info, ChevronUp, ChevronDown, FlaskConical } from 'lucide-react';
+import { RefreshCw, ArrowLeft, TrendingUp, Info, ChevronUp, ChevronDown } from 'lucide-react';
 import { format, addDays, startOfToday } from 'date-fns';
 
 // [상세 페이지 컴포넌트]
@@ -62,12 +62,8 @@ function MatchDetail({ match, onBack }: { match: any, onBack: () => void }) {
           </div>
         </div>
 
-        {/* 예상 스코어 순위 Top 5 */}
         <div className="bg-white rounded-[24px] p-6 border border-slate-100 shadow-sm mb-4">
-          <div className="flex items-center gap-2 mb-6 text-[#56ad6a] font-bold">
-            <TrendingUp className="w-5 h-5" />
-            <span>예상 스코어 순위 (Top 5)</span>
-          </div>
+          <div className="flex items-center gap-2 mb-6 text-[#56ad6a] font-bold"><TrendingUp className="w-5 h-5" /><span>예상 스코어 순위 (Top 5)</span></div>
           <div className="flex flex-col gap-2.5">
             {topPredictions.map((p) => {
               const isRank1 = p.rank === 1;
@@ -90,7 +86,6 @@ function MatchDetail({ match, onBack }: { match: any, onBack: () => void }) {
           </div>
         </div>
 
-        {/* 해외 배당 정보 */}
         <div className="bg-white rounded-[24px] p-6 border border-slate-100 shadow-sm mb-6">
           <div className="flex items-center gap-2 mb-6 text-[#bf953f] font-bold"><Info className="w-5 h-5" /><span>해외 배당 정보</span></div>
           {match.odds ? (
@@ -142,15 +137,15 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#f8faff] pb-10 text-slate-900 font-sans tracking-tight">
-      {/* [변경] ScoreLab 로고 및 타이틀 헤더 */}
-      <header className="bg-white py-6 flex justify-center items-center border-b border-slate-100 shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="bg-[#56ad6a] w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shadow-green-100">
-            <FlaskConical className="text-white w-6 h-6" />
-          </div>
-          <h1 className="text-3xl font-black tracking-tighter text-slate-800">
-            Score<span className="text-[#56ad6a]">Lab</span>
+      {/* [수정] 첨부파일 디자인을 반영한 ScoreLab 텍스트 타이틀 헤더 */}
+      <header className="bg-white py-8 flex justify-center items-center border-b border-slate-100 shadow-sm">
+        <div className="flex flex-col items-center">
+          <h1 className="text-4xl md:text-5xl font-black tracking-tighter italic">
+            <span className="text-[#0f3460]">Score</span>
+            <span className="text-[#84cc16]">Lab</span>
           </h1>
+          {/* 타이틀 아래에 얇은 선으로 포인트를 주어 세련미를 더했습니다 */}
+          <div className="w-12 h-1 bg-gradient-to-r from-[#0f3460] to-[#84cc16] mt-1 rounded-full"></div>
         </div>
       </header>
 
