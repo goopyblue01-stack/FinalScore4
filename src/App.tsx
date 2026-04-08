@@ -1,133 +1,50 @@
-import { useEffect, useState } from 'react';
-import { RefreshCw } from 'lucide-react';
-import { format, addDays, startOfToday } from 'date-fns';
+// ... (상단 생략) ...
 
-export default function App() {
-  const [matches, setMatches] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [selectedDateIdx, setSelectedDateIdx] = useState(2);
-
-  const today = startOfToday();
-  const dates = Array.from({ length: 5 }, (_, i) => {
-    const date = addDays(today, i - 2);
-    return {
-      date,
-      dateStr: format(date, 'yyyy-MM-dd'),
-      day: format(date, 'M월 d일'),
-      label: i === 2 ? '(today)' : ''
-    };
-  });
-
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const targetDate = dates[selectedDateIdx].dateStr;
-      const res = await fetch(`/api/matches?date=${targetDate}`);
-      const json = await res.json();
-      setMatches(json.matches || []);
-    } catch (e) {
-      console.error("데이터 실패:", e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { fetchData(); }, [selectedDateIdx]);
+{matches.map((match) => {
+  const { home: hExp, away: aExp } = match.predict;
+  const isHomePredWin = hExp > aExp;
+  const isAwayPredWin = aExp > hExp;
+  const isPredDraw = hExp === aExp;
 
   return (
-    <div className="min-h-screen bg-[#f8faff] pb-10">
-      <header className="bg-white py-8 flex justify-center items-center border-b border-slate-100 shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="bg-white border-2 border-[#bf953f] w-12 h-12 rounded-xl flex items-center justify-center shadow-sm">
-            <span className="text-[#bf953f] text-2xl font-black italic transform -skew-x-12">FS</span>
+    <div key={match.id} className="bg-white rounded-[32px] border border-slate-100 shadow-sm p-6 mb-6">
+      {/* (리그 정보 및 실시간 점수 영역은 기존 유지) */}
+      
+      {/* [수정] AI 예상 스코어 디자인 */}
+      <div className="flex flex-col items-center gap-3">
+        <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">AI 예상 스코어</span>
+        <div className="flex items-center gap-4">
+          {/* 홈팀 예상: 이기거나 비기면 볼드, 지면 일반 */}
+          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-sm ${
+            isHomePredWin || isPredDraw ? 'font-black bg-red-50 text-red-500' : 'font-normal bg-slate-50 text-slate-400'
+          } ${isPredDraw ? 'text-slate-900 bg-slate-100' : ''}`}>
+            {hExp}
           </div>
-          <h1 className="text-4xl font-black tracking-tighter text-[#bf953f]">FinalScore</h1>
+          
+          <span className="text-slate-200 font-bold">:</span>
+
+          {/* 원정팀 예상: 이기거나 비기면 볼드, 지면 일반 */}
+          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-sm ${
+            isAwayPredWin || isPredDraw ? 'font-black bg-blue-50 text-blue-600' : 'font-normal bg-slate-50 text-slate-400'
+          } ${isPredDraw ? 'text-slate-900 bg-slate-100' : ''}`}>
+            {aExp}
+          </div>
         </div>
-      </header>
+      </div>
 
-      <nav className="bg-white border-b border-slate-100 py-4 px-4 sticky top-0 z-20 shadow-sm">
-        <div className="max-w-4xl mx-auto flex justify-between gap-2">
-          {dates.map((date, idx) => (
-            <button
-              key={idx}
-              onClick={() => setSelectedDateIdx(idx)}
-              className={`flex-1 h-14 rounded-xl flex flex-col items-center justify-center transition-all ${
-                selectedDateIdx === idx ? 'bg-[#56ad6a] text-white shadow-md' : 'bg-slate-50 text-slate-400'
-              }`}
-            >
-              <span className="text-sm font-bold">{date.day}</span>
-              <span className="text-[10px]">{date.label}</span>
-            </button>
-          ))}
+      {/* [수정] 실시간 승률 그래프 (서버 데이터와 연동) */}
+      <div className="mt-6">
+        <div className="flex justify-between text-[10px] font-bold mb-2 text-slate-400 px-1">
+          <span>승 {match.probs.home}%</span>
+          <span>무 {match.probs.draw}%</span>
+          <span>패 {match.probs.away}%</span>
         </div>
-      </nav>
-
-      <main className="max-w-4xl mx-auto px-4 mt-8">
-        <div className="space-y-6">
-          {matches.map((match) => {
-            const isHomeWin = match.scoreHome > match.scoreAway;
-            const isAwayWin = match.scoreAway > match.scoreHome;
-            const isDraw = match.scoreHome === match.scoreAway;
-
-            // 무승부 시 색상 (사장님이 원하신 '조금 진한 색상')
-            const drawColor = "#64748b"; 
-
-            return (
-              <div key={match.id} className="bg-white rounded-[32px] border border-red-500/10 shadow-sm overflow-hidden relative">
-                <div className="p-6">
-                  <div className="flex justify-between items-center mb-4">
-                    <span className="bg-[#e8f8f0] text-[#56ad6a] px-3 py-1 rounded-lg text-[10px] font-black">{match.league}</span>
-                    <span className="text-slate-400 text-xs font-bold">{match.time}</span>
-                  </div>
-                  
-                  <div className="flex items-center justify-center gap-4 mb-6">
-                    {/* 홈팀 이름 */}
-                    <div className={`flex-1 text-right text-lg truncate ${
-                      isHomeWin ? 'font-black text-slate-900' : 'font-normal text-slate-500' 
-                    }`} style={{ color: isDraw ? drawColor : undefined }}>
-                      {match.home}
-                    </div>
-
-                    {/* 스코어보드 */}
-                    <div className="flex items-center gap-2 text-2xl">
-                      <span className={`${isHomeWin ? 'font-black text-red-500' : 'font-normal text-slate-500'}`} 
-                            style={{ color: isDraw ? drawColor : undefined }}>
-                        {match.scoreHome}
-                      </span>
-                      <span className="text-slate-200">:</span>
-                      <span className={`${isAwayWin ? 'font-black text-red-500' : 'font-normal text-slate-500'}`} 
-                            style={{ color: isDraw ? drawColor : undefined }}>
-                        {match.scoreAway}
-                      </span>
-                    </div>
-
-                    {/* 원정팀 이름 */}
-                    <div className={`flex-1 text-left text-lg truncate ${
-                      isAwayWin ? 'font-black text-slate-900' : 'font-normal text-slate-500'
-                    }`} style={{ color: isDraw ? drawColor : undefined }}>
-                      {match.away}
-                    </div>
-                  </div>
-
-                  {/* AI 예상 스코어 영역 */}
-                  <div className="flex flex-col items-center gap-3">
-                     <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">예상 스코어</span>
-                     <div className="flex items-center gap-4">
-                        <div className="bg-red-50 text-red-500 w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-black shadow-sm">{match.predict.home}</div>
-                        <span className="text-slate-200 font-bold">:</span>
-                        <div className="bg-blue-50 text-blue-600 w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-black shadow-sm">{match.predict.away}</div>
-                     </div>
-                  </div>
-                </div>
-                <div className="h-1.5 flex"><div className="flex-[0.7] bg-red-500"></div><div className="flex-[0.3] bg-blue-500"></div></div>
-              </div>
-            );
-          })}
-          {!loading && matches.length === 0 && (
-            <div className="py-24 text-center text-slate-300 bg-white rounded-[32px]">진행 중인 경기가 없습니다.</div>
-          )}
+        <div className="h-2 flex rounded-full overflow-hidden bg-slate-100">
+          <div style={{ width: `${match.probs.home}%` }} className="bg-red-500"></div>
+          <div style={{ width: `${match.probs.draw}%` }} className="bg-slate-300"></div>
+          <div style={{ width: `${match.probs.away}%` }} className="bg-blue-500"></div>
         </div>
-      </main>
+      </div>
     </div>
   );
-}
+})}
