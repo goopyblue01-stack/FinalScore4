@@ -20,16 +20,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const data = await response.json();
 
     const matches = (data.response || []).map((item: any) => {
-      const status = item.fixture.status.short; // NS, FT, PEN 등
+      const status = item.fixture.status.short;
       const elapsed = item.fixture.status.elapsed;
-      
-      // 한국 시각 추출 (경기전일 때 사용)
       const dateObj = new Date(item.fixture.date);
+      
       const korTime = dateObj.toLocaleTimeString('ko-KR', { 
         hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Seoul' 
       });
 
-      // AI 로직 (가중치 계산)
       const seed = item.fixture.id;
       const hExp = Math.round(((seed % 15) / 10 + 1.2));
       const aExp = Math.round((((seed / 10) % 15) / 10 + 0.8));
@@ -40,12 +38,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       return {
         id: item.fixture.id,
+        timestamp: item.fixture.timestamp, // 정렬을 위한 타임스탬프 추가
         league: item.league.name,
         home: item.teams.home.name,
         away: item.teams.away.name,
         scoreHome: item.goals.home ?? 0,
         scoreAway: item.goals.away ?? 0,
-        // 상태 전송
         status: status,
         elapsed: elapsed,
         korTime: korTime,
@@ -54,7 +52,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       };
     });
 
-    return res.status(200).json({ matches: matches.slice(0, 45) });
+    return res.status(200).json({ matches: matches.slice(0, 50) });
   } catch (error) {
     return res.status(200).json({ matches: [] });
   }
