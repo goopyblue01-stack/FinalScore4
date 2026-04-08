@@ -4,8 +4,15 @@ import { format, addDays, startOfToday } from 'date-fns';
 
 // [상세 페이지 컴포넌트]
 function MatchDetail({ match, onBack }: { match: any, onBack: () => void }) {
-  // 1, 2, 3순위 데이터 생성 시 디자인 규칙 적용을 위한 로직
-  const getScoreStyle = (h: number, a: number) => {
+  // 1순위(검정배경) 전용 스타일 로직
+  const getRank1Style = (h: number, a: number) => {
+    if (h > a) return { h: "text-red-500 font-black", a: "text-white font-normal" };
+    if (a > h) return { h: "text-white font-normal", a: "text-blue-400 font-black" };
+    return { h: "text-white font-normal", a: "text-white font-normal" };
+  };
+
+  // 2, 3순위 전용 스타일 로직
+  const getNormalStyle = (h: number, a: number) => {
     if (h > a) return { h: "text-red-500 font-black", a: "text-slate-800 font-normal" };
     if (a > h) return { h: "text-slate-800 font-normal", a: "text-blue-600 font-black" };
     return { h: "text-slate-800 font-normal", a: "text-slate-800 font-normal" };
@@ -71,7 +78,7 @@ function MatchDetail({ match, onBack }: { match: any, onBack: () => void }) {
           </div>
         </div>
 
-        {/* 예상 스코어 순위 (차등 디자인 적용) */}
+        {/* 예상 스코어 순위 */}
         <div className="bg-white rounded-[24px] p-6 border border-slate-100 shadow-sm mb-4">
           <div className="flex items-center gap-2 mb-6 text-[#56ad6a]">
             <TrendingUp className="w-5 h-5" />
@@ -79,9 +86,9 @@ function MatchDetail({ match, onBack }: { match: any, onBack: () => void }) {
           </div>
           <div className="flex flex-col gap-3">
             {topPredictions.map((p) => {
-              const style = getScoreStyle(p.h, p.a);
               const isRank1 = p.rank === 1;
               const isRank2 = p.rank === 2;
+              const style = isRank1 ? getRank1Style(p.h, p.a) : getNormalStyle(p.h, p.a);
               
               return (
                 <div key={p.rank} className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${
@@ -93,9 +100,9 @@ function MatchDetail({ match, onBack }: { match: any, onBack: () => void }) {
                       isRank1 ? 'bg-[#56ad6a] text-white' : 'bg-slate-200 text-slate-500'
                     }`}>{p.rank}위</span>
                     <div className="flex items-center gap-2 text-lg">
-                      <span className={isRank1 ? 'text-white font-black' : style.h}>{p.h}</span>
+                      <span className={style.h}>{p.h}</span>
                       <span className={isRank1 ? 'text-slate-600' : 'text-slate-200'}>:</span>
-                      <span className={isRank1 ? 'text-white font-black' : style.a}>{p.a}</span>
+                      <span className={style.a}>{p.a}</span>
                     </div>
                   </div>
                   <span className={`font-bold text-xs ${isRank1 ? 'text-[#56ad6a]' : 'text-slate-400'}`}>{p.prob}</span>
@@ -105,33 +112,31 @@ function MatchDetail({ match, onBack }: { match: any, onBack: () => void }) {
           </div>
         </div>
 
-        {/* 해외 배당 정보 (변동 화살표 적용) */}
+        {/* 해외 배당 정보 */}
         <div className="bg-white rounded-[24px] p-6 border border-slate-100 shadow-sm mb-6">
           <div className="flex items-center gap-2 mb-6 text-[#bf953f]">
             <Info className="w-5 h-5" />
             <span className="font-bold text-slate-800">해외 배당 정보</span>
           </div>
-          <div className="grid grid-cols-3 gap-3">
-            {/* 승 배당 (하락 예시: 빨간색 하향 화살표) */}
+          <div className="grid grid-cols-3 gap-3 text-center">
+            {/* 승 (샘플 하락) */}
             <div className="flex flex-col items-center p-4 bg-red-50 rounded-2xl border border-red-100">
               <span className="text-[10px] font-bold text-red-400 mb-1">승</span>
               <div className="flex items-center gap-1">
-                <ChevronDown className="w-4 h-4 text-red-500" />
+                <ChevronDown className="w-4 h-4 text-red-500" strokeWidth={3} />
                 <span className="text-lg font-black text-red-500">1.56</span>
               </div>
             </div>
-            {/* 무 배당 (변동 없음) */}
+            {/* 무 */}
             <div className="flex flex-col items-center p-4 bg-slate-50 rounded-2xl border border-slate-100">
               <span className="text-[10px] font-bold text-slate-400 mb-1">무</span>
-              <div className="flex items-center gap-1">
-                <span className="text-lg font-black text-slate-800">5.15</span>
-              </div>
+              <span className="text-lg font-black text-slate-800">5.15</span>
             </div>
-            {/* 패 배당 (상승 예시: 파란색 상향 화살표) */}
+            {/* 패 (샘플 상승) */}
             <div className="flex flex-col items-center p-4 bg-blue-50 rounded-2xl border border-blue-100">
               <span className="text-[10px] font-bold text-blue-400 mb-1">패</span>
               <div className="flex items-center gap-1">
-                <ChevronUp className="w-4 h-4 text-blue-600" />
+                <ChevronUp className="w-4 h-4 text-blue-600" strokeWidth={3} />
                 <span className="text-lg font-black text-blue-600">5.50</span>
               </div>
             </div>
@@ -143,7 +148,7 @@ function MatchDetail({ match, onBack }: { match: any, onBack: () => void }) {
   );
 }
 
-// [메인 앱 컴포넌트]
+// [메인 앱 및 기타 로직은 기존과 동일]
 export default function App() {
   const [matches, setMatches] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -153,12 +158,7 @@ export default function App() {
   const today = startOfToday();
   const dates = Array.from({ length: 5 }, (_, i) => {
     const date = addDays(today, i - 2);
-    return {
-      date,
-      dateStr: format(date, 'yyyy-MM-dd'),
-      day: format(date, 'M월 d일'),
-      label: i === 2 ? '(today)' : ''
-    };
+    return { date, dateStr: format(date, 'yyyy-MM-dd'), day: format(date, 'M월 d일'), label: i === 2 ? '(today)' : '' };
   });
 
   const fetchData = async () => {
@@ -176,11 +176,7 @@ export default function App() {
         return a.timestamp - b.timestamp;
       });
       setMatches(sortedMatches);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
+    } catch (e) { console.error(e); } finally { setLoading(false); }
   };
 
   useEffect(() => { fetchData(); }, [selectedDateIdx]);
@@ -199,7 +195,6 @@ export default function App() {
           <h1 className="text-3xl font-black tracking-tighter text-[#bf953f]">FinalScore</h1>
         </div>
       </header>
-
       <nav className="bg-white border-b border-slate-100 py-4 px-4 sticky top-0 z-20 shadow-sm">
         <div className="max-w-4xl mx-auto flex justify-between gap-2">
           {dates.map((date, idx) => (
@@ -213,7 +208,6 @@ export default function App() {
           ))}
         </div>
       </nav>
-
       <main className="max-w-4xl mx-auto px-4 mt-6">
         <div className="space-y-3">
           {matches.map((match) => {
@@ -225,25 +219,12 @@ export default function App() {
             const isHomePredWin = hExp > aExp;
             const isAwayPredWin = aExp > hExp;
             const isPredDraw = hExp === aExp;
-
             const darkGrey = "#475569"; 
             const orangeHighlight = "#f97316"; 
-
             let displayStatus = "";
-            let statusColor = darkGrey;
-            let statusWeight = "font-medium";
-
-            if (match.status === 'NS') {
-              displayStatus = match.korTime;
-              statusWeight = "font-normal";
-            } else if (match.status === 'FT') {
-              displayStatus = 'FT';
-              statusWeight = "font-normal";
-            } else {
-              displayStatus = match.elapsed ? `${match.elapsed}'` : 'LIVE';
-              statusColor = orangeHighlight;
-              statusWeight = "font-bold";
-            }
+            if (match.status === 'NS') displayStatus = match.korTime;
+            else if (match.status === 'FT') displayStatus = 'FT';
+            else displayStatus = match.elapsed ? `${match.elapsed}'` : 'LIVE';
 
             return (
               <div key={match.id} onClick={() => setSelectedMatch(match)}
@@ -252,56 +233,26 @@ export default function App() {
                    }`}>
                 <div className="p-3 md:p-4">
                   <div className="flex justify-between items-center mb-2">
-                    <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase ${
-                      isLive ? 'bg-rose-100 text-rose-500' : 'bg-[#e8f8f0] text-[#56ad6a]'
-                    }`}>{match.league}</span>
-                    <span className={`text-[10px] ${statusWeight}`} style={{ color: statusColor }}>{displayStatus}</span>
+                    <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase ${isLive ? 'bg-rose-100 text-rose-500' : 'bg-[#e8f8f0] text-[#56ad6a]'}`}>{match.league}</span>
+                    <span className="text-[10px] font-bold" style={{ color: isLive ? orangeHighlight : darkGrey }}>{displayStatus}</span>
                   </div>
-                  
                   <div className="flex items-center justify-center gap-3 mb-3">
-                    <div className={`flex-1 text-right text-sm md:text-base truncate ${isHomeLiveWin ? 'font-black text-slate-900' : 'font-semibold'}`} 
-                         style={{ color: !isHomeLiveWin ? darkGrey : undefined }}>{match.home}</div>
-                    
+                    <div className={`flex-1 text-right text-sm md:text-base truncate ${isHomeLiveWin ? 'font-black text-slate-900' : 'font-semibold'}`} style={{ color: !isHomeLiveWin ? darkGrey : undefined }}>{match.home}</div>
                     <div className="flex items-center gap-2 text-xl font-bold min-w-[60px] justify-center">
-                        {match.status === 'NS' ? (
-                          <span className="text-slate-200 text-sm">VS</span>
-                        ) : (
-                          <>
-                            <span style={{ color: isHomeLiveWin ? '#ef4444' : darkGrey }}>{match.scoreHome}</span>
-                            <span className="text-slate-200">:</span>
-                            <span style={{ color: isAwayLiveWin ? '#ef4444' : darkGrey }}>{match.scoreAway}</span>
-                          </>
-                        )}
+                        {match.status === 'NS' ? <span className="text-slate-200 text-sm">VS</span> : 
+                        <><span style={{ color: isHomeLiveWin ? '#ef4444' : darkGrey }}>{match.scoreHome}</span><span className="text-slate-200">:</span><span style={{ color: isAwayLiveWin ? '#ef4444' : darkGrey }}>{match.scoreAway}</span></>}
                     </div>
-                    
-                    <div className={`flex-1 text-left text-sm md:text-base truncate ${isAwayLiveWin ? 'font-black text-slate-900' : 'font-semibold'}`} 
-                         style={{ color: !isAwayLiveWin ? darkGrey : undefined }}>{match.away}</div>
+                    <div className={`flex-1 text-left text-sm md:text-base truncate ${isAwayLiveWin ? 'font-black text-slate-900' : 'font-semibold'}`} style={{ color: !isAwayLiveWin ? darkGrey : undefined }}>{match.away}</div>
                   </div>
-
-                  {/* 예상 스코어 영역 */}
                   <div className="flex flex-col items-center gap-2">
                      <span className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">예상 스코어</span>
                      <div className="flex items-center gap-3 font-black text-lg">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                          isPredDraw ? 'bg-slate-200 text-slate-800' : 
-                          isHomePredWin ? 'bg-red-50 text-red-500' : 'bg-slate-50 text-slate-300 font-normal'
-                        }`}>{hExp}</div>
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isPredDraw ? 'bg-slate-200 text-slate-800' : isHomePredWin ? 'bg-red-50 text-red-500' : 'bg-slate-50 text-slate-300 font-normal'}`}>{hExp}</div>
                         <span className="text-slate-200">:</span>
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                          isPredDraw ? 'bg-slate-200 text-slate-800' : 
-                          isAwayPredWin ? 'bg-blue-50 text-blue-600' : 'bg-slate-50 text-slate-300 font-normal'
-                        }`}>{aExp}</div>
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isPredDraw ? 'bg-slate-200 text-slate-800' : isAwayPredWin ? 'bg-blue-50 text-blue-600' : 'bg-slate-50 text-slate-300 font-normal'}`}>{aExp}</div>
                      </div>
                   </div>
-
-                  {/* [복구] 하단 승률 그래프 */}
-                  <div className="mt-4">
-                    <div className="h-1.5 flex rounded-full overflow-hidden bg-slate-100">
-                      <div style={{ width: `${match.probs.home}%` }} className="bg-red-500"></div>
-                      <div style={{ width: `${match.probs.draw}%` }} className="bg-slate-300"></div>
-                      <div style={{ width: `${match.probs.away}%` }} className="bg-blue-500"></div>
-                    </div>
-                  </div>
+                  <div className="mt-4"><div className="h-1.5 flex rounded-full overflow-hidden bg-slate-100"><div style={{ width: `${match.probs.home}%` }} className="bg-red-500"></div><div style={{ width: `${match.probs.draw}%` }} className="bg-slate-300"></div><div style={{ width: `${match.probs.away}%` }} className="bg-blue-500"></div></div></div>
                 </div>
               </div>
             );
