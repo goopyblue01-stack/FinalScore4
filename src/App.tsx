@@ -28,19 +28,13 @@ export default function App() {
       
       const rawMatches = json.matches || [];
 
-      // [정렬 로직 적용] 
-      // 1순위: 진행중 (LIVE, PEN 등)
-      // 2순위: 예정 (NS) - 시간순
-      // 3순위: 종료 (FT 등) - 시간순
+      // [정렬 로직] 진행중 > 예정 > 종료 순
       const sortedMatches = rawMatches.sort((a: any, b: any) => {
         const isLive = (s: string) => !['NS', 'FT', 'CANC', 'ABD'].includes(s);
-        
         if (isLive(a.status) && !isLive(b.status)) return -1;
         if (!isLive(a.status) && isLive(b.status)) return 1;
-        
         if (a.status === 'NS' && b.status === 'FT') return -1;
         if (a.status === 'FT' && b.status === 'NS') return 1;
-        
         return a.timestamp - b.timestamp;
       });
 
@@ -119,7 +113,7 @@ export default function App() {
 
             return (
               <div key={match.id} 
-                   className={`rounded-[32px] border shadow-sm overflow-hidden relative transition-colors ${
+                   className={`rounded-[32px] border shadow-sm overflow-hidden relative transition-colors mb-6 ${
                      isLive ? 'bg-[#fff1f2] border-rose-100' : 'bg-white border-slate-100'
                    }`}>
                 <div className="p-6">
@@ -144,8 +138,8 @@ export default function App() {
                             style={{ color: !isAwayLiveWin ? darkGrey : undefined }}>{match.scoreAway}</span>
                     </div>
 
-                    <div className={`flex-1 text-left text-lg truncate ${isAwayWin ? 'font-black text-slate-900' : 'font-semibold'}`} 
-                         style={{ color: !isAwayWin ? darkGrey : undefined }}>
+                    <div className={`flex-1 text-left text-lg truncate ${isAwayLiveWin ? 'font-black text-slate-900' : 'font-semibold'}`} 
+                         style={{ color: !isAwayLiveWin ? darkGrey : undefined }}>
                       {match.away}
                     </div>
                   </div>
