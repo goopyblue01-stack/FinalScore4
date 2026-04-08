@@ -64,15 +64,10 @@ export default function App() {
       </nav>
 
       <main className="max-w-4xl mx-auto px-4 mt-8">
-        <div className="flex items-center justify-between mb-6 px-1 text-slate-400 font-bold">
-          <span>{dates[selectedDateIdx].day} 경기 ({matches.length})</span>
-          <button onClick={fetchData} className={loading ? 'animate-spin' : ''}><RefreshCw className="w-4 h-4" /></button>
-        </div>
-
         <div className="space-y-6">
           {matches.map((match) => {
-            const isHomeLiveWin = match.scoreHome > match.scoreAway;
-            const isAwayLiveWin = match.scoreAway > match.scoreHome;
+            const isHomeWin = match.scoreHome > match.scoreAway;
+            const isAwayWin = match.scoreAway > match.scoreHome;
             const isLiveDraw = match.scoreHome === match.scoreAway;
 
             const hExp = match.predict.home;
@@ -81,8 +76,7 @@ export default function App() {
             const isAwayPredWin = aExp > hExp;
             const isPredDraw = hExp === aExp;
 
-            // 무승부나 패배팀을 위해 더 진하게 설정된 색상
-            const darkGrey = "#475569"; 
+            const darkGrey = "#475569"; // 무승부/패배 시 더 진하게 표시할 색상
 
             return (
               <div key={match.id} className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden relative">
@@ -93,35 +87,25 @@ export default function App() {
                   </div>
                   
                   <div className="flex items-center justify-center gap-4 mb-6">
-                    {/* 홈팀 이름 */}
-                    <div className={`flex-1 text-right text-lg truncate ${
-                      isHomeLiveWin ? 'font-black text-slate-900' : 'font-semibold'
-                    }`} style={{ color: !isHomeLiveWin ? darkGrey : undefined }}>
+                    <div className={`flex-1 text-right text-lg truncate ${isHomeWin ? 'font-black text-slate-900' : 'font-semibold'}`} 
+                         style={{ color: !isHomeWin ? darkGrey : undefined }}>
                       {match.home}
                     </div>
 
-                    {/* 실시간 스코어 */}
                     <div className="flex items-center gap-2 text-2xl">
-                      <span className={`${isHomeLiveWin ? 'font-black text-red-500' : 'font-semibold'}`} 
-                            style={{ color: !isHomeLiveWin ? darkGrey : undefined }}>
-                        {match.scoreHome}
-                      </span>
+                      <span className={`${isHomeWin ? 'font-black text-red-500' : 'font-semibold'}`} 
+                            style={{ color: !isHomeWin ? darkGrey : undefined }}>{match.scoreHome}</span>
                       <span className="text-slate-200">:</span>
-                      <span className={`${isAwayLiveWin ? 'font-black text-red-500' : 'font-semibold'}`} 
-                            style={{ color: !isAwayLiveWin ? darkGrey : undefined }}>
-                        {match.scoreAway}
-                      </span>
+                      <span className={`${isAwayWin ? 'font-black text-red-500' : 'font-semibold'}`} 
+                            style={{ color: !isAwayWin ? darkGrey : undefined }}>{match.scoreAway}</span>
                     </div>
 
-                    {/* 원정팀 이름 */}
-                    <div className={`flex-1 text-left text-lg truncate ${
-                      isAwayLiveWin ? 'font-black text-slate-900' : 'font-semibold'
-                    }`} style={{ color: !isAwayLiveWin ? darkGrey : undefined }}>
+                    <div className={`flex-1 text-left text-lg truncate ${isAwayWin ? 'font-black text-slate-900' : 'font-semibold'}`} 
+                         style={{ color: !isAwayWin ? darkGrey : undefined }}>
                       {match.away}
                     </div>
                   </div>
 
-                  {/* AI 예상 스코어 영역 */}
                   <div className="flex flex-col items-center gap-3">
                      <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">AI 예상 스코어</span>
                      <div className="flex items-center gap-4">
@@ -141,7 +125,6 @@ export default function App() {
                      </div>
                   </div>
 
-                  {/* 수정된 승부 예측 그래프 (숫자 삭제, 상단 얇은 선 삭제) */}
                   <div className="mt-8">
                     <div className="h-2.5 flex rounded-full overflow-hidden bg-slate-100 shadow-inner">
                       <div style={{ width: `${match.probs.home}%` }} className="bg-red-500"></div>
