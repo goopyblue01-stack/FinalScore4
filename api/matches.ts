@@ -868,7 +868,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         headers: { 'x-rapidapi-key': API_KEY || '', 'x-rapidapi-host': 'v3.football.api-sports.io' } 
       }).then(r => r.json());
 
-    // 경기 정보와 배당 정보를 각각 오늘/전날치 가져옴
+    // 1. 경기 정보와 배당 정보를 가져옵니다.
     const [targetData, prevData, targetOdds, prevOdds] = await Promise.all([
       fetchAPI('fixtures', `date=${targetDateStr}`),
       fetchAPI('fixtures', `date=${prevDateStr}`),
@@ -879,10 +879,38 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const allMatches = [...(targetData.response || []), ...(prevData.response || [])];
     const allOdds = [...(targetOdds.response || []), ...(prevOdds.response || [])];
 
-    // [개선] 배당 데이터 맵핑 (Bet365 없으면 다른 북메이커라도 찾기)
+    // 2. 오늘 진행되는 경기의 '리그 아이디'와 '시즌'을 추출합니다. (순위표 데이터를 가져오기 위함)
+    const uniqueLeagues = new Set<string>();
+    allMatches.forEach((m: any) => {
+      if (m.league && m.league.id && m.league.season && leagueNameMap[m.league.id]) {
+        uniqueLeagues.add(`${m.league.id}-${m.league.season}`);
+      }
+    });
+
+    // 3. 해당 리그들의 이번 시즌 순위표(득점/실점 기록)를 한 번에 가져옵니다. (API 과부하 방지)
+    const standingsPromises = Array.from(uniqueLeagues).map(async (key) => {
+      const [leagueId, season] = key.split('-');
+      return fetchAPI('standings', `league=${leagueId}&season=${season}`);
+    });
+    const standingsResults = await Promise.all(standingsPromises);
+
+    // 팀별 득실점 데이터를 저장할 바구니를 만듭니다.
+    const teamStatsMap: any = {};
+    standingsResults.forEach((res: any) => {
+      if (res && res.response && res.response.length > 0 && res.response[0].league.standings[0]) {
+        res.response[0].league.standings[0].forEach((team: any) => {
+          teamStatsMap[team.team.id] = {
+            played: team.all.played || 1, // 0 나누기 오류 방지
+            gf: team.all.goals.for || 0,
+            ga: team.all.goals.against || 0
+          };
+        });
+      }
+    });
+
+    // 배당 데이터 맵핑
     const oddsMap: any = {};
     allOdds.forEach((o: any) => {
-      // 1순위 Bet365, 없으면 첫번째 북메이커 사용
       const bookmaker = o.bookmakers.find((b: any) => b.name === 'Bet365') || o.bookmakers[0];
       const market = bookmaker?.bets.find((b: any) => b.name === 'Match Winner' || b.name === '1x2');
       if (market) {
@@ -894,6 +922,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     });
 
+    // 필터링 및 데이터 가공 (피타고리안 기대 승률 적용)
     const filteredMatches = allMatches
       .filter((item: any) => {
         if (leagueNameMap[item.league.id] === undefined) return false;
@@ -904,11 +933,45 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const hName = item.teams.home.name;
         const aName = item.teams.away.name;
         
+        // ---------------------------------------------------------
+        // [핵심 로직] 순위표 기반 피타고리안 승률 및 예상 스코어 계산
+        // ---------------------------------------------------------
+        const homeId = item.teams.home.id;
+        const awayId = item.teams.away.id;
+        
+        const homeStats = teamStatsMap[homeId] || { played: 1, gf: 1, ga: 1 };
+        const awayStats = teamStatsMap[awayId] || { played: 1, gf: 1, ga: 1 };
+
+        // 1. 경기당 평균 득점 계산 및 홈/원정 어드밴티지 적용 (홈은 1.1배, 원정은 0.9배 패널티)
+        const homeAvgGoals = (homeStats.gf / homeStats.played) * 1.1;
+        const awayAvgGoals = (awayStats.gf / awayStats.played) * 0.9;
+        const homeAvgConceded = homeStats.ga / homeStats.played;
+        const awayAvgConceded = awayStats.ga / awayStats.played;
+
+        // 2. 피타고리안 공식 함수 (득점^2 / (득점^2 + 실점^2))
+        const calcPythagorean = (attack: number, defense: number) => {
+          if (attack === 0 && defense === 0) return 0.33; // 데이터가 없으면 동일 확률
+          return Math.pow(attack, 2) / (Math.pow(attack, 2) + Math.pow(defense, 2));
+        };
+
+        const homeRawProb = calcPythagorean(homeAvgGoals, homeAvgConceded);
+        const awayRawProb = calcPythagorean(awayAvgGoals, awayAvgConceded);
+        const drawRawProb = 0.30; // 축구의 평균 무승부 확률 약 30% 반영
+
+        // 3. 확률을 100% 기준으로 예쁘게 정규화
+        const totalProb = homeRawProb + awayRawProb + drawRawProb;
+        const finalHomeProb = Math.round((homeRawProb / totalProb) * 100);
+        const finalAwayProb = Math.round((awayRawProb / totalProb) * 100);
+        const finalDrawProb = 100 - finalHomeProb - finalAwayProb;
+
+        // 4. 예상 스코어 계산 (공격력을 반올림하여 스코어로 변환, 최소 0골)
+        const predictHome = Math.max(0, Math.round(homeAvgGoals));
+        const predictAway = Math.max(0, Math.round(awayAvgGoals));
+
         return {
           id: item.fixture.id,
           timestamp: item.fixture.timestamp,
           league: leagueNameMap[item.league.id],
-          // [팀 이름 처리] 맵에 있으면 한글, 없으면 영문 유지
           home: teamNameMap[hName] || hName,
           away: teamNameMap[aName] || aName,
           scoreHome: item.goals.home ?? 0,
@@ -916,8 +979,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           status: item.fixture.status.short,
           elapsed: item.fixture.status.elapsed,
           korTime: new Date(item.fixture.date).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Seoul' }),
-          predict: { home: Math.round((item.fixture.id % 15) / 10 + 1.2), away: Math.round(((item.fixture.id / 10) % 15) / 10 + 0.8) },
-          probs: { home: 40, draw: 30, away: 30 },
+          // 변경된 로직 적용 완료!
+          predict: { home: predictHome, away: predictAway },
+          probs: { home: finalHomeProb, draw: finalDrawProb, away: finalAwayProb },
           odds: oddsMap[item.fixture.id] || null
         };
       })
@@ -931,6 +995,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     return res.status(200).json({ matches: filteredMatches });
   } catch (error) {
+    console.error("Match Fetch Error:", error);
     return res.status(200).json({ matches: [] });
   }
 }
