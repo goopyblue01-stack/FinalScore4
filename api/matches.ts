@@ -26,7 +26,7 @@ const teamNameMap: { [key: string]: string } = {
   // 라리가
   "Alaves": "알라베스", "Athletic Club": "빌바오", "Atletico Madrid": "AT 마드리드", "Barcelona": "바르셀로나", "Celta Vigo": "셀타 비고", "Espanyol": "에스파뇰", "Getafe": "헤타페", "Girona": "지로나", "Las Palmas": "라스팔마스", "Leganes": "레가네스", "Mallorca": "마요르카", "Osasuna": "오사수나", "Ray오 Vallecano": "라요", "Real Betis": "베티스", "Real Madrid": "레알 마드리드", "Real Sociedad": "소시에다드", "Sevilla": "세비야", "Valencia": "발렌시아", "Valladolid": "바야돌리드", "Villarreal": "비야레알",
   // 분데스리가
-  "Augsburg": "아우크스부르크", "Bayer Leverkusen": "레버쿠젠", "Bayern Munich": "바이에른 뮌헨", "Borussia Dortmund": "도르트문트", "Borussia Monchengladbach": "글라트바흐", "Eintracht Frankfurt": "프랑크푸르트", "Freiburg": "프라이부르크", "Heidenheim": "하이덴하임", "Hoffenheim": "호펜하임", "Holstein Kiel": "홀슈타인 킬", "RB Leipzig": "라이프치히", "Mainz 05": "마인츠", "St. Pauli": "상파울루", "Stuttgart": "슈투트가르트", "Union Berlin": "우니온 베를린", "Werder Bremen": "브레멘", "Wolfsburg": "볼프스부르크",
+  "Augsburg": "아우크스부르크", "Bayer Leverkusen": "레버쿠젠", "Bayern Munich": "바이에른 뮌헨", "Borussia Dortmund": "도르트문트", "Borussia Monchengladbach": "글라트바흐", "Eintracht Frankfurt": "프랑크푸르트", "SC Freiburg": "프라이부르크", "Heidenheim": "하이덴하임", "Hoffenheim": "호펜하임", "Holstein Kiel": "홀슈타인 킬", "RB Leipzig": "라이프치히", "FSV Mainz 05": "마인츠", "St. Pauli": "상파울루", "Stuttgart": "슈투트가르트", "Union Berlin": "우니온 베를린", "Werder Bremen": "브레멘", "Wolfsburg": "볼프스부르크",
   // 세리에 A
   "AC Milan": "AC 밀란", "Atalanta": "아탈란타", "Bologna": "볼로냐", "Cagliari": "칼리아리", "Como": "코모", "Empoli": "엠폴리", "Fiorentina": "피오렌티나", "Genoa": "제노아", "Inter": "인테르", "Juventus": "유벤투스", "Lazio": "라치오", "Lecce": "레체", "Monza": "몬차", "Napoli": "나폴리", "Parma": "파르마", "Roma": "AS 로마", "Torino": "토리노", "Udinese": "우디네세", "Venezia": "베네치아", "Verona": "베로나",
   // 리그 앙
@@ -346,7 +346,7 @@ const teamNameMap: { [key: string]: string } = {
 "Nong Bua Pitchaya": "농부아 피차야",
 "Rayong": "라용",
 "Al-Hilal Saudi FC": "알 힐랄",
-"Al Nassr": "알 나스르",
+"Al-Nassr": "알 나스르",
 "Al Ahli": "알 아흘리",
 "Al Taawon": "알 타아운",
 "Al-Ittihad FC": "알 이티하드",
@@ -696,7 +696,7 @@ const teamNameMap: { [key: string]: string } = {
 "Zaragoza": "사라고사",
 "Darmstadt 98": "다름슈타트",
 "FC Koln": "쾰른",
-"Fortuna Dusseldorf": "뒤셀도르프",
+"Fortuna Düsseldorf": "뒤셀도르프",
 "Greuther Furth": "그로이터 퓌르트",
 "Hamburger SV": "함부르크",
 "Hannover 96": "하노버",
@@ -845,7 +845,10 @@ const teamNameMap: { [key: string]: string } = {
 "Chongqing Tonglianglong": "충칭 퉁량룽",
 "Wuxi Wugo": "우시 우거",
 "Jiangxi Lushan": "장시 루산",
-"Foshan Nanshi": "포산 난스"
+"Foshan Nanshi": "포산 난스", "RB Salzburg": "잘츠부르크", "Shakhtar Donetsk": "샤흐타르", "Sparta Praha": "스파르타 프라하", "Sturm Graz": "슈투름 그라츠", "Slovan Bratislava": "슬로반 브라티슬라바",
+"FK Crvena Zvezda": "즈베즈다", "Cerro Porteno": "세로 포르테뇨", "Kifisia": "키피시아", "Al-Ahli Jeddah": "알 아흘리 제다", "Ghazl El Mehalla": "가즐 엘 마할라", "El Gouna FC": "엘 구나 FC",
+"Haras El Hodood": "하라스 엘 호두드", "Future FC": "퓨처 FC", "Wadi Degla": "와디 데글라", "Pharco": "파르코", "Orange County SC": "오렌지 카운티 SC", "San Antonio": "샌안토니오 FC",
+"Lokomotiv Sofia": "로코모티브 소피아"
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
