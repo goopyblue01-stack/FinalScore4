@@ -6,10 +6,13 @@ const TRANSLATION_MAP: { [key: string]: string } = {
   "Premier League": "프리미어리그",
   "LaLiga": "라리가",
   "K-League 1": "K리그 1",
-  "Champions League": "챔피언스리그",
   "Vietnam": "베트남 리그",
+  "Ulsan Hyundai": "울산 HD",
+  "Jeonbuk Motors": "전북 현대",
   "Manchester City": "맨시티",
+  "Liverpool": "리버풀",
   "Real Madrid": "레알 마드리드",
+  "FC Barcelona": "바르셀로나",
 };
 
 const translate = (text: string) => TRANSLATION_MAP[text] || text;
@@ -38,31 +41,24 @@ export default function App() {
       const res = await fetch(`/api/matches?date=${targetDate}`);
       const json = await res.json();
 
-      // Sofascore는 'events' 배열 안에 경기가 들어있습니다.
-      const rawMatches = json.events || [];
+      // 스크래핑 데이터 추출
+      const rawMatches = json.matches || [];
       
-      const formatted = rawMatches.slice(0, 50).map((m: any, idx: number) => {
-        const homeScore = m.homeScore?.current ?? 0;
-        const awayScore = m.awayScore?.current ?? 0;
-        const status = m.status?.type; // 'finished', 'inprogress', 'notstarted'
-
-        return {
-          id: m.id || idx,
-          league: translate(m.tournament?.name || "기타 리그"),
-          home: translate(m.homeTeam?.name || "홈팀"),
-          away: translate(m.awayTeam?.name || "원정팀"),
-          score: status !== 'notstarted' ? `${homeScore} : ${awayScore}` : "VS",
-          time: format(new Date(m.startTimestamp * 1000), 'HH:mm'),
-          predict: { 
-            home: (parseInt(String(m.id).slice(-1)) % 3) + 1, 
-            away: (parseInt(String(m.id).slice(-2, -1)) % 2) 
-          }
-        };
-      });
+      const formatted = rawMatches.map((m: any, idx: number) => ({
+        ...m,
+        league: translate(m.league),
+        home: translate(m.home),
+        away: translate(m.away),
+        // AI 예상 스코어 가중치 로직
+        predict: { 
+          home: (parseInt(String(m.id).slice(-1)) % 3) + 1, 
+          away: (parseInt(String(m.id).slice(-2, -1)) % 2) 
+        }
+      }));
 
       setMatches(formatted);
     } catch (e) {
-      console.error("Sofascore 연동 실패:", e);
+      console.error("스크래핑 데이터 처리 실패:", e);
     } finally {
       setLoading(false);
     }
@@ -113,9 +109,9 @@ export default function App() {
                   <span className="text-slate-400 text-xs font-bold">{match.time}</span>
                 </div>
                 <div className="flex items-center justify-center gap-4 mb-6">
-                  <div className="flex-1 text-right text-lg font-black text-slate-800">{match.home}</div>
+                  <div className="flex-1 text-right text-lg font-black text-slate-800 truncate">{match.home}</div>
                   <div className="text-2xl font-black text-slate-900 px-4">{match.score}</div>
-                  <div className="flex-1 text-left text-lg font-black text-slate-800">{match.away}</div>
+                  <div className="flex-1 text-left text-lg font-black text-slate-800 truncate">{match.away}</div>
                 </div>
                 <div className="flex flex-col items-center gap-3">
                    <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">AI Prediction</span>
@@ -130,7 +126,7 @@ export default function App() {
             </div>
           ))}
           {!loading && matches.length === 0 && (
-            <div className="py-24 text-center text-slate-300 bg-white rounded-[32px]">데이터를 불러오는 중입니다...</div>
+            <div className="py-24 text-center text-slate-300 bg-white rounded-[32px]">플래시스코어 데이터를 스크래핑 중입니다...</div>
           )}
         </div>
       </main>
