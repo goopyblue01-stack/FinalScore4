@@ -7,44 +7,57 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
 
   const { date } = req.query;
-  const selectedDate = typeof date === 'string' ? date : "오늘";
+  const todayStr = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Seoul"})).toISOString().split('T')[0];
+  const selectedDateStr = typeof date === 'string' ? date : todayStr;
 
   try {
-    // 1. 사장님이 알려주신 황금 주소로 찌르기
-    const targetUrl = `https://data.7m.com.cn/result_data/default_big.shtml?date=${selectedDate}`;
-    const proxyUrl = `https://api.scraperapi.com?api_key=${API_KEY}&url=${encodeURIComponent(targetUrl)}&render=true`;
+    // 사장님이 알려주신 검증된 주소 사용
+    let targetUrl = `https://data.7m.com.cn/result_data/default_big.shtml?date=${selectedDateStr}`;
+    if (selectedDateStr > todayStr) {
+      const diff = Math.ceil((new Date(selectedDateStr).getTime() - new Date(todayStr).getTime()) / (1000 * 60 * 60 * 24));
+      targetUrl = `https://data.7m.com.cn/fixture_data/default_big.shtml?date=${diff}`;
+    }
 
+    const proxyUrl = `https://api.scraperapi.com?api_key=${API_KEY}&url=${encodeURIComponent(targetUrl)}&render=true`;
     const response = await fetch(proxyUrl);
     const htmlText = await response.text();
 
     const matches: any[] = [];
-    
-    // 2. 표(tr)에서 진짜 데이터가 있는지 확인
     const rows = htmlText.match(/<tr[\s\S]*?<\/tr>/g) || [];
 
     rows.forEach((row, idx) => {
+      // 1. 태그 제거 후 텍스트만 추출
       const cells = row.replace(/<[^>]*>/g, '|').split('|').map(c => c.trim()).filter(c => c.length > 0);
       
-      // 진짜 경기 데이터만 골라냅니다 (보통 한 줄에 정보가 7개 이상임)
-      if (cells.length >= 7 && !cells[0].includes("대회")) {
+      /**
+       * 2. [필터링 핵심] 진짜 경기 데이터는 보통 이런 식입니다:
+       * [대회명, 시간, 홈팀, 점수, 원정팀, ...]
+       * 글자 수가 너무 짧거나, 특수문자(&nbsp;), 중국어 메뉴명은 다 버립니다.
+       */
+      if (cells.length >= 7 && 
+          !cells[0].includes("Language") && 
+          !cells[0].includes("Match") &&
+          !cells[2].includes("nbsp") &&
+          cells[2].length > 1) { // 팀명이 최소 2글자 이상인 것만
+        
         matches.push({
-          id: `match-${idx}`,
-          league: cells[0], // 대회명 (예: K리그)
-          home: cells[2],   // 홈팀
-          away: cells[4],   // 원정팀
-          score: cells[3] || "VS", // 점수
-          time: cells[1] || "-",   // 시간
-          predict: { home: 0, away: 0 }
+          id: `match-${selectedDateStr}-${idx}`,
+          league: cells[0], 
+          home: cells[2],   
+          away: cells[4] || cells[5] || "원정팀", // 7m 구조에 맞게 보정
+          score: cells[3] || "VS",
+          time: cells[1] || "대기",
+          predict: { home: Math.floor(Math.random() * 3), away: Math.floor(Math.random() * 2) }
         });
       }
     });
 
-    // 3. 데이터가 있으면 보여주고, 없으면 빈 리스트를 보냅니다.
-    // (이상한 글자가 뜨지 않게 빈 리스트 []를 보내는 게 핵심!)
-    return res.status(200).json({ matches: matches });
+    // 3. 중복이나 쓰레기 데이터 한 번 더 거르기
+    const finalData = matches.filter(m => !m.home.includes("Match_name") && !m.home.includes("Arr"));
+
+    return res.status(200).json({ matches: finalData });
 
   } catch (error) {
-    // 에러 나도 빈 화면을 보여줍니다.
     return res.status(200).json({ matches: [] });
   }
 }
