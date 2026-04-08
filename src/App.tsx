@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { RefreshCw, ArrowLeft, TrendingUp, Info, ChevronUp, ChevronDown, FlaskConical } from 'lucide-react';
+import { RefreshCw, ArrowLeft, TrendingUp, Info, ChevronUp, ChevronDown } from 'lucide-react';
 import { format, addDays, startOfToday } from 'date-fns';
 
 // [상세 페이지 컴포넌트]
@@ -62,12 +62,8 @@ function MatchDetail({ match, onBack }: { match: any, onBack: () => void }) {
           </div>
         </div>
 
-        {/* 예상 스코어 순위 Top 5 */}
         <div className="bg-white rounded-[24px] p-6 border border-slate-100 shadow-sm mb-4">
-          <div className="flex items-center gap-2 mb-6 text-[#56ad6a] font-bold">
-            <TrendingUp className="w-5 h-5" />
-            <span>예상 스코어 순위 (Top 5)</span>
-          </div>
+          <div className="flex items-center gap-2 mb-6 text-[#56ad6a] font-bold"><TrendingUp className="w-5 h-5" /><span>예상 스코어 순위 (Top 5)</span></div>
           <div className="flex flex-col gap-2.5">
             {topPredictions.map((p) => {
               const isRank1 = p.rank === 1;
@@ -90,7 +86,6 @@ function MatchDetail({ match, onBack }: { match: any, onBack: () => void }) {
           </div>
         </div>
 
-        {/* 해외 배당 정보 */}
         <div className="bg-white rounded-[24px] p-6 border border-slate-100 shadow-sm mb-6">
           <div className="flex items-center gap-2 mb-6 text-[#bf953f] font-bold"><Info className="w-5 h-5" /><span>해외 배당 정보</span></div>
           {match.odds ? (
@@ -142,15 +137,18 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#f8faff] pb-10 text-slate-900 font-sans tracking-tight">
-      {/* [변경] ScoreLab 로고 및 타이틀 헤더 */}
-      <header className="bg-white py-6 flex justify-center items-center border-b border-slate-100 shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="bg-[#56ad6a] w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shadow-green-100">
-            <FlaskConical className="text-white w-6 h-6" />
-          </div>
-          <h1 className="text-3xl font-black tracking-tighter text-slate-800">
-            Score<span className="text-[#56ad6a]">Lab</span>
+      {/* [수정] 요청하신 디자인을 반영한 ScoreLab 텍스트 타이틀 헤더 */}
+      <header className="bg-white py-10 flex justify-center items-center border-b border-slate-100 shadow-sm">
+        <div className="flex flex-col items-center">
+          <h1 className="text-5xl md:text-6xl font-black tracking-tighter italic leading-none">
+            <span style={{ color: '#0f3460' }}>Score</span>
+            <span style={{ color: '#84cc16' }}>Lab</span>
           </h1>
+          {/* 하단 포인트 라인 */}
+          <div 
+            className="w-16 h-1.5 mt-2 rounded-full" 
+            style={{ background: 'linear-gradient(to right, #0f3460, #84cc16)' }}
+          ></div>
         </div>
       </header>
 
@@ -194,3 +192,30 @@ export default function App() {
                   <div className="flex justify-between items-center mb-2">
                     <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase ${isLive ? 'bg-rose-100/50 text-rose-500' : 'bg-[#e8f8f0] text-[#56ad6a]'}`}>{match.league}</span>
                     <span className="text-[10px] font-bold" style={{ color: isLive ? "#f97316" : "#475569" }}>{displayStatus}</span>
+                  </div>
+                  <div className="flex items-center justify-center gap-3 mb-3">
+                    <div className={`flex-1 text-right text-sm md:text-base truncate ${isHomeLiveWin ? 'font-black text-slate-900' : 'font-semibold text-slate-700'}`}>{match.home}</div>
+                    <div className="flex items-center gap-2 text-xl font-bold min-w-[60px] justify-center">
+                        {match.status === 'NS' ? <span className="text-slate-200 text-sm">VS</span> : 
+                        <><span style={{ color: isHomeLiveWin ? '#ef4444' : '#475569' }}>{match.scoreHome}</span><span className="text-slate-200">:</span><span style={{ color: isAwayLiveWin ? '#ef4444' : '#475569' }}>{match.scoreAway}</span></>}
+                    </div>
+                    <div className={`flex-1 text-left text-sm md:text-base truncate ${isAwayLiveWin ? 'font-black text-slate-900' : 'font-semibold text-slate-700'}`}>{match.away}</div>
+                  </div>
+                  <div className="flex flex-col items-center gap-2">
+                     <span className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">예상 스코어</span>
+                     <div className="flex items-center gap-3 font-black text-lg">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${isPredDraw ? 'bg-slate-200 border-slate-300 text-slate-900' : isHomePredWin ? 'bg-red-50 border-red-100 text-red-500' : 'bg-slate-50 border-slate-100 text-slate-700 font-semibold'}`}>{hExp}</div>
+                        <span className="text-slate-200">:</span>
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${isPredDraw ? 'bg-slate-200 border-slate-300 text-slate-900' : isAwayPredWin ? 'bg-blue-50 border-blue-100 text-blue-600' : 'bg-slate-50 border-slate-100 text-slate-700 font-semibold'}`}>{aExp}</div>
+                     </div>
+                  </div>
+                  <div className="mt-4"><div className="h-1.5 flex rounded-full overflow-hidden bg-slate-100/50"><div style={{ width: `${match.probs.home}%` }} className="bg-red-500"></div><div style={{ width: `${match.probs.draw}%` }} className="bg-slate-300"></div><div style={{ width: `${match.probs.away}%` }} className="bg-blue-500"></div></div></div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </main>
+    </div>
+  );
+}
