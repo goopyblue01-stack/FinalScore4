@@ -1,35 +1,26 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // CORS 허용 설정
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET');
 
   try {
     const { date } = req.query;
-    // 봉다 사이트 날짜별 주소
-    const targetUrl = `https://bongda.com.vn/lich-thi-dau?date=${date || ''}`;
+    // [중요] 봉다 웹사이트 주소가 아니라, 봉다의 '진짜 데이터 보관함' 주소입니다.
+    const targetUrl = `https://api.bongda.com.vn/v1/matches?date=${date || ''}&lang=vi`;
 
-    // axios 대신 기본 내장 도구인 fetch를 사용해 에러 확률을 줄입니다.
     const response = await fetch(targetUrl, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        'Accept': 'application/json', // "나 JSON 데이터로 받을게"라고 선언
+        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1'
       }
     });
 
-    if (!response.ok) {
-      throw new Error(`봉다 서버 응답 에러: ${response.status}`);
-    }
+    if (!response.ok) throw new Error('데이터 응답 에러');
 
-    const html = await response.text();
-    // 성공 시 HTML 텍스트 전달
-    return res.status(200).send(html);
-
+    const data = await response.json(); // 이제 HTML이 아니라 깔끔한 JSON 데이터가 옵니다!
+    return res.status(200).json(data);
   } catch (error: any) {
-    // 에러 발생 시 어떤 문제인지 구체적으로 출력
-    return res.status(500).json({ 
-      error: '데이터 가져오기 실패', 
-      message: error.message 
-    });
+    return res.status(500).json({ error: '데이터 낚시 실패', message: error.message });
   }
 }
