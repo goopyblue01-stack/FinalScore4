@@ -12,7 +12,7 @@ export default function Privacy({ onBack }: { onBack: () => void }) {
       <main className="max-w-3xl mx-auto px-6 mt-8">
         <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100">
           <div className="space-y-6 text-slate-600 leading-relaxed text-sm">
-            <p>ScoreLab(이하 '본 사이트')은 사용자의 개인정보 보호를 매우 중요하게 생각하며, 관련 법령을 준수합니다. 본 방침은 사이트 이용 시 수집되는 정보와 활용 방식에 대해 설명합니다.</p>
+            <p>ScoredLab(이하 '본 사이트')은 사용자의 개인정보 보호를 매우 중요하게 생각하며, 관련 법령을 준수합니다. 본 방침은 사이트 이용 시 수집되는 정보와 활용 방식에 대해 설명합니다.</p>
             
             <section>
               <h4 className="font-bold text-slate-800 text-base mb-2">1. 수집하는 개인정보 항목</h4>
