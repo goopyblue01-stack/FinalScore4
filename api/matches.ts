@@ -263,10 +263,7 @@ const teamNameMap: { [key: string]: string } = {
 // ==========================
 function calcForm(matches: any[], isAttack: boolean) {
   if (matches.length === 0) return 1.3;
-
-  let total = 0;
-  let weightSum = 0;
-
+  let total = 0, weightSum = 0;
   matches.forEach((m) => {
     const days = (Date.now() - new Date(m.date).getTime()) / (1000 * 60 * 60 * 24);
     const timeWeight = Math.exp(-days / 30);
@@ -274,37 +271,25 @@ function calcForm(matches: any[], isAttack: boolean) {
     total += val * timeWeight;
     weightSum += timeWeight;
   });
-
   const avg = total / weightSum;
   return isAttack ? Math.max(0.5, avg) : Math.max(0.3, avg);
 }
 
-// ==========================
-// 🔥 포아송 분포 함수
-// ==========================
-function factorial(n: number): number {
-  return n <= 1 ? 1 : n * factorial(n - 1);
-}
-
-function poissonProb(lambda: number, k: number) {
-  return (Math.pow(lambda, k) * Math.exp(-lambda)) / factorial(k);
-}
+function factorial(n: number): number { return n <= 1 ? 1 : n * factorial(n - 1); }
+function poissonProb(lambda: number, k: number) { return (Math.pow(lambda, k) * Math.exp(-lambda)) / factorial(k); }
 
 function poisson(homeGoals: number, awayGoals: number) {
   const max = 6;
   let matrix = [];
-
   for (let i = 0; i <= max; i++) {
     for (let j = 0; j <= max; j++) {
       const p = poissonProb(homeGoals, i) * poissonProb(awayGoals, j);
       matrix.push({ homeScore: i, awayScore: j, p });
     }
   }
-
   const homeWin = matrix.filter((m) => m.homeScore > m.awayScore).reduce((sum, m) => sum + m.p, 0);
   const draw = matrix.filter((m) => m.homeScore === m.awayScore).reduce((sum, m) => sum + m.p, 0);
   const awayWin = matrix.filter((m) => m.homeScore < m.awayScore).reduce((sum, m) => sum + m.p, 0);
-
   const total = homeWin + draw + awayWin;
   
   return {
@@ -320,10 +305,10 @@ function poisson(homeGoals: number, awayGoals: number) {
 // 🛡️ API 보호용 글로벌 메모리 캐시 
 // ==========================
 let predictionCache: { [leagueSeason: string]: { timestamp: number, data: any[] } } = {};
-let oddsCache: { [fixtureId: number]: { timestamp: number, data: any } } = {}; // 🔥 새로운 해외배당 전용 캐시
+let oddsCache: { [fixtureId: number]: { timestamp: number, data: any } } = {}; 
 
-const CACHE_TTL = 60 * 60 * 1000; // 1시간 (순위 및 과거 전적)
-const ODDS_CACHE_TTL = 2 * 60 * 60 * 1000; // 2시간 (해외 배당)
+const CACHE_TTL = 60 * 60 * 1000; 
+const ODDS_CACHE_TTL = 2 * 60 * 60 * 1000;
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Cache-Control', 's-maxage=15, stale-while-revalidate');
@@ -342,7 +327,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         headers: { 'x-rapidapi-key': API_KEY || '', 'x-rapidapi-host': 'v3.football.api-sports.io' } 
       }).then(r => r.json());
 
-    // 1. 경기 정보만 먼저 가져오기 (배당 묶음 호출 제거)
     const [targetData, prevData] = await Promise.all([
       fetchAPI('fixtures', `date=${targetDateStr}`),
       fetchAPI('fixtures', `date=${prevDateStr}`)
@@ -350,7 +334,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const allMatches = [...(targetData.response || []), ...(prevData.response || [])];
 
-    // 2. 우리가 서비스하는 80개 리그 & 한국 시간 기준 오늘 경기만 1차 추출 (핵심 최적화!)
+    // 필터링: 우리가 정의한 핵심 리그 & 한국 시간 일치 여부
     const rawFilteredMatches = allMatches.filter((item: any) => {
       if (leagueNameMap[item.league.id] === undefined) return false;
       const matchDateKST = new Date(item.fixture.date).toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
@@ -358,11 +342,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
     const uniqueLeagues = new Set<string>();
-    rawFilteredMatches.forEach((m: any) => {
-      uniqueLeagues.add(`${m.league.id}-${m.league.season}`);
-    });
+    rawFilteredMatches.forEach((m: any) => { uniqueLeagues.add(`${m.league.id}-${m.league.season}`); });
 
-    // 3. 리그별 진짜 평균 득/실점 및 과거 전적 구하기
     const standingsPromises = Array.from(uniqueLeagues).map(async (key) => {
       const [leagueId, season] = key.split('-');
       return fetchAPI('standings', `league=${leagueId}&season=${season}`);
@@ -375,9 +356,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (res && res.response && res.response.length > 0 && res.response[0].league.standings[0]) {
         const leagueInfo = res.response[0].league;
         const leagueKey = `${leagueInfo.id}-${leagueInfo.season}`;
-
-        let totalGoals = 0;
-        let totalPlayed = 0;
+        let totalGoals = 0, totalPlayed = 0;
 
         leagueInfo.standings[0].forEach((team: any) => {
           if (team.all && team.all.goals && team.all.goals.for !== undefined) {
@@ -385,12 +364,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             totalPlayed += team.all.played;
           }
         });
-
-        if (totalPlayed > 0) {
-          leagueAvgMap[leagueKey] = totalGoals / totalPlayed;
-        } else {
-          leagueAvgMap[leagueKey] = 1.3;
-        }
+        leagueAvgMap[leagueKey] = totalPlayed > 0 ? totalGoals / totalPlayed : 1.3;
       }
     });
 
@@ -399,63 +373,60 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const [leagueId, season] = key.split('-');
       if (!predictionCache[key] || now - predictionCache[key].timestamp > CACHE_TTL) {
         const pastMatchesRes = await fetchAPI('fixtures', `league=${leagueId}&season=${season}&status=FT`);
-        predictionCache[key] = {
-          timestamp: now,
-          data: pastMatchesRes.response || []
-        };
+        predictionCache[key] = { timestamp: now, data: pastMatchesRes.response || [] };
       }
     }));
 
-    // 4. 🔥 [핵심 수정] 배당(Odds) 저격수 호출 & 캐싱 로직
-    // 무식하게 전체 페이지를 뒤지지 않고, 방금 추려낸 중요 경기들(rawFilteredMatches)만 개별 타겟팅합니다.
-    await Promise.all(rawFilteredMatches.map(async (item: any) => {
+    // 🔥 [오류 수정] 배당(Odds) 가져오기: 상태 제한 삭제 및 5개씩 순차적 호출 (Rate Limit 429 에러 방지)
+    const fixturesToFetchOdds = rawFilteredMatches.filter(item => {
       const fId = item.fixture.id;
-      const status = item.fixture.status.short;
-      
-      // 캐시가 비어있거나 만료되었을 때만 작동
-      if (!oddsCache[fId] || now - oddsCache[fId].timestamp > ODDS_CACHE_TTL) {
-        // 사전 배당은 경기 시작 전(NS)에만 제공되므로, 불필요한 API 낭비를 막음
-        if (status === 'NS') {
-          try {
-            // bookmaker=8 (Bet365), bet=1 (Match Winner) 로 딱 한 줄만 빠르게 가져옵니다.
-            const oddsRes = await fetchAPI('odds', `fixture=${fId}&bookmaker=8&bet=1`);
-            let oddsData = null;
-            if (oddsRes && oddsRes.response && oddsRes.response.length > 0) {
-              const bookmaker = oddsRes.response[0].bookmakers[0];
-              const market = bookmaker?.bets[0];
-              if (market) {
-                oddsData = {
-                  home: market.values.find((v: any) => v.value === 'Home' || v.value === '1')?.odd,
-                  draw: market.values.find((v: any) => v.value === 'Draw' || v.value === 'X')?.odd,
-                  away: market.values.find((v: any) => v.value === 'Away' || v.value === '2')?.odd
-                };
-              }
-            }
-            oddsCache[fId] = { timestamp: now, data: oddsData };
-          } catch (e) {
-            console.error(`Odds fetch failed for fixture ${fId}`, e);
-          }
-        } else {
-          // 경기가 시작되었거나 끝났으면 캐시만 빈 값으로 채워둠
-          if (!oddsCache[fId]) {
-            oddsCache[fId] = { timestamp: now, data: null };
-          }
-        }
-      }
-    }));
+      return !oddsCache[fId] || now - oddsCache[fId].timestamp > ODDS_CACHE_TTL;
+    });
 
-    // 5. 최종 매핑 로직 (Logic B + C)
+    const batchSize = 5; // 한 번에 5개씩만 요청
+    for (let i = 0; i < fixturesToFetchOdds.length; i += batchSize) {
+      const batch = fixturesToFetchOdds.slice(i, i + batchSize);
+      await Promise.all(batch.map(async (item: any) => {
+        const fId = item.fixture.id;
+        try {
+          // 상태(NS, FT, LIVE) 상관없이 경기 배당을 가져옴. bookmaker=8 제한을 풀어 아무 공식 배당이나 확보.
+          const oddsRes = await fetchAPI('odds', `fixture=${fId}&bet=1`);
+          let oddsData = null;
+          
+          if (oddsRes && oddsRes.response && oddsRes.response.length > 0) {
+            // Bet365를 먼저 찾고, 없으면 가장 첫 번째 제공되는 배당 업체를 사용
+            let bookmaker = oddsRes.response[0].bookmakers.find((b: any) => b.id === 8 || b.name === 'Bet365');
+            if (!bookmaker) bookmaker = oddsRes.response[0].bookmakers[0]; 
+
+            const market = bookmaker?.bets[0];
+            if (market) {
+              oddsData = {
+                home: market.values.find((v: any) => v.value === 'Home' || v.value === '1')?.odd,
+                draw: market.values.find((v: any) => v.value === 'Draw' || v.value === 'X')?.odd,
+                away: market.values.find((v: any) => v.value === 'Away' || v.value === '2')?.odd
+              };
+            }
+          }
+          oddsCache[fId] = { timestamp: now, data: oddsData };
+        } catch (e) {
+          console.error(`Odds fetch failed for fixture ${fId}`, e);
+          oddsCache[fId] = { timestamp: now, data: null };
+        }
+      }));
+      // 다음 5개를 요청하기 전에 0.3초 대기 (서버 과부하 방어막)
+      await new Promise(resolve => setTimeout(resolve, 300));
+    }
+
+    // 5. 최종 매핑 로직
     const filteredMatches = rawFilteredMatches.map((item: any) => {
       const hName = item.teams.home.name;
       const aName = item.teams.away.name;
-      
       const homeId = item.teams.home.id;
       const awayId = item.teams.away.id;
-      
       const leagueKey = `${item.league.id}-${item.league.season}`;
+      
       const pastMatches = predictionCache[leagueKey]?.data || [];
       const validPastMatches = pastMatches.filter((m: any) => m.fixture.id !== item.fixture.id);
-
       const leagueAvgGoals = leagueAvgMap[leagueKey] || 1.3;
 
       const getRecentMatches = (teamId: number, targetMatches: any[]) => {
@@ -477,15 +448,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const homeRecent = getRecentMatches(homeId, validPastMatches);
       const awayRecent = getRecentMatches(awayId, validPastMatches);
 
-      const homeHomeMatches = homeRecent.filter((m: any) => m.isHome);
-      const awayAwayMatches = awayRecent.filter((m: any) => !m.isHome);
+      const homeAttack = calcForm(homeRecent.filter((m: any) => m.isHome), true);
+      const homeDefense = calcForm(homeRecent.filter((m: any) => m.isHome), false);
+      const awayAttack = calcForm(awayRecent.filter((m: any) => !m.isHome), true);
+      const awayDefense = calcForm(awayRecent.filter((m: any) => !m.isHome), false);
 
-      const homeAttack = calcForm(homeHomeMatches, true);
-      const homeDefense = calcForm(homeHomeMatches, false);
-      const awayAttack = calcForm(awayAwayMatches, true);
-      const awayDefense = calcForm(awayAwayMatches, false);
-
-      // Logic B (Performance): 예상 득점 도출
       const expectedHomeGoals = Math.max(0.5, homeAttack * (awayDefense / leagueAvgGoals) * 1.1);
       const expectedAwayGoals = Math.max(0.5, awayAttack * (homeDefense / leagueAvgGoals) * 0.9);
 
@@ -511,7 +478,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         hasOdds = true;
       }
 
-      // 하이브리드 결합 (Golden Level: B 60% + C 40%)
       let finalProbHome = logicBProbHome;
       let finalProbDraw = logicBProbDraw;
       let finalProbAway = logicBProbAway;
@@ -522,7 +488,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         finalProbAway = Math.max(0, 100 - finalProbHome - finalProbDraw); 
       }
 
-      // 스마트 타이 브레이커 (1:1, 2:2 무승부 방어 시스템)
       let predictHome = Math.round(expectedHomeGoals);
       let predictAway = Math.round(expectedAwayGoals);
 
@@ -544,7 +509,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         korTime: new Date(item.fixture.date).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Seoul' }),
         predict: { home: predictHome, away: predictAway },
         probs: { home: finalProbHome, draw: finalProbDraw, away: finalProbAway },
-        odds: matchOdds // 드디어 화면에 뜹니다!
+        odds: matchOdds // 🔥 이제 정상적으로 데이터가 꽂힙니다!
       };
     })
     .sort((a: any, b: any) => {
