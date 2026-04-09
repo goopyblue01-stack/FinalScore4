@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
-import { RefreshCw, ArrowLeft, TrendingUp, Info, ChevronUp, ChevronDown } from 'lucide-react';
+import { ArrowLeft, ArrowRight, TrendingUp, Info, ChevronUp, ChevronDown, Activity, ListOrdered } from 'lucide-react';
 import { format, addDays, startOfToday } from 'date-fns';
 
-// 🔥 1. 방금 만든 3개의 페이지를 불러오는 코드 추가
+// 페이지 불러오기
 import About from './pages/About';
 import Terms from './pages/Terms';
 import Privacy from './pages/Privacy';
 
-// [상세 페이지 컴포넌트] - 사장님 코드 원본 100% 유지
+// [상세 페이지 컴포넌트]
 function MatchDetail({ match, onBack }: { match: any, onBack: () => void }) {
   const getRank1Style = (h: number, a: number) => {
     if (h > a) return { h: "text-red-500 font-black", a: "text-slate-400 font-normal" };
@@ -80,6 +80,64 @@ function MatchDetail({ match, onBack }: { match: any, onBack: () => void }) {
           </div>
         </div>
 
+        {/* 🔥 1. 경기 이벤트 타임라인 (경기 중이거나 종료되었을 때, 이벤트 데이터가 있을 때만 노출) */}
+        {match.status !== 'NS' && match.events && match.events.length > 0 && (
+          <div className="bg-white rounded-[24px] p-6 border border-slate-100 shadow-sm mb-6">
+            <div className="flex items-center gap-2 mb-5 text-[#0f3460] font-bold"><Activity className="w-5 h-5" /><span>주요 이벤트</span></div>
+            <div className="flex flex-col gap-4">
+              {match.events.map((ev: any, idx: number) => (
+                <div key={idx} className="flex items-center justify-center">
+                  
+                  {/* 홈팀 이벤트 (오른쪽 정렬, 아이콘이 우측으로 가도록 배치) */}
+                  <div className="flex-1 flex items-center justify-end gap-2 text-right">
+                    {ev.team === 'home' && (
+                      <>
+                        {ev.type === 'sub' ? (
+                          <div className="flex flex-col items-end text-[11px] font-medium leading-tight gap-0.5">
+                            <div className="flex items-center gap-1 text-slate-500">{ev.playerOut} <ArrowLeft className="w-3 h-3 text-red-500" strokeWidth={3} /></div>
+                            <div className="flex items-center gap-1 text-slate-800">{ev.playerIn} <ArrowRight className="w-3 h-3 text-[#56ad6a]" strokeWidth={3} /></div>
+                          </div>
+                        ) : (
+                          <span className="font-medium text-slate-700 text-sm">{ev.player}</span>
+                        )}
+                        {ev.type === 'goal' && <span className="text-base">⚽</span>}
+                        {ev.type === 'yellow' && <div className="w-2.5 h-3.5 bg-yellow-400 rounded-[2px] border border-yellow-500 shadow-sm shrink-0"></div>}
+                        {ev.type === 'red' && <div className="w-2.5 h-3.5 bg-red-500 rounded-[2px] border border-red-600 shadow-sm shrink-0"></div>}
+                      </>
+                    )}
+                  </div>
+
+                  {/* 발생 시간 */}
+                  <div className="w-12 flex-shrink-0 text-center font-black text-slate-400 text-xs bg-slate-50 py-1 rounded-lg mx-3 border border-slate-100">
+                    {ev.minute}'
+                  </div>
+
+                  {/* 원정팀 이벤트 (왼쪽 정렬, 아이콘이 좌측으로 가도록 배치) */}
+                  <div className="flex-1 flex items-center justify-start gap-2 text-left">
+                    {ev.team === 'away' && (
+                      <>
+                        {ev.type === 'goal' && <span className="text-base">⚽</span>}
+                        {ev.type === 'yellow' && <div className="w-2.5 h-3.5 bg-yellow-400 rounded-[2px] border border-yellow-500 shadow-sm shrink-0"></div>}
+                        {ev.type === 'red' && <div className="w-2.5 h-3.5 bg-red-500 rounded-[2px] border border-red-600 shadow-sm shrink-0"></div>}
+                        {ev.type === 'sub' ? (
+                          <div className="flex flex-col items-start text-[11px] font-medium leading-tight gap-0.5">
+                            <div className="flex items-center gap-1 text-slate-500"><ArrowLeft className="w-3 h-3 text-red-500" strokeWidth={3} /> {ev.playerOut}</div>
+                            <div className="flex items-center gap-1 text-slate-800"><ArrowRight className="w-3 h-3 text-[#56ad6a]" strokeWidth={3} /> {ev.playerIn}</div>
+                          </div>
+                        ) : (
+                          <span className="font-medium text-slate-700 text-sm">{ev.player}</span>
+                        )}
+                      </>
+                    )}
+                  </div>
+                  
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 기존 예상 스코어 순위 */}
         <div className="bg-white rounded-[24px] p-6 border border-slate-100 shadow-sm mb-4">
           <div className="flex items-center gap-2 mb-6 text-[#56ad6a] font-bold"><TrendingUp className="w-5 h-5" /><span>예상 스코어 순위 (Top 5)</span></div>
           <div className="flex flex-col gap-2.5">
@@ -104,6 +162,7 @@ function MatchDetail({ match, onBack }: { match: any, onBack: () => void }) {
           </div>
         </div>
 
+        {/* 기존 해외 배당 정보 */}
         <div className="bg-white rounded-[24px] p-6 border border-slate-100 shadow-sm mb-6">
           <div className="flex items-center gap-2 mb-6 text-[#bf953f] font-bold"><Info className="w-5 h-5" /><span>해외 배당 정보</span></div>
           {match.odds ? (
@@ -123,6 +182,47 @@ function MatchDetail({ match, onBack }: { match: any, onBack: () => void }) {
           )}
           <p className="mt-5 text-[10px] text-center text-slate-400 italic">"본 데이터는 해외 배당 정보이며, 베팅을 권하지 않습니다."</p>
         </div>
+
+        {/* 🔥 2. 대회 순위표 (데이터가 있을 때만 항상 노출) */}
+        {match.standings && match.standings.length > 0 && (
+          <div className="bg-white rounded-[24px] p-6 border border-slate-100 shadow-sm mb-6">
+            <div className="flex items-center gap-2 mb-5 text-slate-800 font-bold"><ListOrdered className="w-5 h-5 text-slate-500" /><span>순위표</span></div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs text-center whitespace-nowrap">
+                <thead>
+                  <tr className="text-slate-400 border-b border-slate-100">
+                    <th className="py-2.5 font-medium w-10">순위</th>
+                    <th className="py-2.5 font-medium text-left">팀명</th>
+                    <th className="py-2.5 font-medium w-8">경기</th>
+                    <th className="py-2.5 font-medium w-8">승</th>
+                    <th className="py-2.5 font-medium w-8">무</th>
+                    <th className="py-2.5 font-medium w-8">패</th>
+                    <th className="py-2.5 font-medium w-8">득실</th>
+                    <th className="py-2.5 font-black w-10 text-[#56ad6a]">승점</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {match.standings.map((s: any) => {
+                    const isTargetTeam = s.team === match.home || s.team === match.away;
+                    return (
+                      <tr key={s.rank} className={`border-b border-slate-50 last:border-0 transition-colors ${isTargetTeam ? 'bg-slate-50/80 font-bold' : ''}`}>
+                        <td className="py-3 text-slate-500">{s.rank}</td>
+                        <td className={`py-3 text-left ${isTargetTeam ? 'text-slate-900' : 'text-slate-600'}`}>{s.team}</td>
+                        <td className="py-3 text-slate-500">{s.played}</td>
+                        <td className="py-3 text-slate-500">{s.win}</td>
+                        <td className="py-3 text-slate-500">{s.draw}</td>
+                        <td className="py-3 text-slate-500">{s.lose}</td>
+                        <td className="py-3 text-slate-500">{s.goalDiff}</td>
+                        <td className="py-3 text-[#56ad6a] font-black">{s.points}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
       </main>
     </div>
   );
@@ -133,8 +233,6 @@ export default function App() {
   const [matches, setMatches] = useState<any[]>([]);
   const [selectedDateIdx, setSelectedDateIdx] = useState(2);
   const [selectedMatch, setSelectedMatch] = useState<any | null>(null);
-
-  // 🔥 2. 현재 어떤 페이지를 보여줄지 결정하는 상태값 추가
   const [selectedPage, setSelectedPage] = useState<string>('main');
 
   const today = startOfToday();
@@ -154,7 +252,6 @@ export default function App() {
     fetchData();
   }, [selectedDateIdx]);
 
-  // 🔥 3. 버튼을 누르면 해당 페이지를 띄우도록 연결
   if (selectedPage === 'about') return <About onBack={() => setSelectedPage('main')} />;
   if (selectedPage === 'terms') return <Terms onBack={() => setSelectedPage('main')} />;
   if (selectedPage === 'privacy') return <Privacy onBack={() => setSelectedPage('main')} />;
@@ -194,10 +291,8 @@ export default function App() {
         <div className="space-y-3">
           {matches.map((match) => {
             const isLive = !['NS', 'FT', 'CANC', 'ABD'].includes(match.status);
-            
             const isHomeWin = match.scoreHome > match.scoreAway;
             const isAwayWin = match.scoreAway > match.scoreHome;
-            
             const hExp = match.predict.home;
             const aExp = match.predict.away;
             const isHomePredWin = hExp > aExp;
@@ -260,7 +355,15 @@ export default function App() {
                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-all ${awayPredBoxClass}`}>{aExp}</div>
                      </div>
                   </div>
-                  <div className="mt-4"><div className="h-1.5 flex rounded-full overflow-hidden bg-slate-100/50"><div style={{ width: `${match.probs.home}%` }} className="bg-red-500"></div><div style={{ width: `${match.probs.draw}%` }} className="bg-slate-300"></div><div style={{ width: `${match.probs.away}%` }} className="bg-blue-500"></div></div></div>
+                  
+                  <div className="mt-4">
+                    <div className="h-1.5 flex rounded-full overflow-hidden bg-slate-100/50">
+                      <div style={{ width: `${match.probs.home}%` }} className="bg-red-500"></div>
+                      <div style={{ width: `${match.probs.draw}%` }} className="bg-slate-300"></div>
+                      <div style={{ width: `${match.probs.away}%` }} className="bg-blue-500"></div>
+                    </div>
+                  </div>
+
                 </div>
               </div>
             );
@@ -268,7 +371,6 @@ export default function App() {
         </div>
       </main>
 
-      {/* 🔥 4. 하단(Footer)에 페이지 이동 버튼 추가 */}
       <footer className="mt-12 py-8 text-center flex flex-col items-center justify-center gap-3">
         <div className="flex gap-4 text-xs text-slate-400 font-medium">
           <button onClick={() => setSelectedPage('about')} className="hover:text-slate-600 transition-colors">소개</button>
