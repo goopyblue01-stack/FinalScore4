@@ -166,7 +166,7 @@ export default function App() {
       <header className="bg-white py-10 flex justify-center items-center border-b border-slate-100 shadow-sm">
         <div className="flex flex-col items-center">
           <h1 className="text-5xl md:text-6xl font-black tracking-tighter italic leading-none">
-            <span style={{ color: '#0f3460' }}>Score</span>
+            <span style={{ color: '#0f3460' }}>Scored</span>
             <span style={{ color: '#84cc16' }}>Lab</span>
           </h1>
           <div 
@@ -277,7 +277,7 @@ export default function App() {
           <span className="text-slate-200">|</span>
           <button onClick={() => setSelectedPage('privacy')} className="hover:text-slate-600 transition-colors">개인정보처리방침</button>
         </div>
-        <p className="text-[10px] text-slate-300">© {new Date().getFullYear()} ScoreLab. All rights reserved.</p>
+        <p className="text-[10px] text-slate-300">© {new Date().getFullYear()} ScoredLab. All rights reserved.</p>
       </footer>
     </div>
   );
