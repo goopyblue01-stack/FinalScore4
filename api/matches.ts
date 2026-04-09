@@ -810,8 +810,7 @@ const teamNameMap: { [key: string]: string } = {
 "FK Crvena Zvezda": "즈베즈다", "Cerro Porteno": "세로 포르테뇨", "Kifisia": "키피시아", "Al-Ahli Jeddah": "알 아흘리 제다", "Ghazl El Mehalla": "가즐 엘 마할라", "El Gouna FC": "엘 구나 FC",
 "Haras El Hodood": "하라스 엘 호두드", "Future FC": "퓨처 FC", "Wadi Degla": "와디 데글라", "Pharco": "파르코", "Orange County SC": "오렌지 카운티 SC", "San Antonio": "샌안토니오 FC",
 "Lokomotiv Sofia": "로코모티브 소피아"
-{
-  "Sevlievo": "세블리에보",
+"Sevlievo": "세블리에보",
   "Spartak Pleven": "스파르탁 플레벤",
   "Chernomorets 1919 Burgas": "체르노모레츠 부르가스",
   "Pirin Blagoevgrad": "피린 블라고에브그라드",
@@ -982,7 +981,6 @@ const teamNameMap: { [key: string]: string } = {
   "Deportivo Camioneros": "카미오네로스",
   "Platense": "플라텐세",
   "Penarol": "페냐롤"
-}
 };
 
 // ==========================
