@@ -24,7 +24,6 @@ function MatchDetail({ match, onBack }: { match: any, onBack: () => void }) {
     { h: Math.max(0, match.predict.home - 1), a: match.predict.away, prob: "7%", rank: 5 },
   ];
 
-  // 🔥 [디자인 수정] 중앙 상단 주황색 텍스트 계산
   let centerStatus = "";
   if (match.status === 'FT') centerStatus = 'FT';
   else if (match.status !== 'NS') centerStatus = match.elapsed ? `${match.elapsed}'` : 'LIVE';
@@ -51,17 +50,18 @@ function MatchDetail({ match, onBack }: { match: any, onBack: () => void }) {
         <div className={`rounded-[32px] p-6 mb-6 shadow-sm border ${
           !['NS', 'FT'].includes(match.status) ? 'bg-rose-50/40 border-rose-100' : 'bg-white border-slate-100'
         }`}>
-          {/* 🔥 [디자인 수정] 경기 시각은 항상 상단 고정 */}
           <div className="text-center text-sm mb-4 font-bold text-slate-500">
             {match.korTime}
           </div>
-          <div className="flex items-center justify-between gap-2">
+          
+          {/* 🔥 pt-6을 주어 위쪽 시간 글씨가 들어갈 여유 공간 확보 */}
+          <div className="flex items-center justify-between gap-2 pt-6">
             <div className={`flex-1 text-right text-sm md:text-xl ${homeNameClass}`}>{match.home}</div>
             
-            {/* 🔥 [디자인 수정] 스코어 영역 위 주황색 시간 배치 및 vs 적용 */}
-            <div className="flex flex-col items-center justify-center min-w-[80px]">
+            {/* 🔥 relative를 주고 시간을 absolute로 띄워서 스코어 라인이 틀어지지 않게 함 */}
+            <div className="relative flex items-center justify-center min-w-[80px]">
               {match.status !== 'NS' && (
-                <span className="text-[#f97316] font-black text-xl leading-none mb-1">{centerStatus}</span>
+                <span className="absolute -top-7 text-orange-400 font-medium text-base tracking-wide">{centerStatus}</span>
               )}
               <div className="flex items-center gap-2">
                 {match.status === 'NS' ? <span className="text-slate-300 text-2xl font-black">VS</span> : 
@@ -193,7 +193,6 @@ export default function App() {
             const isAwayPredWin = aExp > hExp;
             const isPredDraw = hExp === aExp;
             
-            // 🔥 [디자인 수정] 중앙 상단 주황색 텍스트 계산
             let centerStatus = "";
             if (match.status === 'FT') centerStatus = 'FT';
             else if (match.status !== 'NS') centerStatus = match.elapsed ? `${match.elapsed}'` : 'LIVE';
@@ -219,17 +218,17 @@ export default function App() {
                 <div className="p-3 md:p-4">
                   <div className="flex justify-between items-center mb-2">
                     <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase ${isLive ? 'bg-rose-100/50 text-rose-500' : 'bg-[#e8f8f0] text-[#56ad6a]'}`}>{match.league}</span>
-                    {/* 🔥 [디자인 수정] 우측 상단은 무조건 원래 경기 시각 고정 */}
                     <span className="text-[10px] font-bold text-slate-700">{match.korTime}</span>
                   </div>
                   
-                  <div className="flex items-center justify-center gap-3 mb-3">
+                  {/* 🔥 pt-4를 주어 위쪽 시간 글씨가 들어갈 여유 공간 확보 */}
+                  <div className="flex items-center justify-center gap-3 mb-3 pt-4">
                     <div className={`flex-1 text-right text-sm md:text-base truncate ${homeListNameClass}`}>{match.home}</div>
                     
-                    {/* 🔥 [디자인 수정] 스코어 영역 위 주황색 시간 배치 및 vs 적용 */}
-                    <div className="flex flex-col items-center justify-center min-w-[80px]">
+                    {/* 🔥 relative를 주고 시간을 absolute로 띄워서 정렬 유지 */}
+                    <div className="relative flex items-center justify-center min-w-[80px]">
                         {match.status !== 'NS' && (
-                          <span className="text-[#f97316] font-black text-lg leading-none mb-1">{centerStatus}</span>
+                          <span className="absolute -top-6 text-orange-400 font-medium text-sm tracking-wide">{centerStatus}</span>
                         )}
                         <div className="flex items-center gap-2 text-xl">
                             {match.status === 'NS' ? <span className="text-slate-300 text-sm font-bold mt-1">VS</span> : 
