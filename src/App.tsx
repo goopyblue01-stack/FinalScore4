@@ -24,17 +24,10 @@ function MatchDetail({ match, onBack }: { match: any, onBack: () => void }) {
     { h: Math.max(0, match.predict.home - 1), a: match.predict.away, prob: "7%", rank: 5 },
   ];
 
-  const orangeHighlight = "#f97316";
-  const darkGrey = "#475569";
-  
-  let displayStatus = "";
-  let statusColor = darkGrey;
-  if (match.status === 'NS') displayStatus = match.korTime;
-  else if (match.status === 'FT') displayStatus = 'FT';
-  else {
-    displayStatus = match.elapsed ? `${match.elapsed}'` : 'LIVE';
-    statusColor = orangeHighlight;
-  }
+  // 🔥 [디자인 수정] 중앙 상단 주황색 텍스트 계산
+  let centerStatus = "";
+  if (match.status === 'FT') centerStatus = 'FT';
+  else if (match.status !== 'NS') centerStatus = match.elapsed ? `${match.elapsed}'` : 'LIVE';
 
   const isHomeWin = match.scoreHome > match.scoreAway;
   const isAwayWin = match.scoreAway > match.scoreHome;
@@ -58,20 +51,28 @@ function MatchDetail({ match, onBack }: { match: any, onBack: () => void }) {
         <div className={`rounded-[32px] p-6 mb-6 shadow-sm border ${
           !['NS', 'FT'].includes(match.status) ? 'bg-rose-50/40 border-rose-100' : 'bg-white border-slate-100'
         }`}>
-          <div className="text-center text-xs mb-4 font-bold" style={{ color: statusColor }}>
-            {match.status === 'FT' ? '경기 종료' : match.status === 'NS' ? '경기전' : displayStatus}
+          {/* 🔥 [디자인 수정] 경기 시각은 항상 상단 고정 */}
+          <div className="text-center text-sm mb-4 font-bold text-slate-500">
+            {match.korTime}
           </div>
           <div className="flex items-center justify-between gap-2">
             <div className={`flex-1 text-right text-sm md:text-xl ${homeNameClass}`}>{match.home}</div>
-            <div className="flex-shrink-0 flex items-center justify-center gap-1 min-w-[80px]">
-              {match.status === 'NS' ? <span className="text-slate-300 text-2xl font-black">VS</span> : 
-              <>
-                <span className={`text-2xl md:text-4xl ${homeScoreClass}`}>{match.scoreHome}</span>
-                {/* [수정] 콜론 색상을 더 진하게 변경 (text-slate-400) */}
-                <span className="text-xl md:text-3xl font-black text-slate-400">:</span>
-                <span className={`text-2xl md:text-4xl ${awayScoreClass}`}>{match.scoreAway}</span>
-              </>}
+            
+            {/* 🔥 [디자인 수정] 스코어 영역 위 주황색 시간 배치 및 vs 적용 */}
+            <div className="flex flex-col items-center justify-center min-w-[80px]">
+              {match.status !== 'NS' && (
+                <span className="text-[#f97316] font-black text-xl leading-none mb-1">{centerStatus}</span>
+              )}
+              <div className="flex items-center gap-2">
+                {match.status === 'NS' ? <span className="text-slate-300 text-2xl font-black">VS</span> : 
+                <>
+                  <span className={`text-2xl md:text-4xl ${homeScoreClass}`}>{match.scoreHome}</span>
+                  <span className="text-lg md:text-xl font-bold text-slate-300 lowercase">vs</span>
+                  <span className={`text-2xl md:text-4xl ${awayScoreClass}`}>{match.scoreAway}</span>
+                </>}
+              </div>
             </div>
+
             <div className={`flex-1 text-left text-sm md:text-xl ${awayNameClass}`}>{match.away}</div>
           </div>
         </div>
@@ -90,7 +91,6 @@ function MatchDetail({ match, onBack }: { match: any, onBack: () => void }) {
                   <div className="flex items-center gap-3">
                     <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${isRank1 ? 'bg-[#56ad6a] text-white' : 'bg-slate-200 text-slate-500'}`}>{p.rank}위</span>
                     <div className="flex items-center gap-2 text-base">
-                      {/* [수정] 콜론 색상을 더 진하게 변경 */}
                       <span className={style.h}>{p.h}</span><span className={isRank1 ? 'text-slate-600' : 'text-slate-400'}>:</span><span className={style.a}>{p.a}</span>
                     </div>
                   </div>
@@ -193,10 +193,10 @@ export default function App() {
             const isAwayPredWin = aExp > hExp;
             const isPredDraw = hExp === aExp;
             
-            let displayStatus = "";
-            if (match.status === 'NS') displayStatus = match.korTime;
-            else if (match.status === 'FT') displayStatus = 'FT';
-            else displayStatus = match.elapsed ? `${match.elapsed}'` : 'LIVE';
+            // 🔥 [디자인 수정] 중앙 상단 주황색 텍스트 계산
+            let centerStatus = "";
+            if (match.status === 'FT') centerStatus = 'FT';
+            else if (match.status !== 'NS') centerStatus = match.elapsed ? `${match.elapsed}'` : 'LIVE';
 
             const homeListScoreClass = isHomeWin ? "text-red-500 font-black" : isAwayWin ? "text-slate-400 font-normal" : "text-slate-800 font-bold";
             const awayListScoreClass = isAwayWin ? "text-red-500 font-black" : isHomeWin ? "text-slate-400 font-normal" : "text-slate-800 font-bold";
@@ -219,29 +219,36 @@ export default function App() {
                 <div className="p-3 md:p-4">
                   <div className="flex justify-between items-center mb-2">
                     <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase ${isLive ? 'bg-rose-100/50 text-rose-500' : 'bg-[#e8f8f0] text-[#56ad6a]'}`}>{match.league}</span>
-                    <span className="text-[10px] font-bold" style={{ color: isLive ? "#f97316" : "#475569" }}>{displayStatus}</span>
+                    {/* 🔥 [디자인 수정] 우측 상단은 무조건 원래 경기 시각 고정 */}
+                    <span className="text-[10px] font-bold text-slate-700">{match.korTime}</span>
                   </div>
+                  
                   <div className="flex items-center justify-center gap-3 mb-3">
                     <div className={`flex-1 text-right text-sm md:text-base truncate ${homeListNameClass}`}>{match.home}</div>
                     
-                    <div className="flex items-center gap-2 text-xl min-w-[60px] justify-center">
-                        {match.status === 'NS' ? <span className="text-slate-300 text-sm font-bold">VS</span> : 
-                        <>
-                          <span className={homeListScoreClass}>{match.scoreHome}</span>
-                          {/* [수정] 콜론 색상을 더 진하게 변경 (text-slate-400) */}
-                          <span className="text-slate-400 font-bold">:</span>
-                          <span className={awayListScoreClass}>{match.scoreAway}</span>
-                        </>}
+                    {/* 🔥 [디자인 수정] 스코어 영역 위 주황색 시간 배치 및 vs 적용 */}
+                    <div className="flex flex-col items-center justify-center min-w-[80px]">
+                        {match.status !== 'NS' && (
+                          <span className="text-[#f97316] font-black text-lg leading-none mb-1">{centerStatus}</span>
+                        )}
+                        <div className="flex items-center gap-2 text-xl">
+                            {match.status === 'NS' ? <span className="text-slate-300 text-sm font-bold mt-1">VS</span> : 
+                            <>
+                              <span className={homeListScoreClass}>{match.scoreHome}</span>
+                              <span className="text-slate-300 text-sm font-bold lowercase">vs</span>
+                              <span className={awayListScoreClass}>{match.scoreAway}</span>
+                            </>}
+                        </div>
                     </div>
 
                     <div className={`flex-1 text-left text-sm md:text-base truncate ${awayListNameClass}`}>{match.away}</div>
                   </div>
+
                   <div className="flex flex-col items-center gap-2">
                      <span className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">예상 스코어</span>
                      <div className="flex items-center gap-3 text-lg">
                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-all ${homePredBoxClass}`}>{hExp}</div>
-                        {/* [수정] 콜론 색상을 더 진하게 변경 (text-slate-400) */}
-                        <span className="text-slate-400 font-bold">:</span>
+                        <span className="text-slate-300 font-bold">:</span>
                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-all ${awayPredBoxClass}`}>{aExp}</div>
                      </div>
                   </div>
