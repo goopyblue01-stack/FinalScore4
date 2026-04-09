@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://scoredlab.com/sitemap.xml
