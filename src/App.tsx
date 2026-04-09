@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, TrendingUp, Info, ChevronUp, ChevronDown } from 'lucide-react';
+import { RefreshCw, ArrowLeft, TrendingUp, Info, ChevronUp, ChevronDown } from 'lucide-react';
 import { format, addDays, startOfToday } from 'date-fns';
 
 // 🔥 1. 방금 만든 3개의 페이지를 불러오는 코드 추가
