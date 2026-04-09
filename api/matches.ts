@@ -852,7 +852,7 @@ const teamNameMap: { [key: string]: string } = {
 };
 
 // ==========================
-// 🔥 시간 + 상대팀 순위 기반 가중치 폼 계산 함수
+// 🔥 시간 가중치 폼 계산 함수 (상대팀 순위 로직 제거)
 // ==========================
 function calcForm(matches: any[], isAttack: boolean) {
   if (matches.length === 0) return 1.3;
@@ -861,19 +861,13 @@ function calcForm(matches: any[], isAttack: boolean) {
   let weightSum = 0;
 
   matches.forEach((m) => {
+    // 1. 오직 '최근 경기일수록 가산점'을 주는 시간 가중치만 적용합니다.
     const days = (Date.now() - new Date(m.date).getTime()) / (1000 * 60 * 60 * 24);
     const timeWeight = Math.exp(-days / 30);
 
-    const rankRatio = m.opponentRank / m.leagueSize; 
-    const attackWeight = 1.2 - (0.4 * rankRatio); 
-    const defenseWeight = 0.8 + (0.4 * rankRatio); 
-
-    const rankWeight = isAttack ? attackWeight : defenseWeight;
-    const finalWeight = timeWeight * rankWeight; 
-
     const val = isAttack ? m.goals : m.conceded;
-    total += val * finalWeight;
-    weightSum += finalWeight;
+    total += val * timeWeight;
+    weightSum += timeWeight;
   });
 
   const avg = total / weightSum;
@@ -959,39 +953,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     });
 
+    // 2. 리그별 진짜 평균 득/실점을 구하기 위해 순위표 데이터 가져오기
     const standingsPromises = Array.from(uniqueLeagues).map(async (key) => {
       const [leagueId, season] = key.split('-');
       return fetchAPI('standings', `league=${leagueId}&season=${season}`);
     });
     const standingsResults = await Promise.all(standingsPromises);
 
-    const teamStatsMap: any = {};
-    // 💡 [새로운 로직] 리그별 진짜 평균 득/실점을 저장할 공간
     const leagueAvgMap: { [key: string]: number } = {};
 
     standingsResults.forEach((res: any) => {
       if (res && res.response && res.response.length > 0 && res.response[0].league.standings[0]) {
         const leagueInfo = res.response[0].league;
-        const leagueSize = leagueInfo.standings[0].length || 20;
         const leagueKey = `${leagueInfo.id}-${leagueInfo.season}`;
 
         let totalGoals = 0;
         let totalPlayed = 0;
 
         leagueInfo.standings[0].forEach((team: any) => {
-          teamStatsMap[team.team.id] = {
-            rank: team.rank || (leagueSize / 2),
-            leagueSize: leagueSize
-          };
-
-          // 리그 전체의 총 골 수와 총 경기 수 합산
           if (team.all && team.all.goals && team.all.goals.for !== undefined) {
             totalGoals += team.all.goals.for;
             totalPlayed += team.all.played;
           }
         });
 
-        // 💡 리그별 1경기 평균 골 수 계산 (데이터가 없으면 기본값 1.3 보장)
         if (totalPlayed > 0) {
           leagueAvgMap[leagueKey] = totalGoals / totalPlayed;
         } else {
@@ -1042,33 +1027,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const pastMatches = predictionCache[leagueKey]?.data || [];
         const validPastMatches = pastMatches.filter((m: any) => m.fixture.id !== item.fixture.id);
 
-        // 💡 위에서 계산해 둔 '해당 리그만의 평균 골 수' 가져오기
         const leagueAvgGoals = leagueAvgMap[leagueKey] || 1.3;
 
-        const getRecentWithOpponent = (teamId: number, targetMatches: any[]) => {
+        // 순위 매핑 제거하고 깔끔하게 5경기만 가져오도록 수정
+        const getRecentMatches = (teamId: number, targetMatches: any[]) => {
           return targetMatches
             .filter((m: any) => m.teams.home.id === teamId || m.teams.away.id === teamId)
             .sort((a: any, b: any) => b.fixture.timestamp - a.fixture.timestamp)
             .slice(0, 5) 
             .map((m: any) => {
               const isHome = m.teams.home.id === teamId;
-              const opponentId = isHome ? m.teams.away.id : m.teams.home.id;
-              const opponentRank = teamStatsMap[opponentId]?.rank || 10;
-              const leagueSize = teamStatsMap[opponentId]?.leagueSize || 20;
-              
               return { 
                 date: m.fixture.date, 
                 isHome, 
                 goals: isHome ? m.goals.home : m.goals.away, 
-                conceded: isHome ? m.goals.away : m.goals.home,
-                opponentRank,
-                leagueSize
+                conceded: isHome ? m.goals.away : m.goals.home
               };
             });
         };
 
-        const homeRecent = getRecentWithOpponent(homeId, validPastMatches);
-        const awayRecent = getRecentWithOpponent(awayId, validPastMatches);
+        const homeRecent = getRecentMatches(homeId, validPastMatches);
+        const awayRecent = getRecentMatches(awayId, validPastMatches);
 
         const homeHomeMatches = homeRecent.filter((m: any) => m.isHome);
         const awayAwayMatches = awayRecent.filter((m: any) => !m.isHome);
@@ -1078,7 +1057,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const awayAttack = calcForm(awayAwayMatches, true);
         const awayDefense = calcForm(awayAwayMatches, false);
 
-        // 🔥 [해결의 핵심] 1.3 대신 그 리그의 '진짜 평균 골(leagueAvgGoals)'을 기준으로 방어력을 비율화!
+        // 🔥 리그별 평균 실점 비율 적용 & 홈 어드밴티지 적용
         const expectedHomeGoals = Math.max(0.5, homeAttack * (awayDefense / leagueAvgGoals) * 1.1);
         const expectedAwayGoals = Math.max(0.5, awayAttack * (homeDefense / leagueAvgGoals) * 0.9);
 
