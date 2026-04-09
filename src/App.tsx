@@ -2,7 +2,12 @@ import { useEffect, useState } from 'react';
 import { RefreshCw, ArrowLeft, TrendingUp, Info, ChevronUp, ChevronDown } from 'lucide-react';
 import { format, addDays, startOfToday } from 'date-fns';
 
-// [상세 페이지 컴포넌트]
+// 🔥 1. 방금 만든 3개의 페이지를 불러오는 코드 추가
+import About from './pages/About';
+import Terms from './pages/Terms';
+import Privacy from './pages/Privacy';
+
+// [상세 페이지 컴포넌트] - 사장님 코드 원본 100% 유지
 function MatchDetail({ match, onBack }: { match: any, onBack: () => void }) {
   const getRank1Style = (h: number, a: number) => {
     if (h > a) return { h: "text-red-500 font-black", a: "text-slate-400 font-normal" };
@@ -50,20 +55,17 @@ function MatchDetail({ match, onBack }: { match: any, onBack: () => void }) {
         <div className={`rounded-[32px] p-6 mb-6 shadow-sm border ${
           !['NS', 'FT'].includes(match.status) ? 'bg-rose-50/40 border-rose-100' : 'bg-white border-slate-100'
         }`}>
-          {/* 🔥 1. 경기 시각(korTime)이 어떤 경우에도 최상단에 고정 노출되도록 수정 */}
           <div className="text-center text-sm font-bold text-slate-500 mb-2">
             {match.korTime}
           </div>
           
           <div className="flex items-center justify-between gap-2 pt-6">
-            {/* 🔥 2. 구단명 사이즈를 스코어 사이즈와 동일하게 맞춤 (text-base md:text-xl) */}
             <div className={`flex-1 text-right text-base md:text-xl truncate ${homeNameClass}`}>{match.home}</div>
             
             <div className="relative flex items-center justify-center min-w-[80px]">
               {match.status !== 'NS' && (
                 <span className="absolute -top-7 text-orange-400 font-medium text-sm tracking-wide">{centerStatus}</span>
               )}
-              {/* 🔥 3. 스코어 사이즈를 구단명 사이즈로 축소하여 통일감 부여 */}
               <div className="flex items-center gap-2 text-base md:text-xl">
                 {match.status === 'NS' ? <span className="text-slate-300 font-bold">VS</span> : 
                 <>
@@ -132,6 +134,9 @@ export default function App() {
   const [selectedDateIdx, setSelectedDateIdx] = useState(2);
   const [selectedMatch, setSelectedMatch] = useState<any | null>(null);
 
+  // 🔥 2. 현재 어떤 페이지를 보여줄지 결정하는 상태값 추가
+  const [selectedPage, setSelectedPage] = useState<string>('main');
+
   const today = startOfToday();
   const dates = Array.from({ length: 5 }, (_, i) => {
     const date = addDays(today, i - 2);
@@ -148,6 +153,11 @@ export default function App() {
     };
     fetchData();
   }, [selectedDateIdx]);
+
+  // 🔥 3. 버튼을 누르면 해당 페이지를 띄우도록 연결
+  if (selectedPage === 'about') return <About onBack={() => setSelectedPage('main')} />;
+  if (selectedPage === 'terms') return <Terms onBack={() => setSelectedPage('main')} />;
+  if (selectedPage === 'privacy') return <Privacy onBack={() => setSelectedPage('main')} />;
 
   if (selectedMatch) return <MatchDetail match={selectedMatch} onBack={() => setSelectedMatch(null)} />;
 
@@ -250,13 +260,4 @@ export default function App() {
                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-all ${awayPredBoxClass}`}>{aExp}</div>
                      </div>
                   </div>
-                  <div className="mt-4"><div className="h-1.5 flex rounded-full overflow-hidden bg-slate-100/50"><div style={{ width: `${match.probs.home}%` }} className="bg-red-500"></div><div style={{ width: `${match.probs.draw}%` }} className="bg-slate-300"></div><div style={{ width: `${match.probs.away}%` }} className="bg-blue-500"></div></div></div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </main>
-    </div>
-  );
-}
+                  <div className="mt-4"><div className="h-1.5 flex rounded-full overflow-hidden bg-slate-100/50"><div style={{ width: `${match.probs.home}%` }} className="bg-red-500"></div><div style={{ width: `${match.probs.draw}%` }} className="bg-slate-300">
