@@ -260,4 +260,25 @@ export default function App() {
                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-all ${awayPredBoxClass}`}>{aExp}</div>
                      </div>
                   </div>
-                  <div className="mt-4"><div className="h-1.5 flex rounded-full overflow-hidden bg-slate-100/50"><div style={{ width: `${match.probs.home}%` }} className="bg-red-500"></div><div style={{ width: `${match.probs.draw}%` }} className="bg-slate-300">
+                  <div className="mt-4"><div className="h-1.5 flex rounded-full overflow-hidden bg-slate-100/50"><div style={{ width: `${match.probs.home}%` }} className="bg-red-500"></div><div style={{ width: `${match.probs.draw}%` }} className="bg-slate-300"></div><div style={{ width: `${match.probs.away}%` }} className="bg-blue-500"></div></div></div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </main>
+
+      {/* 🔥 4. 하단(Footer)에 페이지 이동 버튼 추가 */}
+      <footer className="mt-12 py-8 text-center flex flex-col items-center justify-center gap-3">
+        <div className="flex gap-4 text-xs text-slate-400 font-medium">
+          <button onClick={() => setSelectedPage('about')} className="hover:text-slate-600 transition-colors">소개</button>
+          <span className="text-slate-200">|</span>
+          <button onClick={() => setSelectedPage('terms')} className="hover:text-slate-600 transition-colors">이용약관</button>
+          <span className="text-slate-200">|</span>
+          <button onClick={() => setSelectedPage('privacy')} className="hover:text-slate-600 transition-colors">개인정보처리방침</button>
+        </div>
+        <p className="text-[10px] text-slate-300">© {new Date().getFullYear()} ScoreLab. All rights reserved.</p>
+      </footer>
+    </div>
+  );
+}
