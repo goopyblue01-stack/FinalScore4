@@ -50,30 +50,31 @@ function MatchDetail({ match, onBack }: { match: any, onBack: () => void }) {
         <div className={`rounded-[32px] p-6 mb-6 shadow-sm border ${
           !['NS', 'FT'].includes(match.status) ? 'bg-rose-50/40 border-rose-100' : 'bg-white border-slate-100'
         }`}>
-          <div className="text-center text-sm mb-4 font-bold text-slate-500">
+          {/* 🔥 1. 경기 시각(korTime)이 어떤 경우에도 최상단에 고정 노출되도록 수정 */}
+          <div className="text-center text-sm font-bold text-slate-500 mb-2">
             {match.korTime}
           </div>
           
-          {/* 🔥 pt-6을 주어 위쪽 시간 글씨가 들어갈 여유 공간 확보 */}
           <div className="flex items-center justify-between gap-2 pt-6">
-            <div className={`flex-1 text-right text-sm md:text-xl ${homeNameClass}`}>{match.home}</div>
+            {/* 🔥 2. 구단명 사이즈를 스코어 사이즈와 동일하게 맞춤 (text-base md:text-xl) */}
+            <div className={`flex-1 text-right text-base md:text-xl truncate ${homeNameClass}`}>{match.home}</div>
             
-            {/* 🔥 relative를 주고 시간을 absolute로 띄워서 스코어 라인이 틀어지지 않게 함 */}
             <div className="relative flex items-center justify-center min-w-[80px]">
               {match.status !== 'NS' && (
-                <span className="absolute -top-7 text-orange-400 font-medium text-base tracking-wide">{centerStatus}</span>
+                <span className="absolute -top-7 text-orange-400 font-medium text-sm tracking-wide">{centerStatus}</span>
               )}
-              <div className="flex items-center gap-2">
-                {match.status === 'NS' ? <span className="text-slate-300 text-2xl font-black">VS</span> : 
+              {/* 🔥 3. 스코어 사이즈를 구단명 사이즈로 축소하여 통일감 부여 */}
+              <div className="flex items-center gap-2 text-base md:text-xl">
+                {match.status === 'NS' ? <span className="text-slate-300 font-bold">VS</span> : 
                 <>
-                  <span className={`text-2xl md:text-4xl ${homeScoreClass}`}>{match.scoreHome}</span>
-                  <span className="text-lg md:text-xl font-bold text-slate-300 lowercase">vs</span>
-                  <span className={`text-2xl md:text-4xl ${awayScoreClass}`}>{match.scoreAway}</span>
+                  <span className={homeScoreClass}>{match.scoreHome}</span>
+                  <span className="text-sm font-bold text-slate-300 lowercase">vs</span>
+                  <span className={awayScoreClass}>{match.scoreAway}</span>
                 </>}
               </div>
             </div>
 
-            <div className={`flex-1 text-left text-sm md:text-xl ${awayNameClass}`}>{match.away}</div>
+            <div className={`flex-1 text-left text-base md:text-xl truncate ${awayNameClass}`}>{match.away}</div>
           </div>
         </div>
 
@@ -221,11 +222,9 @@ export default function App() {
                     <span className="text-[10px] font-bold text-slate-700">{match.korTime}</span>
                   </div>
                   
-                  {/* 🔥 pt-4를 주어 위쪽 시간 글씨가 들어갈 여유 공간 확보 */}
                   <div className="flex items-center justify-center gap-3 mb-3 pt-4">
                     <div className={`flex-1 text-right text-sm md:text-base truncate ${homeListNameClass}`}>{match.home}</div>
                     
-                    {/* 🔥 relative를 주고 시간을 absolute로 띄워서 정렬 유지 */}
                     <div className="relative flex items-center justify-center min-w-[80px]">
                         {match.status !== 'NS' && (
                           <span className="absolute -top-6 text-orange-400 font-medium text-sm tracking-wide">{centerStatus}</span>
