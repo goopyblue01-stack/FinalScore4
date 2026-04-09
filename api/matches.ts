@@ -852,29 +852,41 @@ const teamNameMap: { [key: string]: string } = {
 };
 
 // ==========================
-// 🔥 시간 가중치 공격/수비력 계산 함수 (0:0 가뭄 해결 보정)
+// 🔥 시간 + 상대팀 순위 기반 가중치 폼 계산 함수
 // ==========================
 function calcForm(matches: any[], isAttack: boolean) {
-  if (matches.length === 0) return 1.3; // 기본 리그 평균치 보장 (0점 방지)
+  if (matches.length === 0) return 1.3;
 
   let total = 0;
   let weightSum = 0;
 
   matches.forEach((m) => {
+    // 1. 시간 가중치
     const days = (Date.now() - new Date(m.date).getTime()) / (1000 * 60 * 60 * 24);
-    const w = Math.exp(-days / 30);
+    const timeWeight = Math.exp(-days / 30);
+
+    // 2. 상대팀 순위 가중치 (극단적 값을 막기 위해 최소/최대 폭을 0.8배 ~ 1.2배로 설정)
+    const rankRatio = m.opponentRank / m.leagueSize; // 1등이면 거의 0, 꼴찌면 1에 가까움
+    
+    // 공격할 땐 강팀(순위 숫자 낮음) 상대로 넣은 골을 더 높게 평가
+    const attackWeight = 1.2 - (0.4 * rankRatio); 
+    // 수비할 땐 약팀(순위 숫자 높음) 상대로 먹힌 골에 더 패널티를 줌
+    const defenseWeight = 0.8 + (0.4 * rankRatio); 
+
+    const rankWeight = isAttack ? attackWeight : defenseWeight;
+    const finalWeight = timeWeight * rankWeight; // 최종 가중치 완성!
+
     const val = isAttack ? m.goals : m.conceded;
-    total += val * w;
-    weightSum += w;
+    total += val * finalWeight;
+    weightSum += finalWeight;
   });
 
   const avg = total / weightSum;
-  // 너무 낮은 수치로 인해 0:0이 남발되지 않도록 최소 보장값(0.5골) 설정
   return isAttack ? Math.max(0.5, avg) : Math.max(0.3, avg);
 }
 
 // ==========================
-// 🔥 포아송 분포 함수 (버그 수정)
+// 🔥 포아송 분포 함수
 // ==========================
 function factorial(n: number): number {
   return n <= 1 ? 1 : n * factorial(n - 1);
@@ -885,7 +897,7 @@ function poissonProb(lambda: number, k: number) {
 }
 
 function poisson(homeGoals: number, awayGoals: number) {
-  const max = 6; // 예측 최대 스코어 범위 살짝 늘림
+  const max = 6;
   let matrix = [];
 
   for (let i = 0; i <= max; i++) {
@@ -897,16 +909,14 @@ function poisson(homeGoals: number, awayGoals: number) {
 
   matrix.sort((a, b) => b.p - a.p);
 
-  // 🔥 [수정됨] 확률 계산 버그 수정! 홈점수(i)와 원정점수(j)를 정확히 비교
   const homeWin = matrix.filter((m) => m.homeScore > m.awayScore).reduce((sum, m) => sum + m.p, 0);
   const draw = matrix.filter((m) => m.homeScore === m.awayScore).reduce((sum, m) => sum + m.p, 0);
   const awayWin = matrix.filter((m) => m.homeScore < m.awayScore).reduce((sum, m) => sum + m.p, 0);
 
-  // 확률 정규화 (100% 기준으로 깔끔하게)
   const total = homeWin + draw + awayWin;
   
   return {
-    top1: matrix[0], // 가장 확률이 높은 스코어
+    top1: matrix[0],
     prob: { 
       home: Math.round((homeWin / total) * 100), 
       draw: Math.round((draw / total) * 100), 
@@ -938,6 +948,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         headers: { 'x-rapidapi-key': API_KEY || '', 'x-rapidapi-host': 'v3.football.api-sports.io' } 
       }).then(r => r.json());
 
+    // 1. 경기 및 배당 정보 가져오기
     const [targetData, prevData, targetOdds, prevOdds] = await Promise.all([
       fetchAPI('fixtures', `date=${targetDateStr}`),
       fetchAPI('fixtures', `date=${prevDateStr}`),
@@ -955,6 +966,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     });
 
+    // 2. 순위표 데이터 가져오기 (상대팀 순위 가중치를 위해 필수!)
+    const standingsPromises = Array.from(uniqueLeagues).map(async (key) => {
+      const [leagueId, season] = key.split('-');
+      return fetchAPI('standings', `league=${leagueId}&season=${season}`);
+    });
+    const standingsResults = await Promise.all(standingsPromises);
+
+    const teamStatsMap: any = {};
+    standingsResults.forEach((res: any) => {
+      if (res && res.response && res.response.length > 0 && res.response[0].league.standings[0]) {
+        const leagueSize = res.response[0].league.standings[0].length || 20;
+        res.response[0].league.standings[0].forEach((team: any) => {
+          teamStatsMap[team.team.id] = {
+            rank: team.rank || (leagueSize / 2),
+            leagueSize: leagueSize
+          };
+        });
+      }
+    });
+
+    // 3. 과거 경기 데이터 캐싱
     const now = Date.now();
     await Promise.all(Array.from(uniqueLeagues).map(async (key) => {
       const [leagueId, season] = key.split('-');
@@ -995,27 +1027,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         
         const leagueKey = `${item.league.id}-${item.league.season}`;
         const pastMatches = predictionCache[leagueKey]?.data || [];
-
         const validPastMatches = pastMatches.filter((m: any) => m.fixture.id !== item.fixture.id);
 
-        // 🔥 [수정됨] 최근 7경기 -> 5경기로 축소
-        const homeRecent = validPastMatches
-          .filter((m: any) => m.teams.home.id === homeId || m.teams.away.id === homeId)
-          .sort((a: any, b: any) => b.fixture.timestamp - a.fixture.timestamp)
-          .slice(0, 5) // 5경기로 변경!
-          .map((m: any) => {
-            const isHome = m.teams.home.id === homeId;
-            return { date: m.fixture.date, isHome, goals: isHome ? m.goals.home : m.goals.away, conceded: isHome ? m.goals.away : m.goals.home };
-          });
+        // 상대팀 순위까지 함께 매핑하여 추출 함수 생성
+        const getRecentWithOpponent = (teamId: number, targetMatches: any[]) => {
+          return targetMatches
+            .filter((m: any) => m.teams.home.id === teamId || m.teams.away.id === teamId)
+            .sort((a: any, b: any) => b.fixture.timestamp - a.fixture.timestamp)
+            .slice(0, 5) // 최근 5경기 기준
+            .map((m: any) => {
+              const isHome = m.teams.home.id === teamId;
+              const opponentId = isHome ? m.teams.away.id : m.teams.home.id;
+              const opponentRank = teamStatsMap[opponentId]?.rank || 10;
+              const leagueSize = teamStatsMap[opponentId]?.leagueSize || 20;
+              
+              return { 
+                date: m.fixture.date, 
+                isHome, 
+                goals: isHome ? m.goals.home : m.goals.away, 
+                conceded: isHome ? m.goals.away : m.goals.home,
+                opponentRank,
+                leagueSize
+              };
+            });
+        };
 
-        const awayRecent = validPastMatches
-          .filter((m: any) => m.teams.home.id === awayId || m.teams.away.id === awayId)
-          .sort((a: any, b: any) => b.fixture.timestamp - a.fixture.timestamp)
-          .slice(0, 5) // 5경기로 변경!
-          .map((m: any) => {
-            const isHome = m.teams.home.id === awayId;
-            return { date: m.fixture.date, isHome, goals: isHome ? m.goals.home : m.goals.away, conceded: isHome ? m.goals.away : m.goals.home };
-          });
+        const homeRecent = getRecentWithOpponent(homeId, validPastMatches);
+        const awayRecent = getRecentWithOpponent(awayId, validPastMatches);
 
         const homeHomeMatches = homeRecent.filter((m: any) => m.isHome);
         const awayAwayMatches = awayRecent.filter((m: any) => !m.isHome);
@@ -1025,9 +1063,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const awayAttack = calcForm(awayAwayMatches, true);
         const awayDefense = calcForm(awayAwayMatches, false);
 
-        // 🔥 홈 어드밴티지 (홈 1.1배, 원정 0.9배 패널티) + 최소 골 기대치 보장
-        const expectedHomeGoals = Math.max(0.5, homeAttack * awayDefense * 1.1);
-        const expectedAwayGoals = Math.max(0.5, awayAttack * homeDefense * 0.9);
+        // 🔥 [뻥튀기 해결!] 곱하기 대신 '평균'을 사용하여 현실적인 1점~2점대 스코어 유도
+        const expectedHomeGoals = Math.max(0.5, ((homeAttack + awayDefense) / 2) * 1.1);
+        const expectedAwayGoals = Math.max(0.5, ((awayAttack + homeDefense) / 2) * 0.9);
 
         const predictions = poisson(expectedHomeGoals, expectedAwayGoals);
 
