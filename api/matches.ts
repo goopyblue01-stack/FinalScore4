@@ -866,15 +866,15 @@ function calcForm(matches: any[], isAttack: boolean) {
     const timeWeight = Math.exp(-days / 30);
 
     // 2. 상대팀 순위 가중치 (극단적 값을 막기 위해 최소/최대 폭을 0.8배 ~ 1.2배로 설정)
-    const rankRatio = m.opponentRank / m.leagueSize; // 1등이면 거의 0, 꼴찌면 1에 가까움
+    const rankRatio = m.opponentRank / m.leagueSize; 
     
-    // 공격할 땐 강팀(순위 숫자 낮음) 상대로 넣은 골을 더 높게 평가
+    // 공격할 땐 강팀 상대로 넣은 골을 높게 평가
     const attackWeight = 1.2 - (0.4 * rankRatio); 
-    // 수비할 땐 약팀(순위 숫자 높음) 상대로 먹힌 골에 더 패널티를 줌
+    // 수비할 땐 약팀 상대로 먹힌 골에 패널티
     const defenseWeight = 0.8 + (0.4 * rankRatio); 
 
     const rankWeight = isAttack ? attackWeight : defenseWeight;
-    const finalWeight = timeWeight * rankWeight; // 최종 가중치 완성!
+    const finalWeight = timeWeight * rankWeight; 
 
     const val = isAttack ? m.goals : m.conceded;
     total += val * finalWeight;
@@ -886,7 +886,7 @@ function calcForm(matches: any[], isAttack: boolean) {
 }
 
 // ==========================
-// 🔥 포아송 분포 함수
+// 🔥 포아송 분포 함수 (확률 전용)
 // ==========================
 function factorial(n: number): number {
   return n <= 1 ? 1 : n * factorial(n - 1);
@@ -907,8 +907,7 @@ function poisson(homeGoals: number, awayGoals: number) {
     }
   }
 
-  matrix.sort((a, b) => b.p - a.p);
-
+  // 확률 계산
   const homeWin = matrix.filter((m) => m.homeScore > m.awayScore).reduce((sum, m) => sum + m.p, 0);
   const draw = matrix.filter((m) => m.homeScore === m.awayScore).reduce((sum, m) => sum + m.p, 0);
   const awayWin = matrix.filter((m) => m.homeScore < m.awayScore).reduce((sum, m) => sum + m.p, 0);
@@ -916,7 +915,6 @@ function poisson(homeGoals: number, awayGoals: number) {
   const total = homeWin + draw + awayWin;
   
   return {
-    top1: matrix[0],
     prob: { 
       home: Math.round((homeWin / total) * 100), 
       draw: Math.round((draw / total) * 100), 
@@ -966,7 +964,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     });
 
-    // 2. 순위표 데이터 가져오기 (상대팀 순위 가중치를 위해 필수!)
+    // 2. 순위표 데이터 가져오기 (상대팀 순위 가중치를 위해 필수)
     const standingsPromises = Array.from(uniqueLeagues).map(async (key) => {
       const [leagueId, season] = key.split('-');
       return fetchAPI('standings', `league=${leagueId}&season=${season}`);
@@ -1027,14 +1025,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         
         const leagueKey = `${item.league.id}-${item.league.season}`;
         const pastMatches = predictionCache[leagueKey]?.data || [];
+        
+        // 타임머신 로직 (현재 진행중이거나 끝난 경기 본인은 과거 전적에서 제외)
         const validPastMatches = pastMatches.filter((m: any) => m.fixture.id !== item.fixture.id);
 
-        // 상대팀 순위까지 함께 매핑하여 추출 함수 생성
         const getRecentWithOpponent = (teamId: number, targetMatches: any[]) => {
           return targetMatches
             .filter((m: any) => m.teams.home.id === teamId || m.teams.away.id === teamId)
             .sort((a: any, b: any) => b.fixture.timestamp - a.fixture.timestamp)
-            .slice(0, 5) // 최근 5경기 기준
+            .slice(0, 5) // 최근 5경기
             .map((m: any) => {
               const isHome = m.teams.home.id === teamId;
               const opponentId = isHome ? m.teams.away.id : m.teams.home.id;
@@ -1063,11 +1062,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const awayAttack = calcForm(awayAwayMatches, true);
         const awayDefense = calcForm(awayAwayMatches, false);
 
-        // 🔥 [수정] 다시 '곱하기(x)' 방식으로 원복! (홈 1.1배, 원정 0.9배 적용)
+        // 🔥 홈/원정 어드밴티지 곱하기(x) 적용 (스코어 및 확률의 기본 재료)
         const expectedHomeGoals = Math.max(0.5, (homeAttack * awayDefense) * 1.1);
         const expectedAwayGoals = Math.max(0.5, (awayAttack * homeDefense) * 0.9);
 
+        // 1. 확률(승/무/패 퍼센트)은 포아송 분포로 정확하게 도출!
         const predictions = poisson(expectedHomeGoals, expectedAwayGoals);
+
+        // 2. 🔥 [해결의 핵심] 상단 예상 스코어는 1:1 도배를 막기 위해 기대 득점을 '직접 반올림'해서 표출!
+        const predictHome = Math.round(expectedHomeGoals);
+        const predictAway = Math.round(expectedAwayGoals);
 
         return {
           id: item.fixture.id,
@@ -1080,7 +1084,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           status: item.fixture.status.short,
           elapsed: item.fixture.status.elapsed,
           korTime: new Date(item.fixture.date).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Seoul' }),
-          predict: { home: predictions.top1.homeScore, away: predictions.top1.awayScore },
+          // 포아송 함정을 피한 예상 스코어 매핑
+          predict: { home: predictHome, away: predictAway },
           probs: predictions.prob,
           odds: oddsMap[item.fixture.id] || null
         };
