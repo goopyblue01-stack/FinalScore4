@@ -14,7 +14,7 @@ export default function Terms({ onBack }: { onBack: () => void }) {
           <div className="space-y-6 text-slate-600 leading-relaxed text-sm">
             <section>
               <h4 className="font-bold text-slate-800 text-base mb-2">제1조 (목적)</h4>
-              <p>본 약관은 ScoreLab(이하 '본 사이트')이 제공하는 축구 데이터 분석 및 경기 예측 정보 서비스의 이용 조건 및 운영에 관한 기본적인 사항을 규정함을 목적으로 합니다.</p>
+              <p>본 약관은 ScoredLab(이하 '본 사이트')이 제공하는 축구 데이터 분석 및 경기 예측 정보 서비스의 이용 조건 및 운영에 관한 기본적인 사항을 규정함을 목적으로 합니다.</p>
             </section>
             <section>
               <h4 className="font-bold text-slate-800 text-base mb-2">제2조 (서비스의 성격 및 면책 조항)</h4>
@@ -27,7 +27,7 @@ export default function Terms({ onBack }: { onBack: () => void }) {
             </section>
             <section>
               <h4 className="font-bold text-slate-800 text-base mb-2">제3조 (지적재산권)</h4>
-              <p>본 사이트가 자체적으로 개발한 예측 알고리즘, 디자인, 텍스트 등 모든 콘텐츠의 저작권은 ScoreLab에 있으며, 무단 복제, 배포, 상업적 이용을 엄격히 금지합니다.</p>
+              <p>본 사이트가 자체적으로 개발한 예측 알고리즘, 디자인, 텍스트 등 모든 콘텐츠의 저작권은 ScoredLab에 있으며, 무단 복제, 배포, 상업적 이용을 엄격히 금지합니다.</p>
             </section>
             <section>
               <h4 className="font-bold text-slate-800 text-base mb-2">제4조 (서비스의 변경 및 중단)</h4>
