@@ -1063,9 +1063,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const awayAttack = calcForm(awayAwayMatches, true);
         const awayDefense = calcForm(awayAwayMatches, false);
 
-        // 🔥 [뻥튀기 해결!] 곱하기 대신 '평균'을 사용하여 현실적인 1점~2점대 스코어 유도
-        const expectedHomeGoals = Math.max(0.5, ((homeAttack + awayDefense) / 2) * 1.1);
-        const expectedAwayGoals = Math.max(0.5, ((awayAttack + homeDefense) / 2) * 0.9);
+        // 🔥 [수정] 다시 '곱하기(x)' 방식으로 원복! (홈 1.1배, 원정 0.9배 적용)
+        const expectedHomeGoals = Math.max(0.5, (homeAttack * awayDefense) * 1.1);
+        const expectedAwayGoals = Math.max(0.5, (awayAttack * homeDefense) * 0.9);
 
         const predictions = poisson(expectedHomeGoals, expectedAwayGoals);
 
