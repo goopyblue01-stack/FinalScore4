@@ -280,15 +280,15 @@ export default function App() {
     }
   };
 
-  // 🔥 [핵심 수정] 다크모드 강제 덮어쓰기! (스마트폰 설정을 무시하고 무조건 우리 버튼만 따름)
+  // 🔥 [핵심 수정] 다크모드 명령을 껍데기(div)가 아니라 뿌리(html)에 직접 내립니다!
   useEffect(() => {
     const htmlElement = document.documentElement;
     if (isDarkMode) {
       htmlElement.classList.add('dark');
-      htmlElement.style.colorScheme = 'dark'; // 브라우저에게 난 지금 다크모드라고 확실히 도장 찍기
+      htmlElement.style.colorScheme = 'dark';
     } else {
       htmlElement.classList.remove('dark');
-      htmlElement.style.colorScheme = 'light'; // 기본은 라이트 모드로 도장 찍기
+      htmlElement.style.colorScheme = 'light';
     }
   }, [isDarkMode]);
 
@@ -395,7 +395,8 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#f8faff] dark:bg-slate-950 pb-10 text-slate-900 dark:text-slate-100 font-sans tracking-tight transition-colors duration-300">
       
-      <header className="bg-white dark:bg-slate-900 py-10 flex justify-center items-center border-b border-slate-100 dark:border-slate-800 shadow-sm relative transition-colors duration-300">
+      {/* 🔥 [정렬 완벽 수정] 헤더 영역 안에 조종실(버튼들)을 쏙 집어넣었습니다! */}
+      <header className="bg-white dark:bg-slate-900 pt-10 pb-6 flex flex-col items-center border-b border-slate-100 dark:border-slate-800 shadow-sm relative transition-colors duration-300">
         <div 
           className="flex flex-col items-center cursor-pointer hover:opacity-80 transition-opacity" 
           onClick={() => goHome()}
@@ -409,44 +410,49 @@ export default function App() {
             style={{ background: 'linear-gradient(to right, #0f3460, #84cc16)' }}
           ></div>
         </div>
+
+        {/* 4버튼 조종실 (이제 타이틀 박스 안에 안전하게 들어와 있습니다) */}
+        <div className="w-full max-w-4xl px-4 mt-8 grid grid-cols-4 gap-2 items-center">
+          
+          {/* 1. LIVE 스위치 */}
+          <button 
+            onClick={() => setIsLiveMode(!isLiveMode)} 
+            className={`h-11 flex flex-row items-center justify-center gap-1.5 rounded-xl font-black text-xs md:text-sm transition-all shadow-sm border ${
+              isLiveMode 
+                ? 'bg-[#56ad6a] border-[#56ad6a] text-white shadow-md shadow-green-500/20' 
+                : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 text-slate-400 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
+            }`}
+          >
+            <Circle className={`w-3 h-3 md:w-3.5 md:h-3.5 ${isLiveMode ? 'fill-white text-white' : 'fill-slate-300 text-slate-300 dark:fill-slate-600 dark:text-slate-600'}`} />
+            LIVE
+          </button>
+
+          {/* 2. 다크 모드 스위치 */}
+          <button 
+            onClick={() => setIsDarkMode(!isDarkMode)} 
+            className="h-11 flex items-center justify-center rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 transition-all shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700"
+          >
+            {isDarkMode ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5 text-slate-400" />}
+          </button>
+
+          {/* 3. 앱 설치 스위치 */}
+          <button 
+            onClick={() => { setShowBookmarkModal(true); setShowStep2(false); }}
+            className="h-11 flex items-center justify-center rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 transition-all shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700"
+          >
+            <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
+          </button>
+
+          {/* 4. 새로고침 스위치 */}
+          <button 
+            onClick={handleRefresh} 
+            className={`h-11 flex items-center justify-center rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 transition-all shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 ${isRefreshing ? 'opacity-70 scale-95' : 'active:scale-95'}`}
+          >
+            <RefreshCw className={`w-5 h-5 text-[#56ad6a] ${isRefreshing ? 'animate-spin' : ''}`} />
+          </button>
+
+        </div>
       </header>
-
-      <div className="max-w-4xl mx-auto px-4 mt-5 mb-2 grid grid-cols-4 gap-2 items-center">
-        
-        <button 
-          onClick={() => setIsLiveMode(!isLiveMode)} 
-          className={`h-11 flex flex-row items-center justify-center gap-1.5 rounded-xl font-black text-xs md:text-sm transition-all shadow-sm border ${
-            isLiveMode 
-              ? 'bg-[#56ad6a] border-[#56ad6a] text-white shadow-md shadow-green-500/20' 
-              : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 text-slate-400 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
-          }`}
-        >
-          <Circle className={`w-3 h-3 md:w-3.5 md:h-3.5 ${isLiveMode ? 'fill-white text-white' : 'fill-slate-300 text-slate-300 dark:fill-slate-600 dark:text-slate-600'}`} />
-          LIVE
-        </button>
-
-        <button 
-          onClick={() => setIsDarkMode(!isDarkMode)} 
-          className="h-11 flex items-center justify-center rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 transition-all shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700"
-        >
-          {isDarkMode ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5 text-slate-400" />}
-        </button>
-
-        <button 
-          onClick={() => { setShowBookmarkModal(true); setShowStep2(false); }}
-          className="h-11 flex items-center justify-center rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 transition-all shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700"
-        >
-          <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
-        </button>
-
-        <button 
-          onClick={handleRefresh} 
-          className={`h-11 flex items-center justify-center rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 transition-all shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 ${isRefreshing ? 'opacity-70 scale-95' : 'active:scale-95'}`}
-        >
-          <RefreshCw className={`w-5 h-5 text-[#56ad6a] ${isRefreshing ? 'animate-spin' : ''}`} />
-        </button>
-
-      </div>
 
       {showBookmarkModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
@@ -564,7 +570,6 @@ export default function App() {
             <div className="text-slate-500 dark:text-slate-400 font-bold">
               {isLiveMode ? "현재 진행 중인 라이브 경기가 없습니다." : "이 날짜에는 예정된 경기가 없습니다."}
             </div>
-            {/* 🔥 API 총알이 다 떨어졌을 때만 살짝 알려주는 힌트 메시지 */}
             <p className="text-[10px] text-slate-300 dark:text-slate-600 mt-4 px-6">
               (만약 일정이 있는데 안 보인다면 일일 데이터 한도를 모두 소진한 것입니다. 내일 아침에 다시 시도해주세요!)
             </p>
