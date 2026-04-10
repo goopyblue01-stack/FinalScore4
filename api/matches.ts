@@ -254,7 +254,7 @@ const teamNameMap: { [key: string]: string } = {
 "Virtus Entella": "비르투스 엔텔라", "Pescara": "페스카라", "Kazincbarcikai": "카진크바르치카이", "1. FC Heidenheim": "하이덴하임", "Borussia Mönchengladbach": "묀헨글라트바흐", "VfL Wolfsburg": "볼프스부르크",
 "ST Mirren": "세인트 미렌", "Heart Of Midlothian": "하츠", "Dundee": "던디", "Arbroath": "아브로스", "Partick": "파틱", "Morton": "모턴", "ST Johnstone": "세인트 존스톤", "Airdrie United": "에어드리 유나이티드",
 "East Fife": "이스트 파이프", "Peterhead": "피터헤드", "Alloa Athletic": "알로아 애슬레틱", "Kelty Hearts": "켈티 하츠", "Queen of the South": "퀸 오브 더 사우스", "Charlton": "찰턴", "RSC Anderlecht II": "안데를레흐트 2군",
-"Budafoki LC": "부다포키", "Mezokovesd-zsory": "메조쾨베슈드", "Szeged 2011": "세게드", "Szentlörinc SE": "센틀뢰린츠", "Vasas": "바사시", "Cercle Brugge": "세르클 브뤼헤", "RAAL La Louvière": "라 루비에르",
+"Budafoki LC": "부다포키", "Mezokovesd-zsory": "메조쾨베슈드", "Szeged 2011": "세게드", "Szentlőrinc SE": "센틀뢰린츠", "Vasas": "바사시", "Cercle Brugge": "세르클 브뤼헤", "RAAL La Louvière": "라 루비에르",
 "Austria Vienna (Am)": "아우스트리아 빈 (아마추어)", "Ajka": "아이카", "Tiszakecske FC": "티서케치케", "Csakvar": "차크바르", "Karcag SE": "카르차그", "Fehérvár FC": "페헤르바르", "Soroksar": "쇼로크샤르",
 "Kecskeméti TE": "케치케메트", "Bekescsaba 1912": "베케슈차바", "SCR Altach": "알타흐", "Grazer AK": "그라처 AK", "Wolfsberger AC": "볼프스베르거", "Ried": "리트", "Avellino": "아벨리노", "Zalaegerszegi TE": "잘라에게르세그",
 "Bandirmaspor": "반디르마스포르", "FC Winterthur": "빈터투어", "Grasshoppers": "그라스호퍼", "FC Lugano": "루가노", "KVC Westerlo": "베스테를로", "Stenhousemuir": "스텐하우스뮤어", "Inverness CT": "인버네스",
