@@ -339,7 +339,6 @@ export default function App() {
       <nav className="bg-white border-b border-slate-100 py-4 px-4 sticky top-0 z-20 shadow-sm">
         <div className="max-w-4xl mx-auto flex justify-between gap-2">
           {dates.map((date, idx) => (
-            {/* 🔥 onClick 부분을 handleDateClick으로 변경! */}
             <button key={idx} onClick={() => handleDateClick(idx)}
               className={`flex-1 h-12 rounded-xl flex flex-col items-center justify-center transition-all ${
                 selectedDateIdx === idx ? 'bg-[#56ad6a] text-white shadow-md' : 'bg-slate-50 text-slate-400'
