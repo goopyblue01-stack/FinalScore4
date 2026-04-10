@@ -279,13 +279,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         headers: { 'x-rapidapi-key': API_KEY || '', 'x-rapidapi-host': 'v3.football.api-sports.io' } 
       }).then(r => r.json());
 
-    // 🔥 API 총알 방어용 캐시 체크 함수
+    // 🔥 API 총알 방어용 캐시 체크 함수 (에러 방어력 강화!)
     const getFixturesWithCache = async (dateString: string) => {
       if (fixturesCache[dateString] && (now - fixturesCache[dateString].timestamp < FIXTURES_CACHE_TTL)) {
         return fixturesCache[dateString].data;
       }
       const data = await fetchAPI('fixtures', `date=${dateString}`);
-      fixturesCache[dateString] = { timestamp: now, data };
+      
+      // 🔥 핵심 방어막: 한도 초과 등 API 에러가 났을 때는 수첩(캐시)에 빈 데이터를 저장하지 않음!
+      if (data.errors && Object.keys(data.errors).length > 0) {
+        console.error(`API Error for ${dateString}:`, data.errors);
+      } else {
+        fixturesCache[dateString] = { timestamp: now, data };
+      }
+      
       return data;
     };
 
