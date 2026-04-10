@@ -600,6 +600,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         else if (finalProbAway - finalProbHome >= 10) predictAway += 1;
       }
 
+      // 🔥 날짜, 요일, 시간을 우리가 원하는 포맷(예: 4/11 (금) 11:00)으로 조립하는 로직 추가!
+      const kstDate = new Date(new Date(item.fixture.date).toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
+      const m = kstDate.getMonth() + 1;
+      const d = kstDate.getDate();
+      const days = ['일', '월', '화', '수', '목', '금', '토'];
+      const w = days[kstDate.getDay()];
+      const h = String(kstDate.getHours()).padStart(2, '0');
+      const min = String(kstDate.getMinutes()).padStart(2, '0');
+      const customKorTime = `${m}/${d} (${w}) ${h}:${min}`;
+
       return {
         id: item.fixture.id,
         timestamp: item.fixture.timestamp,
@@ -610,11 +620,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         scoreAway: item.goals.away ?? 0,
         status: item.fixture.status.short,
         elapsed: item.fixture.status.elapsed,
-        korTime: new Date(item.fixture.date).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Seoul' }),
+        // 👇 조립해둔 예쁜 시간으로 교체!
+        korTime: customKorTime, 
         predict: { home: predictHome, away: predictAway },
         probs: { home: finalProbHome, draw: finalProbDraw, away: finalProbAway },
         odds: matchOdds,
-        events: mappedEvents, // 🔥 이제 완벽하게 들어갑니다!
+        events: mappedEvents,
         standings: leagueStandingsMap[leagueKey] || [] 
       };
     })
