@@ -2,12 +2,18 @@ import { useEffect, useState } from 'react';
 import { ArrowLeft, ArrowRight, TrendingUp, Info, ChevronUp, ChevronDown, Activity, ListOrdered } from 'lucide-react';
 import { format, addDays, startOfToday } from 'date-fns';
 
-// 페이지 불러오기
 import About from './pages/About';
 import Terms from './pages/Terms';
 import Privacy from './pages/Privacy';
 
-// [상세 페이지 컴포넌트]
+// 구글 애널리틱스 전송을 위한 타입 설정
+declare global {
+  interface Window {
+    gtag?: (...args: any[]) => void;
+  }
+}
+
+// [상세 페이지 컴포넌트] (이전과 동일)
 function MatchDetail({ match, onBack }: { match: any, onBack: () => void }) {
   const getRank1Style = (h: number, a: number) => {
     if (h > a) return { h: "text-red-500 font-black", a: "text-slate-400 font-normal" };
@@ -80,15 +86,12 @@ function MatchDetail({ match, onBack }: { match: any, onBack: () => void }) {
           </div>
         </div>
 
-        {/* 🔥 1. 경기 이벤트 타임라인 (경기 중이거나 종료되었을 때, 이벤트 데이터가 있을 때만 노출) */}
         {match.status !== 'NS' && match.events && match.events.length > 0 && (
           <div className="bg-white rounded-[24px] p-6 border border-slate-100 shadow-sm mb-6">
             <div className="flex items-center gap-2 mb-5 text-[#0f3460] font-bold"><Activity className="w-5 h-5" /><span>주요 이벤트</span></div>
             <div className="flex flex-col gap-4">
               {match.events.map((ev: any, idx: number) => (
                 <div key={idx} className="flex items-center justify-center">
-                  
-                  {/* 홈팀 이벤트 (오른쪽 정렬, 아이콘이 우측으로 가도록 배치) */}
                   <div className="flex-1 flex items-center justify-end gap-2 text-right">
                     {ev.team === 'home' && (
                       <>
@@ -106,13 +109,9 @@ function MatchDetail({ match, onBack }: { match: any, onBack: () => void }) {
                       </>
                     )}
                   </div>
-
-                  {/* 발생 시간 */}
                   <div className="w-12 flex-shrink-0 text-center font-black text-slate-400 text-xs bg-slate-50 py-1 rounded-lg mx-3 border border-slate-100">
                     {ev.minute}'
                   </div>
-
-                  {/* 원정팀 이벤트 (왼쪽 정렬, 아이콘이 좌측으로 가도록 배치) */}
                   <div className="flex-1 flex items-center justify-start gap-2 text-left">
                     {ev.team === 'away' && (
                       <>
@@ -130,14 +129,12 @@ function MatchDetail({ match, onBack }: { match: any, onBack: () => void }) {
                       </>
                     )}
                   </div>
-                  
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* 기존 예상 스코어 순위 */}
         <div className="bg-white rounded-[24px] p-6 border border-slate-100 shadow-sm mb-4">
           <div className="flex items-center gap-2 mb-6 text-[#56ad6a] font-bold"><TrendingUp className="w-5 h-5" /><span>예상 스코어 순위 (Top 5)</span></div>
           <div className="flex flex-col gap-2.5">
@@ -162,7 +159,6 @@ function MatchDetail({ match, onBack }: { match: any, onBack: () => void }) {
           </div>
         </div>
 
-        {/* 기존 해외 배당 정보 */}
         <div className="bg-white rounded-[24px] p-6 border border-slate-100 shadow-sm mb-6">
           <div className="flex items-center gap-2 mb-6 text-[#bf953f] font-bold"><Info className="w-5 h-5" /><span>해외 배당 정보</span></div>
           {match.odds ? (
@@ -183,7 +179,6 @@ function MatchDetail({ match, onBack }: { match: any, onBack: () => void }) {
           <p className="mt-5 text-[10px] text-center text-slate-400 italic">"본 데이터는 해외 배당 정보이며, 베팅을 권하지 않습니다."</p>
         </div>
 
-        {/* 🔥 2. 대회 순위표 (데이터가 있을 때만 항상 노출) */}
         {match.standings && match.standings.length > 0 && (
           <div className="bg-white rounded-[24px] p-6 border border-slate-100 shadow-sm mb-6">
             <div className="flex items-center gap-2 mb-5 text-slate-800 font-bold"><ListOrdered className="w-5 h-5 text-slate-500" /><span>순위표</span></div>
@@ -222,7 +217,6 @@ function MatchDetail({ match, onBack }: { match: any, onBack: () => void }) {
             </div>
           </div>
         )}
-
       </main>
     </div>
   );
@@ -252,11 +246,52 @@ export default function App() {
     fetchData();
   }, [selectedDateIdx]);
 
-  if (selectedPage === 'about') return <About onBack={() => setSelectedPage('main')} />;
-  if (selectedPage === 'terms') return <Terms onBack={() => setSelectedPage('main')} />;
-  if (selectedPage === 'privacy') return <Privacy onBack={() => setSelectedPage('main')} />;
+  // 🔥 뒤로가기 버튼(브라우저)을 눌렀을 때 페이지 꼬임을 방지하는 설정
+  useEffect(() => {
+    const handlePopState = () => {
+      goHome(false); // 뒤로가기 시 메인으로 이동
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
-  if (selectedMatch) return <MatchDetail match={selectedMatch} onBack={() => setSelectedMatch(null)} />;
+  // 🔥 1. 경기 상세 페이지로 이동할 때 주소창 변경 및 구글에 알림!
+  const goToMatch = (match: any) => {
+    setSelectedMatch(match);
+    const url = `/?match=${match.id}`;
+    window.history.pushState({}, '', url);
+    if (window.gtag) {
+      window.gtag('event', 'page_view', { page_path: url, page_title: `${match.home} vs ${match.away} | ScoredLab` });
+    }
+  };
+
+  // 🔥 2. 소개, 약관 등 서브 페이지로 이동할 때 주소창 변경 및 구글에 알림!
+  const goToPage = (page: string) => {
+    setSelectedPage(page);
+    const url = `/?page=${page}`;
+    window.history.pushState({}, '', url);
+    if (window.gtag) {
+      window.gtag('event', 'page_view', { page_path: url, page_title: `${page} | ScoredLab` });
+    }
+  };
+
+  // 🔥 3. 메인 화면으로 돌아올 때 주소창 복구 및 구글에 알림!
+  const goHome = (pushHistory = true) => {
+    setSelectedMatch(null);
+    setSelectedPage('main');
+    if (pushHistory) {
+      window.history.pushState({}, '', '/');
+      if (window.gtag) {
+        window.gtag('event', 'page_view', { page_path: '/', page_title: '예상 스코어 | ScoredLab' });
+      }
+    }
+  };
+
+  if (selectedPage === 'about') return <About onBack={() => goHome()} />;
+  if (selectedPage === 'terms') return <Terms onBack={() => goHome()} />;
+  if (selectedPage === 'privacy') return <Privacy onBack={() => goHome()} />;
+
+  if (selectedMatch) return <MatchDetail match={selectedMatch} onBack={() => goHome()} />;
 
   return (
     <div className="min-h-screen bg-[#f8faff] pb-10 text-slate-900 font-sans tracking-tight">
@@ -317,7 +352,8 @@ export default function App() {
             const awayPredBoxClass = isPredDraw ? predDrawBoxClass : isAwayPredWin ? predWinBoxClass : predLoseBoxClass;
 
             return (
-              <div key={match.id} onClick={() => setSelectedMatch(match)}
+              // 🔥 onClick 부분을 goToMatch로 변경했습니다.
+              <div key={match.id} onClick={() => goToMatch(match)}
                    className={`rounded-[24px] border shadow-sm overflow-hidden relative cursor-pointer transition-all hover:scale-[1.005] ${
                      isLive ? 'bg-rose-50/40 border-rose-100' : 'bg-white border-slate-100'
                    }`}>
@@ -373,11 +409,12 @@ export default function App() {
 
       <footer className="mt-12 py-8 text-center flex flex-col items-center justify-center gap-3">
         <div className="flex gap-4 text-xs text-slate-400 font-medium">
-          <button onClick={() => setSelectedPage('about')} className="hover:text-slate-600 transition-colors">소개</button>
+          {/* 🔥 하단 메뉴 클릭 시에도 주소창이 바뀌도록 수정했습니다. */}
+          <button onClick={() => goToPage('about')} className="hover:text-slate-600 transition-colors">소개</button>
           <span className="text-slate-200">|</span>
-          <button onClick={() => setSelectedPage('terms')} className="hover:text-slate-600 transition-colors">이용약관</button>
+          <button onClick={() => goToPage('terms')} className="hover:text-slate-600 transition-colors">이용약관</button>
           <span className="text-slate-200">|</span>
-          <button onClick={() => setSelectedPage('privacy')} className="hover:text-slate-600 transition-colors">개인정보처리방침</button>
+          <button onClick={() => goToPage('privacy')} className="hover:text-slate-600 transition-colors">개인정보처리방침</button>
         </div>
         <p className="text-[10px] text-slate-300">© {new Date().getFullYear()} ScoredLab. All rights reserved.</p>
       </footer>
