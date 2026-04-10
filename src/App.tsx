@@ -6,14 +6,12 @@ import About from './pages/About';
 import Terms from './pages/Terms';
 import Privacy from './pages/Privacy';
 
-// 구글 애널리틱스 전송을 위한 타입 설정
 declare global {
   interface Window {
     gtag?: (...args: any[]) => void;
   }
 }
 
-// [상세 페이지 컴포넌트]
 function MatchDetail({ match, onBack }: { match: any, onBack: () => void }) {
   const getRank1Style = (h: number, a: number) => {
     if (h > a) return { h: "text-red-500 font-black", a: "text-slate-400 font-normal" };
@@ -246,7 +244,6 @@ export default function App() {
   const [showBookmarkModal, setShowBookmarkModal] = useState(false);
   const [showStep2, setShowStep2] = useState(false);
 
-  // 🔥 다크 모드 초기값은 무조건 false (라이트 모드)
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isLiveMode, setIsLiveMode] = useState(false);
 
@@ -283,12 +280,15 @@ export default function App() {
     }
   };
 
-  // 🔥 [핵심 수정] 다크 모드 명령을 껍데기(div)가 아니라 뿌리(html)에 직접 내립니다!
+  // 🔥 [핵심 수정] 다크모드 강제 덮어쓰기! (스마트폰 설정을 무시하고 무조건 우리 버튼만 따름)
   useEffect(() => {
+    const htmlElement = document.documentElement;
     if (isDarkMode) {
-      document.documentElement.classList.add('dark');
+      htmlElement.classList.add('dark');
+      htmlElement.style.colorScheme = 'dark'; // 브라우저에게 난 지금 다크모드라고 확실히 도장 찍기
     } else {
-      document.documentElement.classList.remove('dark');
+      htmlElement.classList.remove('dark');
+      htmlElement.style.colorScheme = 'light'; // 기본은 라이트 모드로 도장 찍기
     }
   }, [isDarkMode]);
 
@@ -411,10 +411,8 @@ export default function App() {
         </div>
       </header>
 
-      {/* 🔥 [정렬 완벽 수정] items-center를 추가하고 h-11(고정 높이)를 줘서 모두 정가운데 위치하게 만들었습니다. */}
       <div className="max-w-4xl mx-auto px-4 mt-5 mb-2 grid grid-cols-4 gap-2 items-center">
         
-        {/* 1. LIVE 스위치 (글자와 아이콘 나란히) */}
         <button 
           onClick={() => setIsLiveMode(!isLiveMode)} 
           className={`h-11 flex flex-row items-center justify-center gap-1.5 rounded-xl font-black text-xs md:text-sm transition-all shadow-sm border ${
@@ -427,7 +425,6 @@ export default function App() {
           LIVE
         </button>
 
-        {/* 2. 다크 모드 스위치 (글자 삭제, 아이콘만 남김) */}
         <button 
           onClick={() => setIsDarkMode(!isDarkMode)} 
           className="h-11 flex items-center justify-center rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 transition-all shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700"
@@ -435,7 +432,6 @@ export default function App() {
           {isDarkMode ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5 text-slate-400" />}
         </button>
 
-        {/* 3. 앱 설치 스위치 (글자 삭제, 아이콘만 남김) */}
         <button 
           onClick={() => { setShowBookmarkModal(true); setShowStep2(false); }}
           className="h-11 flex items-center justify-center rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 transition-all shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700"
@@ -443,7 +439,6 @@ export default function App() {
           <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
         </button>
 
-        {/* 4. 새로고침 스위치 (글자 삭제, 아이콘만 남김) */}
         <button 
           onClick={handleRefresh} 
           className={`h-11 flex items-center justify-center rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 transition-all shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 ${isRefreshing ? 'opacity-70 scale-95' : 'active:scale-95'}`}
@@ -453,7 +448,6 @@ export default function App() {
 
       </div>
 
-      {/* 이하 모달 및 리스트 출력 화면 (동일) */}
       {showBookmarkModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
           <div className="bg-white dark:bg-slate-900 rounded-[32px] p-8 w-full max-w-sm shadow-2xl relative animate-in slide-in-from-bottom-4 duration-300">
@@ -570,6 +564,10 @@ export default function App() {
             <div className="text-slate-500 dark:text-slate-400 font-bold">
               {isLiveMode ? "현재 진행 중인 라이브 경기가 없습니다." : "이 날짜에는 예정된 경기가 없습니다."}
             </div>
+            {/* 🔥 API 총알이 다 떨어졌을 때만 살짝 알려주는 힌트 메시지 */}
+            <p className="text-[10px] text-slate-300 dark:text-slate-600 mt-4 px-6">
+              (만약 일정이 있는데 안 보인다면 일일 데이터 한도를 모두 소진한 것입니다. 내일 아침에 다시 시도해주세요!)
+            </p>
           </div>
         ) : (
           <div className="space-y-3">
