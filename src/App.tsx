@@ -35,9 +35,17 @@ function MatchDetail({ match, onBack }: { match: any, onBack: () => void }) {
     { h: Math.max(0, match.predict.home - 1), a: match.predict.away, prob: "7%", rank: 5 },
   ];
 
+  // 🔥 상태값(연기, 취소, 미정 등)을 더 똑똑하게 거르는 방어막
   let centerStatus = "";
   if (match.status === 'FT') centerStatus = 'FT';
-  else if (match.status !== 'NS') centerStatus = match.elapsed ? `${match.elapsed}'` : 'LIVE';
+  else if (['PST', 'TBD', 'CANC', 'ABD', 'AWD', 'WO'].includes(match.status)) {
+    if (match.status === 'PST') centerStatus = '연기';
+    else if (match.status === 'TBD') centerStatus = '미정';
+    else centerStatus = '취소';
+  }
+  else if (match.status !== 'NS') {
+    centerStatus = match.elapsed ? `${match.elapsed}'` : 'LIVE';
+  }
 
   const isHomeWin = match.scoreHome > match.scoreAway;
   const isAwayWin = match.scoreAway > match.scoreHome;
@@ -441,7 +449,8 @@ export default function App() {
       <main className="max-w-4xl mx-auto px-4 mt-6">
         <div className="space-y-3">
           {matches.map((match: any) => {
-            const isLive = !['NS', 'FT', 'CANC', 'ABD'].includes(match.status);
+            // 🔥 라이브 경기 판별에 연기(PST), 미정(TBD) 등도 확실하게 제외!
+            const isLive = !['NS', 'FT', 'CANC', 'ABD', 'PST', 'TBD', 'AWD', 'WO'].includes(match.status);
             const isHomeWin = match.scoreHome > match.scoreAway;
             const isAwayWin = match.scoreAway > match.scoreHome;
             const hExp = match.predict.home;
@@ -450,9 +459,17 @@ export default function App() {
             const isAwayPredWin = aExp > hExp;
             const isPredDraw = hExp === aExp;
             
+            // 🔥 경기 상태를 더 디테일하게 한글로 표시 (LIVE 오작동 방지)
             let centerStatus = "";
             if (match.status === 'FT') centerStatus = 'FT';
-            else if (match.status !== 'NS') centerStatus = match.elapsed ? `${match.elapsed}'` : 'LIVE';
+            else if (['PST', 'TBD', 'CANC', 'ABD', 'AWD', 'WO'].includes(match.status)) {
+              if (match.status === 'PST') centerStatus = '연기';
+              else if (match.status === 'TBD') centerStatus = '미정';
+              else centerStatus = '취소';
+            }
+            else if (match.status !== 'NS') {
+              centerStatus = match.elapsed ? `${match.elapsed}'` : 'LIVE';
+            }
 
             const homeListScoreClass = isHomeWin ? "text-red-500 font-black" : isAwayWin ? "text-slate-400 font-normal" : "text-slate-800 font-bold";
             const awayListScoreClass = isAwayWin ? "text-red-500 font-black" : isHomeWin ? "text-slate-400 font-normal" : "text-slate-800 font-bold";
