@@ -258,17 +258,13 @@ export default function App() {
     }
   };
 
+  // 🔥 [업그레이드] 스텔스 자동 업데이트 기능 장착!
   useEffect(() => {
     const dateStr = dates[selectedDateIdx].dateStr;
     
-    if (matchCache[dateStr]) {
-      setMatches(matchCache[dateStr]);
-      return;
-    }
-
-    const fetchData = async () => {
-      setIsLoading(true); 
-      setMatches([]); 
+    // 데이터를 가져오는 함수 (몰래 가져올 땐 로딩 애니메이션을 안 켭니다!)
+    const fetchData = async (isStealthMode = false) => {
+      if (!isStealthMode) setIsLoading(true); // 처음 클릭할 땐 로딩 뼈대 보여주기
       
       try {
         const res = await fetch(`/api/matches?date=${dateStr}`);
@@ -279,10 +275,30 @@ export default function App() {
       } catch (e) { 
         console.error(e); 
       } finally {
-        setIsLoading(false); 
+        if (!isStealthMode) setIsLoading(false); 
       }
     };
-    fetchData();
+
+    // 1. 캐시에 데이터가 있으면 일단 즉시 화면에 띄움
+    if (matchCache[dateStr]) {
+      setMatches(matchCache[dateStr]);
+    } else {
+      // 2. 캐시에 없으면 로딩 화면 켜고 정상적으로 가져옴
+      fetchData(false);
+    }
+
+    // 🔥 3. 핵심 마법: '오늘(idx가 2)' 날짜일 때만 5분(300,000ms)마다 스텔스 업데이트!
+    let stealthTimer: NodeJS.Timeout;
+    if (selectedDateIdx === 2) {
+      stealthTimer = setInterval(() => {
+        fetchData(true); // true = 스텔스 모드 발동 (로딩 화면 없이 숫자만 싹 바뀜)
+      }, 5 * 60 * 1000); // 5분마다 실행 (API 한도 방어)
+    }
+
+    // 4. 유저가 다른 날짜로 넘어가거나 페이지를 끄면 타이머 작동 중지
+    return () => {
+      if (stealthTimer) clearInterval(stealthTimer);
+    };
   }, [selectedDateIdx]);
 
   // 🔥 1. 브라우저(스마트폰) 자체의 '뒤로가기'를 눌렀을 때: 날짜 유지!
