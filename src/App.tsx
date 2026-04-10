@@ -306,11 +306,11 @@ export default function App() {
     }
   };
 
-  // 🔥 접속한 기기를 정확하게 판별하는 로직 (안전망 포함)
+  // 🔥 접속한 기기를 정확하게 판별하는 로직
   const userAgent = navigator.userAgent;
   const isiOS = /iPhone|iPad|iPod/i.test(userAgent);
   const isAndroid = /Android/i.test(userAgent);
-  // 아이폰도 안드로이드도 아니지만 일단 모바일 환경인 경우 (예: 삼성 인터넷 구버전, 알 수 없는 폰 등)
+  // 아이폰도 안드로이드도 아니지만 일단 모바일 환경인 경우
   const isUnknownMobile = !isiOS && !isAndroid && /Mobi|webOS/i.test(userAgent);
   const isMobile = isiOS || isAndroid || isUnknownMobile;
   const isMac = /Mac/i.test(userAgent);
@@ -377,27 +377,36 @@ export default function App() {
               <>
                 <h3 className="text-xl font-black text-slate-800 text-center mb-5">추가 방법 안내</h3>
                 
-                {/* 🔥 기기별 맞춤 설명 영역 */}
+                {/* 🔥 기기별 맞춤 설명 영역 (아이폰 크롬/사파리 분리 적용!) */}
                 <div className="text-sm text-slate-600 text-center mb-8 space-y-3 bg-slate-50 p-5 rounded-[24px] border border-slate-100 leading-relaxed">
                   
                   {isiOS && !isAndroid ? (
-                    /* 1. 확실한 아이폰인 경우 */
-                    <p>브라우저 하단의 <strong>공유(아이콘)</strong> 버튼을<br/>누른 후 <span className="text-[#0f3460] font-bold underline">'홈 화면에 추가'</span>를<br/>선택해주세요!</p>
+                    /* 1. 확실한 아이폰인 경우 (크롬 우선, 사파리 다음) */
+                    <div className="space-y-4 text-left px-2">
+                      <div>
+                        <span className="inline-block bg-slate-200 text-slate-700 text-[10px] font-black px-2 py-0.5 rounded mb-1">Chrome 브라우저</span>
+                        <p className="text-xs text-slate-600">우측 상단 <strong>공유(네모 안 화살표 ⬆️)</strong> ➔ <strong className="text-[#0f3460]">'홈 화면에 추가'</strong></p>
+                      </div>
+                      <div className="border-t border-slate-200 pt-3">
+                        <span className="inline-block bg-slate-200 text-slate-700 text-[10px] font-black px-2 py-0.5 rounded mb-1">Safari 브라우저</span>
+                        <p className="text-xs text-slate-600">하단 중앙 <strong>공유(네모 안 화살표 ⬆️)</strong> ➔ <strong className="text-[#0f3460]">'홈 화면에 추가'</strong></p>
+                      </div>
+                    </div>
                   
                   ) : isAndroid && !isiOS ? (
                     /* 2. 확실한 안드로이드인 경우 */
-                    <p>우측 상단의 <strong>메뉴(⋮)</strong>를 누른 후<br/><span className="text-[#0f3460] font-bold underline">'홈 화면에 추가'</span> 또는<br/><span className="text-[#0f3460] font-bold underline">'앱 설치'</span>를 선택해주세요!</p>
+                    <p>Chrome 브라우저 우측 상단의<br/><strong>메뉴 버튼(점 3개 ⋮)</strong>를 누른 후<br/><span className="text-[#0f3460] font-bold underline">'홈 화면에 추가'</span> 또는<br/><span className="text-[#0f3460] font-bold underline">'앱 설치'</span>를 선택해주세요!</p>
                   
                   ) : isUnknownMobile ? (
                     /* 3. 모바일은 맞는데 구분이 안 되는 경우 (둘 다 보여줌) */
                     <div className="space-y-4 text-left px-2">
                       <div>
-                        <span className="inline-block bg-slate-200 text-slate-700 text-[10px] font-black px-2 py-0.5 rounded mb-1">아이폰(Safari)</span>
-                        <p className="text-xs text-slate-600">하단 <strong>공유(아이콘)</strong> ➔ <strong className="text-[#0f3460]">'홈 화면에 추가'</strong></p>
+                        <span className="inline-block bg-slate-200 text-slate-700 text-[10px] font-black px-2 py-0.5 rounded mb-1">아이폰 (Chrome/Safari)</span>
+                        <p className="text-xs text-slate-600"><strong>공유(네모 안 화살표 ⬆️)</strong> ➔ <strong className="text-[#0f3460]">'홈 화면에 추가'</strong></p>
                       </div>
                       <div className="border-t border-slate-200 pt-3">
-                        <span className="inline-block bg-slate-200 text-slate-700 text-[10px] font-black px-2 py-0.5 rounded mb-1">안드로이드(Chrome)</span>
-                        <p className="text-xs text-slate-600">상단 <strong>메뉴(⋮)</strong> ➔ <strong className="text-[#0f3460]">'홈 화면에 추가'</strong></p>
+                        <span className="inline-block bg-slate-200 text-slate-700 text-[10px] font-black px-2 py-0.5 rounded mb-1">안드로이드 (Chrome)</span>
+                        <p className="text-xs text-slate-600">상단 <strong>메뉴(점 3개 ⋮)</strong> ➔ <strong className="text-[#0f3460]">'홈 화면에 추가'</strong></p>
                       </div>
                     </div>
                   
