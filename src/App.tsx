@@ -237,7 +237,6 @@ export default function App() {
   const [selectedMatch, setSelectedMatch] = useState<any | null>(null);
   const [selectedPage, setSelectedPage] = useState<string>('main');
   
-  // 🔥 [새로 추가된 기능] 로딩 상태를 관리하는 스위치!
   const [isLoading, setIsLoading] = useState(false);
 
   const [showBookmarkModal, setShowBookmarkModal] = useState(false);
@@ -262,16 +261,14 @@ export default function App() {
   useEffect(() => {
     const dateStr = dates[selectedDateIdx].dateStr;
     
-    // 캐시에 데이터가 있으면 빛의 속도로 바로 띄우기!
     if (matchCache[dateStr]) {
       setMatches(matchCache[dateStr]);
       return;
     }
 
-    // 캐시에 없으면 로딩 화면 켜고 서버에 요청!
     const fetchData = async () => {
-      setIsLoading(true); // 🔥 로딩 애니메이션 켜기
-      setMatches([]); // 기존 화면 깔끔하게 지우기 (뼈대만 보이게)
+      setIsLoading(true); 
+      setMatches([]); 
       
       try {
         const res = await fetch(`/api/matches?date=${dateStr}`);
@@ -282,15 +279,18 @@ export default function App() {
       } catch (e) { 
         console.error(e); 
       } finally {
-        setIsLoading(false); // 🔥 로딩 완료! 애니메이션 끄기
+        setIsLoading(false); 
       }
     };
     fetchData();
   }, [selectedDateIdx]);
 
+  // 🔥 1. 브라우저(스마트폰) 자체의 '뒤로가기'를 눌렀을 때: 날짜 유지!
   useEffect(() => {
     const handlePopState = () => {
-      goHome(false);
+      setSelectedMatch(null);
+      setSelectedPage('main');
+      // 여기서 날짜를 강제로 바꾸지 않으므로 보던 날짜 그대로 남게 됩니다!
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
@@ -314,15 +314,24 @@ export default function App() {
     }
   };
 
-  const goHome = (pushHistory = true) => {
+  // 🔥 2. 상단 타이틀(로고) 누를 때 쓰는 기능: 오늘 날짜로 완전히 리셋!
+  const goHome = () => {
     setSelectedMatch(null);
     setSelectedPage('main');
-    setSelectedDateIdx(2); 
-    if (pushHistory) {
-      window.history.pushState({}, '', '/');
-      if (window.gtag) {
-        window.gtag('event', 'page_view', { page_path: '/', page_title: '예상 스코어 | ScoredLab' });
-      }
+    setSelectedDateIdx(2); // 오늘 날짜로 초기화
+    window.history.pushState({}, '', '/');
+    if (window.gtag) {
+      window.gtag('event', 'page_view', { page_path: '/', page_title: '예상 스코어 | ScoredLab' });
+    }
+  };
+
+  // 🔥 3. 상세 화면에서 [뒤로 가기 화살표] 누를 때 쓰는 담당자: 날짜 유지!
+  const goBackToList = () => {
+    setSelectedMatch(null);
+    const url = `/?date=${dates[selectedDateIdx].dateStr}`;
+    window.history.pushState({}, '', url);
+    if (window.gtag) {
+      window.gtag('event', 'page_view', { page_path: url, page_title: '예상 스코어 | ScoredLab' });
     }
   };
 
@@ -337,7 +346,8 @@ export default function App() {
   if (selectedPage === 'terms') return <Terms onBack={() => goHome()} />;
   if (selectedPage === 'privacy') return <Privacy onBack={() => goHome()} />;
 
-  if (selectedMatch) return <MatchDetail match={selectedMatch} onBack={() => goHome()} />;
+  // 🔥 4. 상세 페이지 컴포넌트를 부를 때 새로운 담당자(goBackToList)를 연결합니다!
+  if (selectedMatch) return <MatchDetail match={selectedMatch} onBack={goBackToList} />;
 
   return (
     <div className="min-h-screen bg-[#f8faff] pb-10 text-slate-900 font-sans tracking-tight">
@@ -450,7 +460,6 @@ export default function App() {
       </nav>
 
       <main className="max-w-4xl mx-auto px-4 mt-6">
-        {/* 🔥 로딩 중일 때 보여줄 스켈레톤(뼈대) 화면 */}
         {isLoading ? (
           <div className="space-y-3">
             {[1, 2, 3, 4].map((n) => (
@@ -477,13 +486,11 @@ export default function App() {
             ))}
           </div>
         ) : matches.length === 0 ? (
-          /* 데이터가 진짜 없을 때 보여줄 화면 */
           <div className="py-16 text-center bg-white rounded-[24px] border border-slate-100 shadow-sm">
             <div className="text-4xl mb-3">⚽</div>
             <div className="text-slate-500 font-bold">이 날짜에는 예정된 경기가 없습니다.</div>
           </div>
         ) : (
-          /* 실제 데이터가 로딩 완료되었을 때 보여줄 화면 */
           <div className="space-y-3">
             {matches.map((match: any) => {
               const isLive = !['NS', 'FT', 'CANC', 'ABD', 'PST', 'TBD', 'AWD', 'WO'].includes(match.status);
