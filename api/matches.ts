@@ -291,6 +291,18 @@ const teamNameMap: { [key: string]: string } = {
 "CA Estudiantes": "에스투디안테스", "Chaco For Ever": "차코 포에버"  
  };
 
+// [1. 리그 한글 매핑 리스트 - (대표님 원본 데이터 사용)]
+const leagueNameMap: { [key: number]: string } = {
+  39: "잉글랜드 프리미어리그", 40: "잉글랜드 챔피언십", 45: "잉글랜드 FA컵", 48: "EFL컵",
+  // ... (여기에 대표님이 따로 저장해두신 전체 리그명 데이터를 그대로 넣어주세요!) ...
+};
+
+// [2. 주요 150개 팀 한글 매핑 리스트 - (대표님 원본 데이터 사용)]
+const teamNameMap: { [key: string]: string } = {
+  "Arsenal": "아스널", "Aston Villa": "아스톤 빌라", "Bournemouth": "본머스",
+  // ... (여기에 대표님이 따로 저장해두신 전체 구단명 데이터를 그대로 넣어주세요!) ...
+};
+
 // ==========================
 // 🔥 Logic B: 시간 가중치 폼 계산 함수
 // ==========================
@@ -335,15 +347,15 @@ function poisson(homeGoals: number, awayGoals: number) {
 }
 
 // ==========================
-// 🛡️ API 보호용 글로벌 메모리 캐시 
+// 🛡️ API 보호용 글로벌 메모리 캐시 (🔥 기본 경기 방어막 드디어 추가!)
 // ==========================
+let fixturesCache: { [dateStr: string]: { timestamp: number, data: any } } = {}; // 🔥 기본 경기용 1차 방어막 수첩
 let predictionCache: { [leagueSeason: string]: { timestamp: number, data: any[] } } = {};
 let oddsCache: { [fixtureId: number]: { timestamp: number, data: any } } = {}; 
 let standingsCache: { [leagueSeason: string]: { timestamp: number, data: any } } = {};
-
-// 🔥 이벤트 전용 메모리 캐시 추가
 let eventsCache: { [fixtureId: number]: { timestamp: number, data: any[] } } = {};
 
+const FIXTURES_CACHE_TTL = 1 * 60 * 1000; // 🔥 기본 경기 캐시 유지 시간: 1분 (새로고침 연타 완벽 방어)
 const CACHE_TTL = 60 * 60 * 1000; 
 const ODDS_CACHE_TTL = 2 * 60 * 60 * 1000;
 const STANDINGS_CACHE_TTL = 6 * 60 * 60 * 1000; 
@@ -360,14 +372,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     prevDate.setDate(prevDate.getDate() - 1);
     const prevDateStr = prevDate.toISOString().split('T')[0];
 
+    const now = Date.now(); // 🔥 현재 시간을 미리 계산 (캐시 유효성 체크용)
+
     const fetchAPI = (endpoint: string, params: string) => 
       fetch(`https://v3.football.api-sports.io/${endpoint}?${params}`, { 
         headers: { 'x-rapidapi-key': API_KEY || '', 'x-rapidapi-host': 'v3.football.api-sports.io' } 
       }).then(r => r.json());
 
+    // 🔥 [핵심 로직] 기본 경기 데이터 호출 시 캐시(수첩)를 먼저 확인하는 담당자 투입!
+    const getFixturesWithCache = async (dateString: string) => {
+      // 수첩에 데이터가 있고, 적어둔 지 1분이 지나지 않았다면? -> 외부 API 안 부르고 수첩(캐시) 내용 쓱 보여줌!
+      if (fixturesCache[dateString] && (now - fixturesCache[dateString].timestamp < FIXTURES_CACHE_TTL)) {
+        return fixturesCache[dateString].data;
+      }
+      // 수첩에 없거나 1분이 지났다면? -> API 창고에서 새로 가져와서 수첩에 업데이트!
+      const data = await fetchAPI('fixtures', `date=${dateString}`);
+      fixturesCache[dateString] = { timestamp: now, data };
+      return data;
+    };
+
+    // 🔥 fetchAPI 대신 getFixturesWithCache를 사용하여 무한 새로고침 연타로부터 총알 완벽 방어!
     const [targetData, prevData] = await Promise.all([
-      fetchAPI('fixtures', `date=${targetDateStr}`),
-      fetchAPI('fixtures', `date=${prevDateStr}`)
+      getFixturesWithCache(targetDateStr),
+      getFixturesWithCache(prevDateStr)
     ]);
 
     const allMatches = [...(targetData.response || []), ...(prevData.response || [])];
@@ -380,8 +407,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const uniqueLeagues = new Set<string>();
     rawFilteredMatches.forEach((m: any) => { uniqueLeagues.add(`${m.league.id}-${m.league.season}`); });
-
-    const now = Date.now();
 
     // 1. 순위표(Standings) 데이터 가져오기 (6시간 캐시)
     const standingsPromises = Array.from(uniqueLeagues).map(async (key) => {
@@ -474,18 +499,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       await new Promise(resolve => setTimeout(resolve, 300));
     }
 
-    // 🔥 4. [신규 추가] 이벤트(Events) 가져오기 (초강력 방어막 적용)
+    // 4. 이벤트(Events) 가져오기
     const fixturesToFetchEvents = rawFilteredMatches.filter((item: any) => {
       const fId = item.fixture.id;
       const status = item.fixture.status.short;
       
-      // 1) 경기 전이면 애초에 호출 안 함
       if (status === 'NS') return false; 
       
       const cached = eventsCache[fId];
-      if (!cached) return true; // 2) 캐시에 없으면 호출
+      if (!cached) return true; 
       
-      // 3) 경기 종료면 아주 오랫동안(24시간) 캐시 유지, 진행 중(LIVE)이면 2분마다 갱신
       const isFinished = ['FT', 'AET', 'PEN'].includes(status);
       const ttl = isFinished ? 24 * 60 * 60 * 1000 : 2 * 60 * 1000;
       
@@ -507,7 +530,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       await new Promise(resolve => setTimeout(resolve, 300));
     }
 
-
     // 5. 최종 매핑 로직
     const filteredMatches = rawFilteredMatches.map((item: any) => {
       const hName = item.teams.home.name;
@@ -520,7 +542,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const validPastMatches = pastMatches.filter((m: any) => m.fixture.id !== item.fixture.id);
       const leagueAvgGoals = leagueAvgMap[leagueKey] || 1.3;
 
-      // 🔥 이제 캐시된 진짜 이벤트 데이터를 불러와서 매핑합니다!
       const rawEvents = eventsCache[item.fixture.id]?.data || [];
       const mappedEvents = rawEvents.map((ev: any) => {
         let type = "";
@@ -607,7 +628,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         else if (finalProbAway - finalProbHome >= 10) predictAway += 1;
       }
 
-      // 🔥 날짜, 요일, 시간을 우리가 원하는 포맷(예: 4/11 (금) 11:00)으로 조립하는 로직 추가!
+      // 🔥 시간 조립 시, 요일을 영어 요일명으로 보여주는 등 커스텀 부분은
+      // 대표님이 기존에 적용하신 내용과 동일하게 작동하도록 날짜/시간 포맷을 맞췄습니다.
       const kstDate = new Date(new Date(item.fixture.date).toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
       const m = kstDate.getMonth() + 1;
       const d = kstDate.getDate();
@@ -627,7 +649,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         scoreAway: item.goals.away ?? 0,
         status: item.fixture.status.short,
         elapsed: item.fixture.status.elapsed,
-        // 👇 조립해둔 예쁜 시간으로 교체!
         korTime: customKorTime, 
         predict: { home: predictHome, away: predictAway },
         probs: { home: finalProbHome, draw: finalProbDraw, away: finalProbAway },
