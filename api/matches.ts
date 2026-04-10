@@ -93,7 +93,7 @@ const teamNameMap: { [key: string]: string } = {
   // 리그 앙
   "Auxerre": "오세르", "Angers": "앙제", "Brest": "브레스투아", "Le Havre": "르아브르", "Lens": "랑스", "Lille": "릴", "Lyon": "리옹", "Marseille": "마르세유", "Monaco": "모나코", "Montpellier": "몽펠리에", "Nantes": "낭트", "Nice": "니스", "Paris Saint Germain": "PSG", "Reims": "랭스", "Rennes": "렌", "Saint Etienne": "생테티엔", "Strasbourg": "스트라스부르", "Toulouse": "툴루즈",
   // K리그 1
-  "Ulsan HD": "울산 HD", "Pohang Steelers": "포항", "Gwangju FC": "광주", "Jeonbuk Motors": "전북", "Daegu FC": "대구", "Incheon United": "인천", "FC Seoul": "FC 서울", "Daejeon Citizen": "대전", "Jeju United": "제주", "Gangwon FC": "강원", "Suwon FC": "수원 FC", "Gimcheon Sangmu": "김천 상무"
+  "Ulsan HD": "울산 HD", "Pohang Steelers": "포항", "Gwangju FC": "광주", "Jeonbuk Motors": "전북", "Daegu FC": "대구", "Incheon United": "인천", "FC Seoul": "FC 서울", "Daejeon Citizen": "대전", "Jeju United": "제주", "Gangwon FC": "강원", "Suwon FC": "수원 FC",
   // 일괄
   "Manchester United": "맨체스터 유나이티드", "Bayern Munich": "바이에른 뮌헨",
 "Juventus": "유벤투스", "Benfica": "벤피카", "FC Porto": "FC 포르투", "Sporting CP": "스포르팅 CP", "SC Braga": "브라가", "Guimaraes": "비토리아 기마랑이스", "Moreirense": "모레이렌세", "Arouca": "아로카",
@@ -193,7 +193,7 @@ const teamNameMap: { [key: string]: string } = {
 "SV Elversberg": "엘버스베르크", "Ulm": "울름", "Eintracht Braunschweig": "브라운슈바이크", "Bari": "바리", "Brescia": "브레시아", "Carrarese": "카라레세", "Catanzaro": "카탄차로", "Cesena": "체세나", "Cittadella": "치타델라",
 "Cosenza": "코센차", "Cremonese": "크레모네세", "Frosinone": "프로시노네", "Juve Stabia": "유베 스타비아", "Mantova": "만토바", "Modena": "모데나", "Palermo": "팔레르모", "Pisa": "피사", "Reggiana": "레지아나",
 "Salernitana": "살레르니타나", "Sampdoria": "삼프도리아", "Sassuolo": "사수올로", "Spezia": "스페치아", "Sudtirol": "쥐트티롤", "Ajaccio": "아작시오", "Amiens": "아미앵", "Annecy": "안시", "Bastia": "바스티아", "Caen": "캉",
-"Clermont Foot": "클레르몽", "Dunkerque": "됭케르크", "Grenoble": "그르노블", "Nancy": "낭시" "Guingamp": "갱강", "Laval": "라발", "Lorient": "로리앙", "Martigues": "마르티그", "Metz": "메스", "Paris FC": "파리 FC", "PAU": "포",
+"Clermont Foot": "클레르몽", "Dunkerque": "됭케르크", "Grenoble": "그르노블", "Nancy": "낭시", "Guingamp": "갱강", "Laval": "라발", "Lorient": "로리앙", "Martigues": "마르티그", "Metz": "메스", "Paris FC": "파리 FC", "PAU": "포",
 "Red Star": "레드 스타", "Rodez": "로데즈", "Troyes": "트루아", "Ulsan HD": "울산 HD", "Pohang Steelers": "포항 스틸러스", "Gwangju FC": "광주 FC", "Jeonbuk Motors": "전북 현대", "Daegu FC": "대구 FC",
 "Incheon United": "인천 유나이티드", "FC Seoul": "FC 서울", "Daejeon Citizen": "대전 하나시티즌", "Jeju United": "제주 유나이티드", "Gangwon FC": "강원 FC", "Suwon FC": "수원 FC", "Gimcheon Sangmu": "김천 상무",
 "Suwon Bluewings": "수원 삼성 블루윙즈", "Busan I'Park": "부산 아이파크", "Gyeongnam FC": "경남 FC", "Bucheon FC 1995": "부천 FC 1995", "FC Anyang": "FC 안양", "Jeonnam Dragons": "전남 드래곤즈", "Chungbuk Cheongju": "충북 청주",
@@ -211,7 +211,7 @@ const teamNameMap: { [key: string]: string } = {
 "Liaoning Tieli": "랴오닝 톄리", "Guangzhou FC": "광저우 FC", "Yunnan Yukun": "윈난 위쿤", "Dalian Young Boy": "다롄 영 보이", "Chongqing Tonglianglong": "충칭 퉁량룽", "Wuxi Wugo": "우시 우거", "Jiangxi Lushan": "장시 루산",
 "Foshan Nanshi": "포산 난스", "RB Salzburg": "잘츠부르크", "Shakhtar Donetsk": "샤흐타르", "Sparta Praha": "스파르타 프라하", "Sturm Graz": "슈투름 그라츠", "Slovan Bratislava": "슬로반 브라티슬라바",
 "FK Crvena Zvezda": "즈베즈다", "Cerro Porteno": "세로 포르테뇨", "Kifisia": "키피시아", "Al-Ahli Jeddah": "알 아흘리 제다", "Ghazl El Mehalla": "가즐 엘 마할라", "El Gouna FC": "엘 구나 FC",
-"Haras El Hodood": "하라스 엘 호두드", "Future FC": "퓨처 FC", "Wadi Degla": "와디 데글라", "Pharco": "파르코", "Orange County SC": "오렌지 카운티 SC", "San Antonio": "샌안토니오 FC", "Lokomotiv Sofia": "로코모티브 소피아"
+"Haras El Hodood": "하라스 엘 호두드", "Future FC": "퓨처 FC", "Wadi Degla": "와디 데글라", "Pharco": "파르코", "Orange County SC": "오렌지 카운티 SC", "San Antonio": "샌안토니오 FC", "Lokomotiv Sofia": "로코모티브 소피아",
 "Sevlievo": "세블리에보", "Spartak Pleven": "스파르탁 플레벤", "Chernomorets 1919 Burgas": "체르노모레츠 부르가스", "Pirin Blagoevgrad": "피린 블라고에브그라드", "Montana": "몬타나", "Cherno More Varna": "체르노 모레 바르나",
 "Belasitsa": "벨라시차", "Fratria": "프라트리아", "Lokomotiv G. Oryahovitsa": "로코모티브 고르나 오랴호비차", "Dobrudzha": "도브루자", "Botev Vratsa": "보테프 브라차", "Ludogorets II": "루도고레츠 2군", "FK Minyor Pernik": "미뇨르 페르니크",
 "Sportist Svoge": "스포르티스트 스보게", "CSKA Sofia II": "CSKA 소피아 2군", "Marek": "마레크", "Vihren": "비흐렌", "Zawisza Bydgoszcz": "자비샤 비드고슈치", "Miedz Legnica": "미에츠 레그니차", "Polonia Bytom": "폴로니아 비톰",
