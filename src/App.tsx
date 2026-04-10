@@ -225,6 +225,8 @@ function MatchDetail({ match, onBack }: { match: any, onBack: () => void }) {
 // [메인 앱 컴포넌트]
 export default function App() {
   const [matches, setMatches] = useState<any[]>([]);
+  // 🔥 프론트엔드 전용 캐시 메모리 공간을 만듭니다!
+  const [matchCache, setMatchCache] = useState<{ [key: string]: any[] }>({}); 
   const [selectedDateIdx, setSelectedDateIdx] = useState(2);
   const [selectedMatch, setSelectedMatch] = useState<any | null>(null);
   const [selectedPage, setSelectedPage] = useState<string>('main');
@@ -235,16 +237,42 @@ export default function App() {
     return { date, dateStr: format(date, 'yyyy-MM-dd'), day: format(date, 'M월 d일'), label: i === 2 ? '(today)' : '' };
   });
 
+  // 🔥 날짜 버튼을 눌렀을 때 실행될 함수
+  const handleDateClick = (idx: number) => {
+    setSelectedDateIdx(idx);
+    const dateStr = dates[idx].dateStr;
+    const url = `/?date=${dateStr}`;
+
+    // 주소창을 바꾸고 구글에 PV 1 추가 요청!
+    window.history.pushState({}, '', url);
+    if (window.gtag) {
+      window.gtag('event', 'page_view', { page_path: url, page_title: `${dates[idx].day} 경기 | ScoredLab` });
+    }
+  };
+
   useEffect(() => {
+    const dateStr = dates[selectedDateIdx].dateStr;
+
+    // 🔥 핵심 방어막: 핸드폰 메모리에 이미 데이터가 있다면 서버(API)에 안 가고 바로 보여줌!
+    if (matchCache[dateStr]) {
+      setMatches(matchCache[dateStr]);
+      return;
+    }
+
+    // 메모리에 없을 때(처음 누를 때)만 Vercel 서버로 요청
     const fetchData = async () => {
       try {
-        const res = await fetch(`/api/matches?date=${dates[selectedDateIdx].dateStr}`);
+        const res = await fetch(`/api/matches?date=${dateStr}`);
         const json = await res.json();
-        setMatches(json.matches || []);
+        const fetchedMatches = json.matches || [];
+        setMatches(fetchedMatches);
+        
+        // 새로 받아온 데이터를 메모리에 저장해둠
+        setMatchCache(prev => ({ ...prev, [dateStr]: fetchedMatches }));
       } catch (e) { console.error(e); }
     };
     fetchData();
-  }, [selectedDateIdx]);
+  }, [selectedDateIdx]); // matchCache는 의존성에 넣지 않음
 
   // 🔥 뒤로가기 버튼(브라우저)을 눌렀을 때 페이지 꼬임을 방지하는 설정
   useEffect(() => {
@@ -311,7 +339,8 @@ export default function App() {
       <nav className="bg-white border-b border-slate-100 py-4 px-4 sticky top-0 z-20 shadow-sm">
         <div className="max-w-4xl mx-auto flex justify-between gap-2">
           {dates.map((date, idx) => (
-            <button key={idx} onClick={() => setSelectedDateIdx(idx)}
+            {/* 🔥 onClick 부분을 handleDateClick으로 변경! */}
+            <button key={idx} onClick={() => handleDateClick(idx)}
               className={`flex-1 h-12 rounded-xl flex flex-col items-center justify-center transition-all ${
                 selectedDateIdx === idx ? 'bg-[#56ad6a] text-white shadow-md' : 'bg-slate-50 text-slate-400'
               }`}>
