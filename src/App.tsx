@@ -385,11 +385,11 @@ export default function App() {
                     <div className="space-y-4 text-left px-2">
                       <div>
                         <span className="inline-block bg-slate-200 text-slate-700 text-[10px] font-black px-2 py-0.5 rounded mb-1">Chrome 브라우저</span>
-                        <p className="text-xs text-slate-600">상단 주소창 우측 <strong>공유(네모 안 화살표 ⬆️)</strong> ➔ <strong className="text-[#0f3460]">'홈 화면에 추가'</strong></p>
+                        <p className="text-xs text-slate-600">상단 주소창 우측 <strong>공유 버튼 (네모 안 화살표 ⬆️)</strong> ➔ <strong className="text-[#0f3460]">'홈 화면에 추가'</strong></p>
                       </div>
                       <div className="border-t border-slate-200 pt-3">
                         <span className="inline-block bg-slate-200 text-slate-700 text-[10px] font-black px-2 py-0.5 rounded mb-1">Safari 브라우저</span>
-                        <p className="text-xs text-slate-600">하단 중앙 <strong>공유(네모 안 화살표 ⬆️)</strong> ➔ <strong className="text-[#0f3460]">'홈 화면에 추가'</strong></p>
+                        <p className="text-xs text-slate-600">하단 중앙 <strong>공유 버튼 (네모 안 화살표 ⬆️)</strong> ➔ <strong className="text-[#0f3460]">'홈 화면에 추가'</strong></p>
                       </div>
                     </div>
                   
