@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, ArrowRight, TrendingUp, Info, ChevronUp, ChevronDown, Activity, ListOrdered } from 'lucide-react';
+import { ArrowLeft, ArrowRight, TrendingUp, Info, ChevronUp, ChevronDown, Activity, ListOrdered, Star, X } from 'lucide-react';
 import { format, addDays, startOfToday } from 'date-fns';
 
 import About from './pages/About';
@@ -13,7 +13,7 @@ declare global {
   }
 }
 
-// [상세 페이지 컴포넌트] (이전과 동일)
+// [상세 페이지 컴포넌트]
 function MatchDetail({ match, onBack }: { match: any, onBack: () => void }) {
   const getRank1Style = (h: number, a: number) => {
     if (h > a) return { h: "text-red-500 font-black", a: "text-slate-400 font-normal" };
@@ -138,7 +138,7 @@ function MatchDetail({ match, onBack }: { match: any, onBack: () => void }) {
         <div className="bg-white rounded-[24px] p-6 border border-slate-100 shadow-sm mb-4">
           <div className="flex items-center gap-2 mb-6 text-[#56ad6a] font-bold"><TrendingUp className="w-5 h-5" /><span>예상 스코어 순위 (Top 5)</span></div>
           <div className="flex flex-col gap-2.5">
-            {topPredictions.map((p) => {
+            {topPredictions.map((p: any) => {
               const isRank1 = p.rank === 1;
               const style = isRank1 ? getRank1Style(p.h, p.a) : getNormalStyle(p.h, p.a);
               return (
@@ -225,11 +225,14 @@ function MatchDetail({ match, onBack }: { match: any, onBack: () => void }) {
 // [메인 앱 컴포넌트]
 export default function App() {
   const [matches, setMatches] = useState<any[]>([]);
-  // 🔥 프론트엔드 전용 캐시 메모리 공간을 만듭니다!
   const [matchCache, setMatchCache] = useState<{ [key: string]: any[] }>({}); 
   const [selectedDateIdx, setSelectedDateIdx] = useState(2);
   const [selectedMatch, setSelectedMatch] = useState<any | null>(null);
   const [selectedPage, setSelectedPage] = useState<string>('main');
+  
+  // 🔥 즐겨찾기 관련 상태
+  const [showBookmarkModal, setShowBookmarkModal] = useState(false);
+  const [showStep2, setShowStep2] = useState(false);
 
   const today = startOfToday();
   const dates = Array.from({ length: 5 }, (_, i) => {
@@ -237,13 +240,10 @@ export default function App() {
     return { date, dateStr: format(date, 'yyyy-MM-dd'), day: format(date, 'M월 d일'), label: i === 2 ? '(today)' : '' };
   });
 
-  // 🔥 날짜 버튼을 눌렀을 때 실행될 함수
   const handleDateClick = (idx: number) => {
     setSelectedDateIdx(idx);
     const dateStr = dates[idx].dateStr;
     const url = `/?date=${dateStr}`;
-
-    // 주소창을 바꾸고 구글에 PV 1 추가 요청!
     window.history.pushState({}, '', url);
     if (window.gtag) {
       window.gtag('event', 'page_view', { page_path: url, page_title: `${dates[idx].day} 경기 | ScoredLab` });
@@ -252,38 +252,30 @@ export default function App() {
 
   useEffect(() => {
     const dateStr = dates[selectedDateIdx].dateStr;
-
-    // 🔥 핵심 방어막: 핸드폰 메모리에 이미 데이터가 있다면 서버(API)에 안 가고 바로 보여줌!
     if (matchCache[dateStr]) {
       setMatches(matchCache[dateStr]);
       return;
     }
-
-    // 메모리에 없을 때(처음 누를 때)만 Vercel 서버로 요청
     const fetchData = async () => {
       try {
         const res = await fetch(`/api/matches?date=${dateStr}`);
         const json = await res.json();
         const fetchedMatches = json.matches || [];
         setMatches(fetchedMatches);
-        
-        // 새로 받아온 데이터를 메모리에 저장해둠
         setMatchCache(prev => ({ ...prev, [dateStr]: fetchedMatches }));
       } catch (e) { console.error(e); }
     };
     fetchData();
-  }, [selectedDateIdx]); // matchCache는 의존성에 넣지 않음
+  }, [selectedDateIdx]);
 
-  // 🔥 뒤로가기 버튼(브라우저)을 눌렀을 때 페이지 꼬임을 방지하는 설정
   useEffect(() => {
     const handlePopState = () => {
-      goHome(false); // 뒤로가기 시 메인으로 이동
+      goHome(false);
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  // 🔥 1. 경기 상세 페이지로 이동할 때 주소창 변경 및 구글에 알림!
   const goToMatch = (match: any) => {
     setSelectedMatch(match);
     const url = `/?match=${match.id}`;
@@ -293,7 +285,6 @@ export default function App() {
     }
   };
 
-  // 🔥 2. 소개, 약관 등 서브 페이지로 이동할 때 주소창 변경 및 구글에 알림!
   const goToPage = (page: string) => {
     setSelectedPage(page);
     const url = `/?page=${page}`;
@@ -303,10 +294,10 @@ export default function App() {
     }
   };
 
-  // 🔥 3. 메인 화면으로 돌아올 때 주소창 복구 및 구글에 알림!
   const goHome = (pushHistory = true) => {
     setSelectedMatch(null);
     setSelectedPage('main');
+    setSelectedDateIdx(2); // 오늘 날짜로 초기화
     if (pushHistory) {
       window.history.pushState({}, '', '/');
       if (window.gtag) {
@@ -314,6 +305,15 @@ export default function App() {
       }
     }
   };
+
+  // 🔥 접속한 기기를 정확하게 판별하는 로직 (안전망 포함)
+  const userAgent = navigator.userAgent;
+  const isiOS = /iPhone|iPad|iPod/i.test(userAgent);
+  const isAndroid = /Android/i.test(userAgent);
+  // 아이폰도 안드로이드도 아니지만 일단 모바일 환경인 경우 (예: 삼성 인터넷 구버전, 알 수 없는 폰 등)
+  const isUnknownMobile = !isiOS && !isAndroid && /Mobi|webOS/i.test(userAgent);
+  const isMobile = isiOS || isAndroid || isUnknownMobile;
+  const isMac = /Mac/i.test(userAgent);
 
   if (selectedPage === 'about') return <About onBack={() => goHome()} />;
   if (selectedPage === 'terms') return <Terms onBack={() => goHome()} />;
@@ -323,8 +323,13 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#f8faff] pb-10 text-slate-900 font-sans tracking-tight">
-      <header className="bg-white py-10 flex justify-center items-center border-b border-slate-100 shadow-sm">
-        <div className="flex flex-col items-center">
+      
+      {/* 🔥 [헤더] 타이틀 클릭 새로고침 & 즐겨찾기 버튼 추가 */}
+      <header className="bg-white py-10 flex justify-center items-center border-b border-slate-100 shadow-sm relative">
+        <div 
+          className="flex flex-col items-center cursor-pointer hover:opacity-80 transition-opacity" 
+          onClick={() => goHome()}
+        >
           <h1 className="text-5xl md:text-6xl font-black tracking-tighter italic leading-none">
             <span style={{ color: '#0f3460' }}>Scored</span>
             <span style={{ color: '#84cc16' }}>Lab</span>
@@ -334,7 +339,81 @@ export default function App() {
             style={{ background: 'linear-gradient(to right, #0f3460, #84cc16)' }}
           ></div>
         </div>
+
+        <button 
+          onClick={() => { setShowBookmarkModal(true); setShowStep2(false); }}
+          className="absolute right-4 md:right-8 p-2 hover:bg-slate-50 rounded-full transition-all active:scale-95"
+        >
+          <Star className="w-7 h-7 text-yellow-400 fill-yellow-400 drop-shadow-sm" />
+        </button>
       </header>
+
+      {/* 🔥 [즐겨찾기 안내 팝업창] */}
+      {showBookmarkModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white rounded-[32px] p-8 w-full max-w-sm shadow-2xl relative animate-in slide-in-from-bottom-4 duration-300">
+            <button onClick={() => setShowBookmarkModal(false)} className="absolute top-5 right-5 text-slate-400 hover:text-slate-600">
+              <X className="w-6 h-6" />
+            </button>
+            
+            <div className="flex justify-center mb-6">
+              <div className="w-20 h-20 bg-yellow-50 rounded-full flex items-center justify-center">
+                <Star className="w-10 h-10 text-yellow-400 fill-yellow-400" />
+              </div>
+            </div>
+            
+            {!showStep2 ? (
+              <>
+                <h3 className="text-xl font-black text-slate-800 text-center mb-3 leading-tight">
+                  {isMobile ? "앱처럼 바탕화면에\n저장하시겠습니까?" : "이 사이트를 즐겨찾기에\n추가하시겠습니까?"}
+                </h3>
+                <p className="text-slate-500 text-center text-sm mb-8">매일 새로운 축구 예상 스코어를<br/>가장 빠르게 확인하실 수 있습니다.</p>
+                <div className="flex gap-3">
+                  <button onClick={() => setShowBookmarkModal(false)} className="flex-1 py-4 bg-slate-100 text-slate-500 font-bold rounded-2xl hover:bg-slate-200 transition-colors">아니오</button>
+                  <button onClick={() => setShowStep2(true)} className="flex-1 py-4 bg-[#56ad6a] text-white font-bold rounded-2xl shadow-lg shadow-green-100 hover:bg-[#4a9a5d] transition-colors">예</button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h3 className="text-xl font-black text-slate-800 text-center mb-5">추가 방법 안내</h3>
+                
+                {/* 🔥 기기별 맞춤 설명 영역 */}
+                <div className="text-sm text-slate-600 text-center mb-8 space-y-3 bg-slate-50 p-5 rounded-[24px] border border-slate-100 leading-relaxed">
+                  
+                  {isiOS && !isAndroid ? (
+                    /* 1. 확실한 아이폰인 경우 */
+                    <p>브라우저 하단의 <strong>공유(아이콘)</strong> 버튼을<br/>누른 후 <span className="text-[#0f3460] font-bold underline">'홈 화면에 추가'</span>를<br/>선택해주세요!</p>
+                  
+                  ) : isAndroid && !isiOS ? (
+                    /* 2. 확실한 안드로이드인 경우 */
+                    <p>우측 상단의 <strong>메뉴(⋮)</strong>를 누른 후<br/><span className="text-[#0f3460] font-bold underline">'홈 화면에 추가'</span> 또는<br/><span className="text-[#0f3460] font-bold underline">'앱 설치'</span>를 선택해주세요!</p>
+                  
+                  ) : isUnknownMobile ? (
+                    /* 3. 모바일은 맞는데 구분이 안 되는 경우 (둘 다 보여줌) */
+                    <div className="space-y-4 text-left px-2">
+                      <div>
+                        <span className="inline-block bg-slate-200 text-slate-700 text-[10px] font-black px-2 py-0.5 rounded mb-1">아이폰(Safari)</span>
+                        <p className="text-xs text-slate-600">하단 <strong>공유(아이콘)</strong> ➔ <strong className="text-[#0f3460]">'홈 화면에 추가'</strong></p>
+                      </div>
+                      <div className="border-t border-slate-200 pt-3">
+                        <span className="inline-block bg-slate-200 text-slate-700 text-[10px] font-black px-2 py-0.5 rounded mb-1">안드로이드(Chrome)</span>
+                        <p className="text-xs text-slate-600">상단 <strong>메뉴(⋮)</strong> ➔ <strong className="text-[#0f3460]">'홈 화면에 추가'</strong></p>
+                      </div>
+                    </div>
+                  
+                  ) : (
+                    /* 4. PC인 경우 */
+                    <p>키보드에서 <strong className="text-[#0f3460] text-lg">{isMac ? 'Cmd + D' : 'Ctrl + D'}</strong> 를 누르면<br/>즐겨찾기에 즉시 추가됩니다!</p>
+                  )}
+                  
+                </div>
+
+                <button onClick={() => setShowBookmarkModal(false)} className="w-full py-4 bg-slate-900 text-white font-bold rounded-2xl hover:bg-slate-800 transition-colors shadow-lg shadow-slate-200">확인했습니다</button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       <nav className="bg-white border-b border-slate-100 py-4 px-4 sticky top-0 z-20 shadow-sm">
         <div className="max-w-4xl mx-auto flex justify-between gap-2">
@@ -352,7 +431,7 @@ export default function App() {
 
       <main className="max-w-4xl mx-auto px-4 mt-6">
         <div className="space-y-3">
-          {matches.map((match) => {
+          {matches.map((match: any) => {
             const isLive = !['NS', 'FT', 'CANC', 'ABD'].includes(match.status);
             const isHomeWin = match.scoreHome > match.scoreAway;
             const isAwayWin = match.scoreAway > match.scoreHome;
@@ -368,19 +447,16 @@ export default function App() {
 
             const homeListScoreClass = isHomeWin ? "text-red-500 font-black" : isAwayWin ? "text-slate-400 font-normal" : "text-slate-800 font-bold";
             const awayListScoreClass = isAwayWin ? "text-red-500 font-black" : isHomeWin ? "text-slate-400 font-normal" : "text-slate-800 font-bold";
-
             const homeListNameClass = isHomeWin ? "font-black text-slate-900" : isAwayWin ? "font-medium text-slate-400" : "font-bold text-slate-700";
             const awayListNameClass = isAwayWin ? "font-black text-slate-900" : isHomeWin ? "font-medium text-slate-400" : "font-bold text-slate-700";
 
             const predWinBoxClass = "bg-red-50 border-red-100 text-red-500 font-black";
             const predLoseBoxClass = "bg-slate-50 border-slate-100 text-slate-400 font-normal";
             const predDrawBoxClass = "bg-slate-200 border-slate-300 text-slate-900 font-bold";
-
             const homePredBoxClass = isPredDraw ? predDrawBoxClass : isHomePredWin ? predWinBoxClass : predLoseBoxClass;
             const awayPredBoxClass = isPredDraw ? predDrawBoxClass : isAwayPredWin ? predWinBoxClass : predLoseBoxClass;
 
             return (
-              // 🔥 onClick 부분을 goToMatch로 변경했습니다.
               <div key={match.id} onClick={() => goToMatch(match)}
                    className={`rounded-[24px] border shadow-sm overflow-hidden relative cursor-pointer transition-all hover:scale-[1.005] ${
                      isLive ? 'bg-rose-50/40 border-rose-100' : 'bg-white border-slate-100'
@@ -393,7 +469,6 @@ export default function App() {
                   
                   <div className="flex items-center justify-center gap-3 mb-3 pt-4">
                     <div className={`flex-1 text-right text-sm md:text-base truncate ${homeListNameClass}`}>{match.home}</div>
-                    
                     <div className="relative flex items-center justify-center min-w-[80px]">
                         {match.status !== 'NS' && (
                           <span className="absolute -top-6 text-orange-400 font-medium text-sm tracking-wide">{centerStatus}</span>
@@ -407,7 +482,6 @@ export default function App() {
                             </>}
                         </div>
                     </div>
-
                     <div className={`flex-1 text-left text-sm md:text-base truncate ${awayListNameClass}`}>{match.away}</div>
                   </div>
 
@@ -427,7 +501,6 @@ export default function App() {
                       <div style={{ width: `${match.probs.away}%` }} className="bg-blue-500"></div>
                     </div>
                   </div>
-
                 </div>
               </div>
             );
@@ -437,7 +510,6 @@ export default function App() {
 
       <footer className="mt-12 py-8 text-center flex flex-col items-center justify-center gap-3">
         <div className="flex gap-4 text-xs text-slate-400 font-medium">
-          {/* 🔥 하단 메뉴 클릭 시에도 주소창이 바뀌도록 수정했습니다. */}
           <button onClick={() => goToPage('about')} className="hover:text-slate-600 transition-colors">소개</button>
           <span className="text-slate-200">|</span>
           <button onClick={() => goToPage('terms')} className="hover:text-slate-600 transition-colors">이용약관</button>
