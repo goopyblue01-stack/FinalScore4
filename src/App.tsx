@@ -35,7 +35,6 @@ function MatchDetail({ match, onBack }: { match: any, onBack: () => void }) {
     { h: Math.max(0, match.predict.home - 1), a: match.predict.away, prob: "7%", rank: 5 },
   ];
 
-  // 🔥 상태값(연기, 취소, 미정 등)을 더 똑똑하게 거르는 방어막
   let centerStatus = "";
   if (match.status === 'FT') centerStatus = 'FT';
   else if (['PST', 'TBD', 'CANC', 'ABD', 'AWD', 'WO'].includes(match.status)) {
@@ -67,7 +66,7 @@ function MatchDetail({ match, onBack }: { match: any, onBack: () => void }) {
 
       <main className="max-w-4xl mx-auto px-3 mt-6">
         <div className={`rounded-[32px] p-6 mb-6 shadow-sm border ${
-          !['NS', 'FT'].includes(match.status) ? 'bg-rose-50/40 border-rose-100' : 'bg-white border-slate-100'
+          !['NS', 'FT', 'PST', 'TBD', 'CANC', 'ABD'].includes(match.status) ? 'bg-rose-50/40 border-rose-100' : 'bg-white border-slate-100'
         }`}>
           <div className="text-center text-sm font-bold text-slate-500 mb-2">
             {match.korTime}
@@ -238,7 +237,9 @@ export default function App() {
   const [selectedMatch, setSelectedMatch] = useState<any | null>(null);
   const [selectedPage, setSelectedPage] = useState<string>('main');
   
-  // 🔥 즐겨찾기 관련 상태
+  // 🔥 [새로 추가된 기능] 로딩 상태를 관리하는 스위치!
+  const [isLoading, setIsLoading] = useState(false);
+
   const [showBookmarkModal, setShowBookmarkModal] = useState(false);
   const [showStep2, setShowStep2] = useState(false);
 
@@ -260,18 +261,29 @@ export default function App() {
 
   useEffect(() => {
     const dateStr = dates[selectedDateIdx].dateStr;
+    
+    // 캐시에 데이터가 있으면 빛의 속도로 바로 띄우기!
     if (matchCache[dateStr]) {
       setMatches(matchCache[dateStr]);
       return;
     }
+
+    // 캐시에 없으면 로딩 화면 켜고 서버에 요청!
     const fetchData = async () => {
+      setIsLoading(true); // 🔥 로딩 애니메이션 켜기
+      setMatches([]); // 기존 화면 깔끔하게 지우기 (뼈대만 보이게)
+      
       try {
         const res = await fetch(`/api/matches?date=${dateStr}`);
         const json = await res.json();
         const fetchedMatches = json.matches || [];
         setMatches(fetchedMatches);
         setMatchCache(prev => ({ ...prev, [dateStr]: fetchedMatches }));
-      } catch (e) { console.error(e); }
+      } catch (e) { 
+        console.error(e); 
+      } finally {
+        setIsLoading(false); // 🔥 로딩 완료! 애니메이션 끄기
+      }
     };
     fetchData();
   }, [selectedDateIdx]);
@@ -305,7 +317,7 @@ export default function App() {
   const goHome = (pushHistory = true) => {
     setSelectedMatch(null);
     setSelectedPage('main');
-    setSelectedDateIdx(2); // 오늘 날짜로 초기화
+    setSelectedDateIdx(2); 
     if (pushHistory) {
       window.history.pushState({}, '', '/');
       if (window.gtag) {
@@ -314,11 +326,9 @@ export default function App() {
     }
   };
 
-  // 🔥 접속한 기기를 정확하게 판별하는 로직
   const userAgent = navigator.userAgent;
   const isiOS = /iPhone|iPad|iPod/i.test(userAgent);
   const isAndroid = /Android/i.test(userAgent);
-  // 아이폰도 안드로이드도 아니지만 일단 모바일 환경인 경우
   const isUnknownMobile = !isiOS && !isAndroid && /Mobi|webOS/i.test(userAgent);
   const isMobile = isiOS || isAndroid || isUnknownMobile;
   const isMac = /Mac/i.test(userAgent);
@@ -332,7 +342,6 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#f8faff] pb-10 text-slate-900 font-sans tracking-tight">
       
-      {/* 🔥 [헤더] 타이틀 클릭 새로고침 & 즐겨찾기 버튼 추가 */}
       <header className="bg-white py-10 flex justify-center items-center border-b border-slate-100 shadow-sm relative">
         <div 
           className="flex flex-col items-center cursor-pointer hover:opacity-80 transition-opacity" 
@@ -356,7 +365,6 @@ export default function App() {
         </button>
       </header>
 
-      {/* 🔥 [즐겨찾기 안내 팝업창] */}
       {showBookmarkModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
           <div className="bg-white rounded-[32px] p-8 w-full max-w-sm shadow-2xl relative animate-in slide-in-from-bottom-4 duration-300">
@@ -385,28 +393,24 @@ export default function App() {
               <>
                 <h3 className="text-xl font-black text-slate-800 text-center mb-5">추가 방법 안내</h3>
                 
-                {/* 🔥 기기별 맞춤 설명 영역 (아이폰 크롬/사파리 분리 적용!) */}
                 <div className="text-sm text-slate-600 text-center mb-8 space-y-3 bg-slate-50 p-5 rounded-[24px] border border-slate-100 leading-relaxed">
                   
                   {isiOS && !isAndroid ? (
-                    /* 1. 확실한 아이폰인 경우 (크롬 우선, 사파리 다음) */
                     <div className="space-y-4 text-left px-2">
                       <div>
                         <span className="inline-block bg-slate-200 text-slate-700 text-[10px] font-black px-2 py-0.5 rounded mb-1">Chrome 브라우저</span>
-                        <p className="text-xs text-slate-600">상단 주소창 우측 <strong>공유 버튼 (네모 안 화살표 ⬆️)</strong> ➔ <strong className="text-[#0f3460]">'홈 화면에 추가'</strong></p>
+                        <p className="text-xs text-slate-600">우측 상단 <strong>공유(네모 안 화살표 ⬆️)</strong> ➔ <strong className="text-[#0f3460]">'홈 화면에 추가'</strong></p>
                       </div>
                       <div className="border-t border-slate-200 pt-3">
                         <span className="inline-block bg-slate-200 text-slate-700 text-[10px] font-black px-2 py-0.5 rounded mb-1">Safari 브라우저</span>
-                        <p className="text-xs text-slate-600">하단 중앙 <strong>공유 버튼 (네모 안 화살표 ⬆️)</strong> ➔ <strong className="text-[#0f3460]">'홈 화면에 추가'</strong></p>
+                        <p className="text-xs text-slate-600">하단 중앙 <strong>공유(네모 안 화살표 ⬆️)</strong> ➔ <strong className="text-[#0f3460]">'홈 화면에 추가'</strong></p>
                       </div>
                     </div>
                   
                   ) : isAndroid && !isiOS ? (
-                    /* 2. 확실한 안드로이드인 경우 */
                     <p>Chrome 브라우저 우측 상단의<br/><strong>메뉴 버튼(점 3개 ⋮)</strong>를 누른 후<br/><span className="text-[#0f3460] font-bold underline">'홈 화면에 추가'</span> 또는<br/><span className="text-[#0f3460] font-bold underline">'앱 설치'</span>를 선택해주세요!</p>
                   
                   ) : isUnknownMobile ? (
-                    /* 3. 모바일은 맞는데 구분이 안 되는 경우 (둘 다 보여줌) */
                     <div className="space-y-4 text-left px-2">
                       <div>
                         <span className="inline-block bg-slate-200 text-slate-700 text-[10px] font-black px-2 py-0.5 rounded mb-1">아이폰 (Chrome/Safari)</span>
@@ -419,7 +423,6 @@ export default function App() {
                     </div>
                   
                   ) : (
-                    /* 4. PC인 경우 */
                     <p>키보드에서 <strong className="text-[#0f3460] text-lg">{isMac ? 'Cmd + D' : 'Ctrl + D'}</strong> 를 누르면<br/>즐겨찾기에 즉시 추가됩니다!</p>
                   )}
                   
@@ -447,91 +450,124 @@ export default function App() {
       </nav>
 
       <main className="max-w-4xl mx-auto px-4 mt-6">
-        <div className="space-y-3">
-          {matches.map((match: any) => {
-            // 🔥 라이브 경기 판별에 연기(PST), 미정(TBD) 등도 확실하게 제외!
-            const isLive = !['NS', 'FT', 'CANC', 'ABD', 'PST', 'TBD', 'AWD', 'WO'].includes(match.status);
-            const isHomeWin = match.scoreHome > match.scoreAway;
-            const isAwayWin = match.scoreAway > match.scoreHome;
-            const hExp = match.predict.home;
-            const aExp = match.predict.away;
-            const isHomePredWin = hExp > aExp;
-            const isAwayPredWin = aExp > hExp;
-            const isPredDraw = hExp === aExp;
-            
-            // 🔥 경기 상태를 더 디테일하게 한글로 표시 (LIVE 오작동 방지)
-            let centerStatus = "";
-            if (match.status === 'FT') centerStatus = 'FT';
-            else if (['PST', 'TBD', 'CANC', 'ABD', 'AWD', 'WO'].includes(match.status)) {
-              if (match.status === 'PST') centerStatus = '연기';
-              else if (match.status === 'TBD') centerStatus = '미정';
-              else centerStatus = '취소';
-            }
-            else if (match.status !== 'NS') {
-              centerStatus = match.elapsed ? `${match.elapsed}'` : 'LIVE';
-            }
-
-            const homeListScoreClass = isHomeWin ? "text-red-500 font-black" : isAwayWin ? "text-slate-400 font-normal" : "text-slate-800 font-bold";
-            const awayListScoreClass = isAwayWin ? "text-red-500 font-black" : isHomeWin ? "text-slate-400 font-normal" : "text-slate-800 font-bold";
-            const homeListNameClass = isHomeWin ? "font-black text-slate-900" : isAwayWin ? "font-medium text-slate-400" : "font-bold text-slate-700";
-            const awayListNameClass = isAwayWin ? "font-black text-slate-900" : isHomeWin ? "font-medium text-slate-400" : "font-bold text-slate-700";
-
-            const predWinBoxClass = "bg-red-50 border-red-100 text-red-500 font-black";
-            const predLoseBoxClass = "bg-slate-50 border-slate-100 text-slate-400 font-normal";
-            const predDrawBoxClass = "bg-slate-200 border-slate-300 text-slate-900 font-bold";
-            const homePredBoxClass = isPredDraw ? predDrawBoxClass : isHomePredWin ? predWinBoxClass : predLoseBoxClass;
-            const awayPredBoxClass = isPredDraw ? predDrawBoxClass : isAwayPredWin ? predWinBoxClass : predLoseBoxClass;
-
-            return (
-              <div key={match.id} onClick={() => goToMatch(match)}
-                   className={`rounded-[24px] border shadow-sm overflow-hidden relative cursor-pointer transition-all hover:scale-[1.005] ${
-                     isLive ? 'bg-rose-50/40 border-rose-100' : 'bg-white border-slate-100'
-                   }`}>
-                <div className="p-3 md:p-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase ${isLive ? 'bg-rose-100/50 text-rose-500' : 'bg-[#e8f8f0] text-[#56ad6a]'}`}>{match.league}</span>
-                    <span className="text-[10px] font-bold text-slate-700">{match.korTime}</span>
+        {/* 🔥 로딩 중일 때 보여줄 스켈레톤(뼈대) 화면 */}
+        {isLoading ? (
+          <div className="space-y-3">
+            {[1, 2, 3, 4].map((n) => (
+              <div key={n} className="rounded-[24px] border border-slate-100 bg-white p-4 shadow-sm animate-pulse">
+                <div className="flex justify-between items-center mb-4">
+                  <div className="w-12 h-3 bg-slate-100 rounded"></div>
+                  <div className="w-16 h-3 bg-slate-100 rounded"></div>
+                </div>
+                <div className="flex items-center justify-center gap-3 mb-6 pt-2">
+                  <div className="flex-1 h-4 bg-slate-100 rounded"></div>
+                  <div className="w-8 h-8 bg-slate-100 rounded-full"></div>
+                  <div className="flex-1 h-4 bg-slate-100 rounded"></div>
+                </div>
+                <div className="flex flex-col items-center gap-2">
+                  <div className="w-16 h-2 bg-slate-100 rounded mb-1"></div>
+                  <div className="flex gap-3">
+                    <div className="w-10 h-10 bg-slate-100 rounded-xl"></div>
+                    <span className="text-slate-100 font-bold">:</span>
+                    <div className="w-10 h-10 bg-slate-100 rounded-xl"></div>
                   </div>
-                  
-                  <div className="flex items-center justify-center gap-3 mb-3 pt-4">
-                    <div className={`flex-1 text-right text-sm md:text-base truncate ${homeListNameClass}`}>{match.home}</div>
-                    <div className="relative flex items-center justify-center min-w-[80px]">
-                        {match.status !== 'NS' && (
-                          <span className="absolute -top-6 text-orange-400 font-medium text-sm tracking-wide">{centerStatus}</span>
-                        )}
-                        <div className="flex items-center gap-2 text-xl">
-                            {match.status === 'NS' ? <span className="text-slate-300 text-sm font-bold mt-1">VS</span> : 
-                            <>
-                              <span className={homeListScoreClass}>{match.scoreHome}</span>
-                              <span className="text-slate-300 text-sm font-bold lowercase">vs</span>
-                              <span className={awayListScoreClass}>{match.scoreAway}</span>
-                            </>}
-                        </div>
+                </div>
+                <div className="mt-4 h-1.5 bg-slate-100 rounded-full w-full"></div>
+              </div>
+            ))}
+          </div>
+        ) : matches.length === 0 ? (
+          /* 데이터가 진짜 없을 때 보여줄 화면 */
+          <div className="py-16 text-center bg-white rounded-[24px] border border-slate-100 shadow-sm">
+            <div className="text-4xl mb-3">⚽</div>
+            <div className="text-slate-500 font-bold">이 날짜에는 예정된 경기가 없습니다.</div>
+          </div>
+        ) : (
+          /* 실제 데이터가 로딩 완료되었을 때 보여줄 화면 */
+          <div className="space-y-3">
+            {matches.map((match: any) => {
+              const isLive = !['NS', 'FT', 'CANC', 'ABD', 'PST', 'TBD', 'AWD', 'WO'].includes(match.status);
+              const isHomeWin = match.scoreHome > match.scoreAway;
+              const isAwayWin = match.scoreAway > match.scoreHome;
+              const hExp = match.predict.home;
+              const aExp = match.predict.away;
+              const isHomePredWin = hExp > aExp;
+              const isAwayPredWin = aExp > hExp;
+              const isPredDraw = hExp === aExp;
+              
+              let centerStatus = "";
+              if (match.status === 'FT') centerStatus = 'FT';
+              else if (['PST', 'TBD', 'CANC', 'ABD', 'AWD', 'WO'].includes(match.status)) {
+                if (match.status === 'PST') centerStatus = '연기';
+                else if (match.status === 'TBD') centerStatus = '미정';
+                else centerStatus = '취소';
+              }
+              else if (match.status !== 'NS') {
+                centerStatus = match.elapsed ? `${match.elapsed}'` : 'LIVE';
+              }
+
+              const homeListScoreClass = isHomeWin ? "text-red-500 font-black" : isAwayWin ? "text-slate-400 font-normal" : "text-slate-800 font-bold";
+              const awayListScoreClass = isAwayWin ? "text-red-500 font-black" : isHomeWin ? "text-slate-400 font-normal" : "text-slate-800 font-bold";
+              const homeListNameClass = isHomeWin ? "font-black text-slate-900" : isAwayWin ? "font-medium text-slate-400" : "font-bold text-slate-700";
+              const awayListNameClass = isAwayWin ? "font-black text-slate-900" : isHomeWin ? "font-medium text-slate-400" : "font-bold text-slate-700";
+
+              const predWinBoxClass = "bg-red-50 border-red-100 text-red-500 font-black";
+              const predLoseBoxClass = "bg-slate-50 border-slate-100 text-slate-400 font-normal";
+              const predDrawBoxClass = "bg-slate-200 border-slate-300 text-slate-900 font-bold";
+              const homePredBoxClass = isPredDraw ? predDrawBoxClass : isHomePredWin ? predWinBoxClass : predLoseBoxClass;
+              const awayPredBoxClass = isPredDraw ? predDrawBoxClass : isAwayPredWin ? predWinBoxClass : predLoseBoxClass;
+
+              return (
+                <div key={match.id} onClick={() => goToMatch(match)}
+                     className={`rounded-[24px] border shadow-sm overflow-hidden relative cursor-pointer transition-all hover:scale-[1.005] ${
+                       isLive ? 'bg-rose-50/40 border-rose-100' : 'bg-white border-slate-100'
+                     }`}>
+                  <div className="p-3 md:p-4">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase ${isLive ? 'bg-rose-100/50 text-rose-500' : 'bg-[#e8f8f0] text-[#56ad6a]'}`}>{match.league}</span>
+                      <span className="text-[10px] font-bold text-slate-700">{match.korTime}</span>
                     </div>
-                    <div className={`flex-1 text-left text-sm md:text-base truncate ${awayListNameClass}`}>{match.away}</div>
-                  </div>
+                    
+                    <div className="flex items-center justify-center gap-3 mb-3 pt-4">
+                      <div className={`flex-1 text-right text-sm md:text-base truncate ${homeListNameClass}`}>{match.home}</div>
+                      <div className="relative flex items-center justify-center min-w-[80px]">
+                          {match.status !== 'NS' && (
+                            <span className="absolute -top-6 text-orange-400 font-medium text-sm tracking-wide">{centerStatus}</span>
+                          )}
+                          <div className="flex items-center gap-2 text-xl">
+                              {match.status === 'NS' ? <span className="text-slate-300 text-sm font-bold mt-1">VS</span> : 
+                              <>
+                                <span className={homeListScoreClass}>{match.scoreHome}</span>
+                                <span className="text-slate-300 text-sm font-bold lowercase">vs</span>
+                                <span className={awayListScoreClass}>{match.scoreAway}</span>
+                              </>}
+                          </div>
+                      </div>
+                      <div className={`flex-1 text-left text-sm md:text-base truncate ${awayListNameClass}`}>{match.away}</div>
+                    </div>
 
-                  <div className="flex flex-col items-center gap-2">
-                     <span className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">예상 스코어</span>
-                     <div className="flex items-center gap-3 text-lg">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-all ${homePredBoxClass}`}>{hExp}</div>
-                        <span className="text-slate-300 font-bold">:</span>
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-all ${awayPredBoxClass}`}>{aExp}</div>
-                     </div>
-                  </div>
-                  
-                  <div className="mt-4">
-                    <div className="h-1.5 flex rounded-full overflow-hidden bg-slate-100/50">
-                      <div style={{ width: `${match.probs.home}%` }} className="bg-red-500"></div>
-                      <div style={{ width: `${match.probs.draw}%` }} className="bg-slate-300"></div>
-                      <div style={{ width: `${match.probs.away}%` }} className="bg-blue-500"></div>
+                    <div className="flex flex-col items-center gap-2">
+                       <span className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">예상 스코어</span>
+                       <div className="flex items-center gap-3 text-lg">
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-all ${homePredBoxClass}`}>{hExp}</div>
+                          <span className="text-slate-300 font-bold">:</span>
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-all ${awayPredBoxClass}`}>{aExp}</div>
+                       </div>
+                    </div>
+                    
+                    <div className="mt-4">
+                      <div className="h-1.5 flex rounded-full overflow-hidden bg-slate-100/50">
+                        <div style={{ width: `${match.probs.home}%` }} className="bg-red-500"></div>
+                        <div style={{ width: `${match.probs.draw}%` }} className="bg-slate-300"></div>
+                        <div style={{ width: `${match.probs.away}%` }} className="bg-blue-500"></div>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </main>
 
       <footer className="mt-12 py-8 text-center flex flex-col items-center justify-center gap-3">
