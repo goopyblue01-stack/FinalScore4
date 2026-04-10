@@ -105,7 +105,7 @@ const teamNameMap: { [key: string]: string } = {
 "Gaziantep FK": "가지안테프 FK", "Göztepe": "괴즈테페", "Eyupspor": "에위프스포르", "Samsunspor": "삼순스포르", "Bodrumspor": "보드룸스포르", "Hatayspor": "하타이스포르", "Kayserispor": "카이세리스포르", "Ankaragucu": "앙카라귀쥐",
 "Pendikspor": "펜디크스포르", "Karagumruk": "카라귐뤼크", "Istanbulspor": "이스탄불스포르", "Corum FK": "초룸 FK", "Kocaelispor": "코자엘리스포르", "Sakaryaspor": "사카리아스포르", "Genclerbirligi": "겐츨레르비를리이",
 "Boluspor": "볼루스포르", "Bandırmaspor": "반드르마스포르", "Erzurumspor": "에르주룸스포르", "Manisa F.K.": "마니사 FK", "Ümraniyespor": "움라니예스포르", "Keçiörengücü": "케치외렌귀쥐", "Iğdır FK": "이그디르 FK",
-"Esenler Erokspor": "에센레르 에록스포르", "Amed SK": "아메드 SK", "Sanliurfaspor": "샨리우르파스포르", "PAOK": "PAOK (파오크)", "AEK Athens": "AEK 아테네", "Olympiacos": "올림피아코스",
+"Esenler Erokspor": "에센레르 에록스포르", "Amed SK": "아메드 SK", "Sanliurfaspor": "샨리우르파스포르", "PAOK": "PAOK", "AEK Athens": "AEK 아테네", "Olympiacos": "올림피아코스",
 "Panathinaikos": "파나티나이코스", "Aris": "아리스", "Lamia": "라미아", "Asteras Tripolis": "아스테라스 트리폴리스", "Panserraikos": "판세라이코스", "OFI Crete": "OFI 크레타", "Atromitos": "아트로미토스",
 "Panetolikos": "파네톨리코스", "Volos": "볼로스", "Levadiakos": "레바디아코스", "Athens Kallithea": "아테네 칼리테아", "Jagiellonia Bialystok": "야기엘로니아 비아위스토크", "Slask Wroclaw": "슬롱스크 브로츠와프",
 "Legia Warszawa": "레기아 바르샤바", "Lech Poznan": "레흐 포즈난", "Pogon Szczecin": "포곤 슈체친", "Raków Częstochowa": "라쿠프 쳉스토호바", "Gornik Zabrze": "구르니크 자브제", "Stal Mielec": "스탈 미엘레츠",
@@ -281,7 +281,14 @@ const teamNameMap: { [key: string]: string } = {
 "Menemen FK": "메네멘", "Muş Sport Klübü": "무슈 스포르", "Arnavutköy Belediyespor": "아르나부트쾨이", "Mardin 1969": "마르딘", "Kahramanmaraş istiklal Spor": "카흐라만마라쉬", "Sichuan Jiuniu": "쓰촨 지우니우",
 "Wisla Krakow": "비스와 크라쿠프", "TSV Hartberg": "하르트베르크", "Padova": "파도바", "1. FC Köln": "쾰른", "Kasımpaşa": "카슴파샤", "KAA Gent II": "헨트 2군", "Liège": "리에주", "Atletico Paranaense": "아틀레치쿠 파라나엔시",
 "Chapecoense-sc": "샤페코엔시", "OH Leuven": "루벤", "FC ST. Gallen": "장크트갈렌", "FC Sion": "시옹", "Lausanne": "로잔", "BSC Young Boys": "영 보이즈", "Servette FC": "세르베트", "Almere City FC": "알메러 시티",
-"Yeni Mersin Idmanyurdu": "메르신", "Adanaspor": "아다나스포르", "Yeni Malatyaspor": "말라티아스포르", "Kırklarelispor": "키르클라렐리스포르"
+"Yeni Mersin Idmanyurdu": "메르신", "Adanaspor": "아다나스포르", "Yeni Malatyaspor": "말라티아스포르", "Kırklarelispor": "키르클라렐리스포르", "Newells Old Boys": "뉴웰스 올드 보이스", "Central Cordoba de Santiago": "센트랄 코르도바",
+"Gimnasia M.": "힘나시아 M", "Etar Veliko Tarnovo": "에타르 벨리코 타르노보", "AEK Larnaca": "AEK 라르나카", "Celje": "첼레", "HNK Rijeka": "리예카", "Omonia Nicosia": "오모니아 니코시아", "FC Noah": "노아",
+"Drita": "드리타", "KuPS": "쿠오피온 팔로세우라", "Shkendija": "슈켄디야", "Zrinjski": "즈린스키", "Sigma Olomouc": "시그마 올로모우츠", "Universitatea Craiova": "우니베르시타테아 크라이오바", "Lincoln Red Imps FC": "링컨 레드 임프스",
+"Dynamo Kyiv": "디나모 키이우", "Breidablik": "브레이다블리크", "BK Hacken": "해켄", "Hamrun Spartans": "함룬 스파르탄스", "Rapid Vienna": "라피드 빈", "Gençlerbirliği S.K.": "겐츨레르비를리이", "Eyüpspor": "에윱스포르",
+"VfB Stuttgart": "슈투트가르트", "Plzen": "플젠", "Malmo FF": "말뫼", "Maccabi Tel Aviv": "마카비 텔아비브", "Olympiakos Piraeus": "올림피아코스", "Qarabag": "카라바흐", "Pafos": "파포스", "Slavia Praha": "슬라비아 프라하",
+"Kairat Almaty": "카이라트 알마티", "Volos NFC": "볼로스", "Aris Thessalonikis": "아리스 테살로니키", "Defensores De Belgrano": "데펜소레스 데 벨그라노", "Deportivo Madryn": "데포르티보 마드린", "Los Andes": "로스 안데스",
+"Ciudad de Bolívar": "시우다드 데 볼리바르", "Ferro Carril Oeste": "페로 카릴 오에스테", "All Boys": "올 보이스", "Almirante Brown": "알미란테 브라운", "Central Norte": "센트랄 노르테", "Atletico Mitre": "아틀레티코 미트레",
+"CA Estudiantes": "에스투디안테스", "Chaco For Ever": "차코 포에버"  
  };
 
 // ==========================
