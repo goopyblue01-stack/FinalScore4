@@ -306,12 +306,13 @@ function poisson(homeGoals: number, awayGoals: number) {
 // ==========================
 let predictionCache: { [leagueSeason: string]: { timestamp: number, data: any[] } } = {};
 let oddsCache: { [fixtureId: number]: { timestamp: number, data: any } } = {}; 
-// 🔥 순위표 전용 메모리 캐시 추가
 let standingsCache: { [leagueSeason: string]: { timestamp: number, data: any } } = {};
+
+// 🔥 이벤트 전용 메모리 캐시 추가
+let eventsCache: { [fixtureId: number]: { timestamp: number, data: any[] } } = {};
 
 const CACHE_TTL = 60 * 60 * 1000; 
 const ODDS_CACHE_TTL = 2 * 60 * 60 * 1000;
-// 🔥 순위표는 6시간(6 * 60 * 60 * 1000ms)에 1번만 API를 호출하도록 강력 방어!
 const STANDINGS_CACHE_TTL = 6 * 60 * 60 * 1000; 
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -347,9 +348,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const uniqueLeagues = new Set<string>();
     rawFilteredMatches.forEach((m: any) => { uniqueLeagues.add(`${m.league.id}-${m.league.season}`); });
 
-    const now = Date.now(); // 시간 계산을 위해 위로 끌어올림
+    const now = Date.now();
 
-    // 🔥 API 방어막 장착: 순위표 데이터를 캐시에서 먼저 찾고, 없거나 6시간이 지났을 때만 API 호출!
+    // 1. 순위표(Standings) 데이터 가져오기 (6시간 캐시)
     const standingsPromises = Array.from(uniqueLeagues).map(async (key) => {
       const [leagueId, season] = key.split('-');
       if (!standingsCache[key] || now - standingsCache[key].timestamp > STANDINGS_CACHE_TTL) {
@@ -394,6 +395,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     });
 
+    // 2. 과거 경기(Prediction) 데이터 가져오기
     await Promise.all(Array.from(uniqueLeagues).map(async (key) => {
       const [leagueId, season] = key.split('-');
       if (!predictionCache[key] || now - predictionCache[key].timestamp > CACHE_TTL) {
@@ -402,6 +404,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }));
 
+    // 3. 배당(Odds) 가져오기
     const fixturesToFetchOdds = rawFilteredMatches.filter(item => {
       const fId = item.fixture.id;
       return !oddsCache[fId] || now - oddsCache[fId].timestamp > ODDS_CACHE_TTL;
@@ -438,6 +441,41 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       await new Promise(resolve => setTimeout(resolve, 300));
     }
 
+    // 🔥 4. [신규 추가] 이벤트(Events) 가져오기 (초강력 방어막 적용)
+    const fixturesToFetchEvents = rawFilteredMatches.filter((item: any) => {
+      const fId = item.fixture.id;
+      const status = item.fixture.status.short;
+      
+      // 1) 경기 전이면 애초에 호출 안 함
+      if (status === 'NS') return false; 
+      
+      const cached = eventsCache[fId];
+      if (!cached) return true; // 2) 캐시에 없으면 호출
+      
+      // 3) 경기 종료면 아주 오랫동안(24시간) 캐시 유지, 진행 중(LIVE)이면 2분마다 갱신
+      const isFinished = ['FT', 'AET', 'PEN'].includes(status);
+      const ttl = isFinished ? 24 * 60 * 60 * 1000 : 2 * 60 * 1000;
+      
+      return now - cached.timestamp > ttl;
+    });
+
+    for (let i = 0; i < fixturesToFetchEvents.length; i += batchSize) {
+      const batch = fixturesToFetchEvents.slice(i, i + batchSize);
+      await Promise.all(batch.map(async (item: any) => {
+        const fId = item.fixture.id;
+        try {
+          const eventsRes = await fetchAPI('fixtures/events', `fixture=${fId}`);
+          eventsCache[fId] = { timestamp: now, data: eventsRes.response || [] };
+        } catch (e) {
+          console.error(`Events fetch failed for fixture ${fId}`, e);
+          eventsCache[fId] = { timestamp: now, data: [] };
+        }
+      }));
+      await new Promise(resolve => setTimeout(resolve, 300));
+    }
+
+
+    // 5. 최종 매핑 로직
     const filteredMatches = rawFilteredMatches.map((item: any) => {
       const hName = item.teams.home.name;
       const aName = item.teams.away.name;
@@ -449,7 +487,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const validPastMatches = pastMatches.filter((m: any) => m.fixture.id !== item.fixture.id);
       const leagueAvgGoals = leagueAvgMap[leagueKey] || 1.3;
 
-      const mappedEvents = (item.events || []).map((ev: any) => {
+      // 🔥 이제 캐시된 진짜 이벤트 데이터를 불러와서 매핑합니다!
+      const rawEvents = eventsCache[item.fixture.id]?.data || [];
+      const mappedEvents = rawEvents.map((ev: any) => {
         let type = "";
         if (ev.type === "Goal") type = "goal";
         else if (ev.type === "Card" && ev.detail.includes("Yellow")) type = "yellow";
@@ -462,9 +502,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           minute: ev.time.elapsed,
           team: ev.team.id === homeId ? "home" : "away",
           type: type,
-          player: ev.player.name,
-          playerOut: type === "sub" ? ev.player.name : undefined,
-          playerIn: type === "sub" ? ev.assist.name : undefined
+          player: ev.player?.name,
+          playerOut: type === "sub" ? ev.player?.name : undefined,
+          playerIn: type === "sub" ? ev.assist?.name : undefined
         };
       }).filter((e: any) => e !== null); 
 
@@ -548,7 +588,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         predict: { home: predictHome, away: predictAway },
         probs: { home: finalProbHome, draw: finalProbDraw, away: finalProbAway },
         odds: matchOdds,
-        events: mappedEvents,
+        events: mappedEvents, // 🔥 이제 완벽하게 들어갑니다!
         standings: leagueStandingsMap[leagueKey] || [] 
       };
     })
