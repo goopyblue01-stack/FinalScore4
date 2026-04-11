@@ -308,7 +308,7 @@ function poisson(homeGoals: number, awayGoals: number) {
 }
 
 // ==========================
-// 🛡️ API 보호용 글로벌 메모리 캐시 (기본 경기 방어막 완벽 탑재)
+// 🛡️ API 보호용 글로벌 메모리 캐시
 // ==========================
 let fixturesCache: { [dateStr: string]: { timestamp: number, data: any } } = {};
 let predictionCache: { [leagueSeason: string]: { timestamp: number, data: any[] } } = {};
@@ -361,8 +361,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const allMatches = [...(targetData.response || []), ...(prevData.response || [])];
 
     const rawFilteredMatches = allMatches.filter((item: any) => {
-      // 🔥 [수정] 글로벌 서비스를 위해 모든 경기를 거르지 않고 한글 매핑이 없어도 통과시킬 수 있지만, 
-      // 대표님이 선택하신 주요 리그만 보여주는 것이 깔끔하므로 매핑이 있는 경우만 표시합니다.
       if (leagueNameMap[item.league.id] === undefined) return false;
       const matchDateKST = new Date(item.fixture.date).toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
       return matchDateKST === targetDateStr;
@@ -382,34 +380,43 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const standingsResults = await Promise.all(standingsPromises);
 
     const leagueAvgMap: { [key: string]: number } = {};
-    const leagueStandingsMap: { [key: string]: any[] } = {};
+    
+    // 🔥 [수정 1] 이제 특정 그룹[0]만 가져오지 않고, 대회에 속한 '모든 그룹(배열)'을 통째로 저장합니다!
+    const leagueStandingsMap: { [key: string]: any[][] } = {};
 
     standingsResults.forEach((res: any) => {
-      if (res && res.response && res.response.length > 0 && res.response[0].league.standings[0]) {
+      if (res && res.response && res.response.length > 0 && res.response[0].league.standings) {
         const leagueInfo = res.response[0].league;
         const leagueKey = `${leagueInfo.id}-${leagueInfo.season}`;
-        let totalGoals = 0, totalPlayed = 0;
-
-        leagueStandingsMap[leagueKey] = leagueInfo.standings[0].map((t: any) => {
-          const tName = t.team.name;
-          const mappedName = typeof teamNameMap !== 'undefined' && teamNameMap[tName] ? teamNameMap[tName] : tName;
-          return {
-            rank: t.rank,
-            team: { en: tName, ko: mappedName }, // 🔥 [글로벌] 영어/한국어 동시 배송
-            played: t.all.played,
-            win: t.all.win,
-            draw: t.all.draw,
-            lose: t.all.lose,
-            goalDiff: t.goalsDiff,
-            points: t.points
-          };
+        
+        // 조(Group)가 여러 개일 수 있으므로 모든 조를 순회하며 포장합니다.
+        leagueStandingsMap[leagueKey] = leagueInfo.standings.map((group: any[]) => {
+          return group.map((t: any) => {
+            const tName = t.team.name;
+            const mappedName = typeof teamNameMap !== 'undefined' && teamNameMap[tName] ? teamNameMap[tName] : tName;
+            return {
+              rank: t.rank,
+              team: { en: tName, ko: mappedName },
+              groupName: t.group, // "Western Conference" 등 그룹명 저장
+              played: t.all.played,
+              win: t.all.win,
+              draw: t.all.draw,
+              lose: t.all.lose,
+              goalDiff: t.goalsDiff,
+              points: t.points
+            };
+          });
         });
 
-        leagueInfo.standings[0].forEach((team: any) => {
-          if (team.all && team.all.goals && team.all.goals.for !== undefined) {
-            totalGoals += team.all.goals.for;
-            totalPlayed += team.all.played;
-          }
+        // 평균 골 계산 로직 (모든 조의 골을 합산)
+        let totalGoals = 0, totalPlayed = 0;
+        leagueInfo.standings.forEach((group: any[]) => {
+          group.forEach((team: any) => {
+            if (team.all && team.all.goals && team.all.goals.for !== undefined) {
+              totalGoals += team.all.goals.for;
+              totalPlayed += team.all.played;
+            }
+          });
         });
         leagueAvgMap[leagueKey] = totalPlayed > 0 ? totalGoals / totalPlayed : 1.3;
       }
@@ -530,9 +537,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           });
       };
 
-      const homeRecent = getRecentMatches(homeId, validPastMatches);
-      const awayRecent = getRecentMatches(awayId, validPastMatches);
-
       const homeAttack = calcForm(homeRecent.filter((m: any) => m.isHome), true);
       const homeDefense = calcForm(homeRecent.filter((m: any) => m.isHome), false);
       const awayAttack = calcForm(awayRecent.filter((m: any) => !m.isHome), true);
@@ -580,7 +584,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         else if (finalProbAway - finalProbHome >= 10) predictAway += 1;
       }
 
-      // 🔥 [글로벌] 영어/한국어 시간 모두 포장해서 보냄!
       const kstDate = new Date(new Date(item.fixture.date).toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
       const m = kstDate.getMonth() + 1;
       const d = kstDate.getDate();
@@ -591,13 +594,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const timeKo = `${m}/${d} (${daysKo[kstDate.getDay()]}) ${h}:${min}`;
       const timeEn = `${m}/${d} (${daysEn[kstDate.getDay()]}) ${h}:${min}`;
 
+      // 🔥 [수정 2] 모든 그룹들 중에서 '현재 우리 홈팀 또는 원정팀'이 속해 있는 정확한 조(그룹)를 찾습니다.
+      const allGroups = leagueStandingsMap[leagueKey] || [];
+      let correctStandings: any[] = [];
+
+      for (const group of allGroups) {
+        if (group.some((s: any) => s.team.en === hName || s.team.en === aName)) {
+          correctStandings = group; // 빙고! 비셀 고베가 있는 서부 그룹 발견!
+          break;
+        }
+      }
+      
+      // 만약 조별리그 배정이 안 된 극초반 컵대회 등 예외 상황일 때는 첫 번째 그룹을 보여줍니다.
+      if (correctStandings.length === 0 && allGroups.length > 0) {
+        correctStandings = allGroups[0];
+      }
+
       return {
         id: item.fixture.id,
         timestamp: item.fixture.timestamp,
-        league: { en: item.league.name, ko: leagueNameMap[item.league.id] || item.league.name }, // 🔥 이중 포장!
-        home: { en: hName, ko: teamNameMap[hName] || hName }, // 🔥 이중 포장!
-        away: { en: aName, ko: teamNameMap[aName] || aName }, // 🔥 이중 포장!
-        time: { en: timeEn, ko: timeKo }, // 🔥 이중 포장!
+        league: { en: item.league.name, ko: leagueNameMap[item.league.id] || item.league.name },
+        home: { en: hName, ko: teamNameMap[hName] || hName },
+        away: { en: aName, ko: teamNameMap[aName] || aName },
+        time: { en: timeEn, ko: timeKo },
         scoreHome: item.goals.home ?? 0,
         scoreAway: item.goals.away ?? 0,
         penHome: item.score?.penalty?.home ?? null,
@@ -608,7 +627,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         probs: { home: finalProbHome, draw: finalProbDraw, away: finalProbAway },
         odds: matchOdds,
         events: mappedEvents,
-        standings: leagueStandingsMap[leagueKey] || [] 
+        standings: correctStandings // 🔥 찾은 정확한 그룹(조)의 순위표만 프론트엔드로 배송!
       };
     })
     .sort((a: any, b: any) => {
