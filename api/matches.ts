@@ -375,9 +375,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const [leagueId, season] = key.split('-');
       if (!standingsCache[key] || now - standingsCache[key].timestamp > STANDINGS_CACHE_TTL) {
         const res = await fetchAPI('standings', `league=${leagueId}&season=${season}`);
-        standingsCache[key] = { timestamp: now, data: res };
+        
+        // 🔥 [추가] 정상적인 데이터(response)가 있을 때만 수첩에 적어라!
+        if (res && res.response && res.response.length > 0) {
+          standingsCache[key] = { timestamp: now, data: res };
+        }
       }
-      return standingsCache[key].data;
+      return standingsCache[key]?.data || null; // 🔥 안전장치 추가
     });
     const standingsResults = await Promise.all(standingsPromises);
 
