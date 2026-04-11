@@ -310,13 +310,13 @@ function poisson(homeGoals: number, awayGoals: number) {
 // ==========================
 // 🛡️ API 보호용 글로벌 메모리 캐시 (기본 경기 방어막 완벽 탑재)
 // ==========================
-let fixturesCache: { [dateStr: string]: { timestamp: number, data: any } } = {}; // 🔥 기본 경기 데이터 1차 방어막!
+let fixturesCache: { [dateStr: string]: { timestamp: number, data: any } } = {};
 let predictionCache: { [leagueSeason: string]: { timestamp: number, data: any[] } } = {};
 let oddsCache: { [fixtureId: number]: { timestamp: number, data: any } } = {}; 
 let standingsCache: { [leagueSeason: string]: { timestamp: number, data: any } } = {};
 let eventsCache: { [fixtureId: number]: { timestamp: number, data: any[] } } = {};
 
-const FIXTURES_CACHE_TTL = 1 * 60 * 1000; // 🔥 새로고침 연타 방지용 (1분 유지)
+const FIXTURES_CACHE_TTL = 1 * 60 * 1000;
 const CACHE_TTL = 60 * 60 * 1000; 
 const ODDS_CACHE_TTL = 2 * 60 * 60 * 1000;
 const STANDINGS_CACHE_TTL = 6 * 60 * 60 * 1000; 
@@ -340,20 +340,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         headers: { 'x-rapidapi-key': API_KEY || '', 'x-rapidapi-host': 'v3.football.api-sports.io' } 
       }).then(r => r.json());
 
-    // 🔥 API 총알 방어용 캐시 체크 함수 (에러 방어력 강화!)
     const getFixturesWithCache = async (dateString: string) => {
       if (fixturesCache[dateString] && (now - fixturesCache[dateString].timestamp < FIXTURES_CACHE_TTL)) {
         return fixturesCache[dateString].data;
       }
       const data = await fetchAPI('fixtures', `date=${dateString}`);
-      
-      // 🔥 핵심 방어막: 한도 초과 등 API 에러가 났을 때는 수첩(캐시)에 빈 데이터를 저장하지 않음!
       if (data.errors && Object.keys(data.errors).length > 0) {
         console.error(`API Error for ${dateString}:`, data.errors);
       } else {
         fixturesCache[dateString] = { timestamp: now, data };
       }
-      
       return data;
     };
 
@@ -365,6 +361,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const allMatches = [...(targetData.response || []), ...(prevData.response || [])];
 
     const rawFilteredMatches = allMatches.filter((item: any) => {
+      // 🔥 [수정] 글로벌 서비스를 위해 모든 경기를 거르지 않고 한글 매핑이 없어도 통과시킬 수 있지만, 
+      // 대표님이 선택하신 주요 리그만 보여주는 것이 깔끔하므로 매핑이 있는 경우만 표시합니다.
       if (leagueNameMap[item.league.id] === undefined) return false;
       const matchDateKST = new Date(item.fixture.date).toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
       return matchDateKST === targetDateStr;
@@ -397,7 +395,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           const mappedName = typeof teamNameMap !== 'undefined' && teamNameMap[tName] ? teamNameMap[tName] : tName;
           return {
             rank: t.rank,
-            team: mappedName,
+            team: { en: tName, ko: mappedName }, // 🔥 [글로벌] 영어/한국어 동시 배송
             played: t.all.played,
             win: t.all.win,
             draw: t.all.draw,
@@ -454,7 +452,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           }
           oddsCache[fId] = { timestamp: now, data: oddsData };
         } catch (e) {
-          console.error(`Odds fetch failed for fixture ${fId}`, e);
           oddsCache[fId] = { timestamp: now, data: null };
         }
       }));
@@ -464,15 +461,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const fixturesToFetchEvents = rawFilteredMatches.filter((item: any) => {
       const fId = item.fixture.id;
       const status = item.fixture.status.short;
-      
       if (status === 'NS') return false; 
-      
       const cached = eventsCache[fId];
       if (!cached) return true; 
-      
       const isFinished = ['FT', 'AET', 'PEN'].includes(status);
       const ttl = isFinished ? 24 * 60 * 60 * 1000 : 2 * 60 * 1000;
-      
       return now - cached.timestamp > ttl;
     });
 
@@ -484,7 +477,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           const eventsRes = await fetchAPI('fixtures/events', `fixture=${fId}`);
           eventsCache[fId] = { timestamp: now, data: eventsRes.response || [] };
         } catch (e) {
-          console.error(`Events fetch failed for fixture ${fId}`, e);
           eventsCache[fId] = { timestamp: now, data: [] };
         }
       }));
@@ -588,28 +580,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         else if (finalProbAway - finalProbHome >= 10) predictAway += 1;
       }
 
+      // 🔥 [글로벌] 영어/한국어 시간 모두 포장해서 보냄!
       const kstDate = new Date(new Date(item.fixture.date).toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
       const m = kstDate.getMonth() + 1;
       const d = kstDate.getDate();
-      const days = ['일', '월', '화', '수', '목', '금', '토'];
-      const w = days[kstDate.getDay()];
+      const daysKo = ['일', '월', '화', '수', '목', '금', '토'];
+      const daysEn = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
       const h = String(kstDate.getHours()).padStart(2, '0');
       const min = String(kstDate.getMinutes()).padStart(2, '0');
-      const customKorTime = `${m}/${d} (${w}) ${h}:${min}`;
+      const timeKo = `${m}/${d} (${daysKo[kstDate.getDay()]}) ${h}:${min}`;
+      const timeEn = `${m}/${d} (${daysEn[kstDate.getDay()]}) ${h}:${min}`;
 
       return {
         id: item.fixture.id,
         timestamp: item.fixture.timestamp,
-        league: leagueNameMap[item.league.id],
-        home: teamNameMap[hName] || hName,
-        away: teamNameMap[aName] || aName,
+        league: { en: item.league.name, ko: leagueNameMap[item.league.id] || item.league.name }, // 🔥 이중 포장!
+        home: { en: hName, ko: teamNameMap[hName] || hName }, // 🔥 이중 포장!
+        away: { en: aName, ko: teamNameMap[aName] || aName }, // 🔥 이중 포장!
+        time: { en: timeEn, ko: timeKo }, // 🔥 이중 포장!
         scoreHome: item.goals.home ?? 0,
         scoreAway: item.goals.away ?? 0,
-        penHome: item.score?.penalty?.home ?? null, // 🔥 승부차기 홈팀 점수 추가!
-        penAway: item.score?.penalty?.away ?? null, // 🔥 승부차기 원정팀 점수 추가!
+        penHome: item.score?.penalty?.home ?? null,
+        penAway: item.score?.penalty?.away ?? null,
         status: item.fixture.status.short,
         elapsed: item.fixture.status.elapsed,
-        korTime: customKorTime, 
         predict: { home: predictHome, away: predictAway },
         probs: { home: finalProbHome, draw: finalProbDraw, away: finalProbAway },
         odds: matchOdds,
@@ -618,7 +612,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       };
     })
     .sort((a: any, b: any) => {
-      const statusOrder: any = { 'LIVE': 0, '1H': 0, 'HT': 0, '2H': 0, 'ET': 0, 'P': 0, 'BT': 0, 'NS': 1, 'FT': 2, 'AET': 2, 'PEN': 2 }; // 🔥 AET, PEN 추가!
+      const statusOrder: any = { 'LIVE': 0, '1H': 0, 'HT': 0, '2H': 0, 'ET': 0, 'P': 0, 'BT': 0, 'NS': 1, 'FT': 2, 'AET': 2, 'PEN': 2 };
       const orderA = statusOrder[a.status] ?? 3;
       const orderB = statusOrder[b.status] ?? 3;
       if (orderA !== orderB) return orderA - orderB;
@@ -627,7 +621,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     return res.status(200).json({ matches: filteredMatches });
   } catch (error) {
-    console.error("Match Fetch Error:", error);
-    return res.status(200).json({ matches: [] }); // 🔥 쉼표 오류 시 빈 데이터를 내려줌
+    return res.status(200).json({ matches: [] });
   }
 }
