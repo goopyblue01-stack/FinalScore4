@@ -556,9 +556,45 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const awayAttack = calcForm(awayRecent.filter((m: any) => !m.isHome), true);
       const awayDefense = calcForm(awayRecent.filter((m: any) => !m.isHome), false);
 
-      const expectedHomeGoals = Math.max(0.5, homeAttack * (awayDefense / leagueAvgGoals) * 1.15); // 🔥 홈 버프 15% 로 강화!
-      const expectedAwayGoals = Math.max(0.5, awayAttack * (homeDefense / leagueAvgGoals) * 0.85); // 🔥 원정 핸디캡 15% 로 강화!
+      // 1. 순위표를 먼저 뒤져서 두 팀의 진짜 소속 조(그룹)를 찾습니다. (살려둠!)
+      const allGroups = leagueStandingsMap[leagueKey] || [];
+      let correctStandings: any[] = [];
 
+      for (const group of allGroups) {
+        if (Array.isArray(group) && group.some((s: any) => s.team?.en === hName || s.team?.en === aName)) {
+          correctStandings = group; // 빙고! 서부리그 발견!
+          break;
+        }
+      }
+      if (correctStandings.length === 0 && allGroups.length > 0) {
+        correctStandings = allGroups[0];
+      }
+
+      // 2. 홈팀과 원정팀의 순위(Rank)를 가져옵니다. (못 찾으면 999 꼴찌로 처리)
+      const homeTeamInfo = correctStandings.find((s: any) => s.team?.en === hName);
+      const awayTeamInfo = correctStandings.find((s: any) => s.team?.en === aName);
+      const homeRank = homeTeamInfo ? homeTeamInfo.rank : 999;
+      const awayRank = awayTeamInfo ? awayTeamInfo.rank : 999;
+
+      // 3. 대표님의 '유동적 홈 어드밴티지' 로직 적용!
+      let homeAdv = 1.10; // 순위가 같거나 알 수 없을 때 기본값 (10%)
+      let awayDis = 0.90;
+
+      if (homeRank < awayRank) { 
+        // 홈팀 순위가 더 높을 때 (숫자가 작을 때) -> 홈 어드밴티지 15%
+        homeAdv = 1.15;
+        awayDis = 0.85;
+      } else if (homeRank > awayRank) {
+        // 원정팀 순위가 더 높을 때 -> 홈 어드밴티지 5%로 축소
+        homeAdv = 1.05;
+        awayDis = 0.95;
+      }
+
+      // 4. 결정된 버프 수치로 최종 예상 득점을 계산합니다.
+      const expectedHomeGoals = Math.max(0.5, homeAttack * (awayDefense / leagueAvgGoals) * homeAdv);
+      const expectedAwayGoals = Math.max(0.5, awayAttack * (homeDefense / leagueAvgGoals) * awayDis);
+
+      // 5. 포아송 확률 계산 및 해외 배당률 섞기 (기존 동일)
       const logicBPredictions = poisson(expectedHomeGoals, expectedAwayGoals);
       const logicBProbHome = logicBPredictions.prob.home;
       const logicBProbDraw = logicBPredictions.prob.draw;
@@ -598,7 +634,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         else if (finalProbAway - finalProbHome >= 10) predictAway += 1;
       }
 
-      // 🔥 [글로벌] 영어/한국어 시간 모두 포장해서 보냄!
+      // 6. 날짜 및 시간 포맷팅 (살려둠!)
       const kstDate = new Date(new Date(item.fixture.date).toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
       const m = kstDate.getMonth() + 1;
       const d = kstDate.getDate();
@@ -608,22 +644,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const min = String(kstDate.getMinutes()).padStart(2, '0');
       const timeKo = `${m}/${d} (${daysKo[kstDate.getDay()]}) ${h}:${min}`;
       const timeEn = `${m}/${d} (${daysEn[kstDate.getDay()]}) ${h}:${min}`;
-
-      // 🔥 [추가] 모든 상자를 뒤져서 해당 홈팀이나 원정팀이 속한 정확한 '조(그룹)'를 찾습니다!
-      const allGroups = leagueStandingsMap[leagueKey] || [];
-      let correctStandings: any[] = [];
-
-      for (const group of allGroups) {
-        if (Array.isArray(group) && group.some((s: any) => s.team?.en === hName || s.team?.en === aName)) {
-          correctStandings = group; // 빙고! 비셀고베가 있는 서부리그 발견!
-          break;
-        }
-      }
-      
-      // 만약 극초반 컵대회 등 예외 상황으로 못 찾았다면 첫 번째 조를 보여줌
-      if (correctStandings.length === 0 && allGroups.length > 0) {
-        correctStandings = allGroups[0];
-      }
 
       return {
         id: item.fixture.id,
