@@ -253,7 +253,14 @@ const teamNameMap: { [key: string]: string } = {
   "Arnavutköy Belediyespor": "아르나부트쾨이", "Mardin 1969": "마르딘", "Kahramanmaraş istiklal Spor": "카흐라만마라쉬", "Sichuan Jiuniu": "쓰촨 지우니우", "Wisla Krakow": "비스와 크라쿠프",
   "TSV Hartberg": "하르트베르크", "Padova": "파도바", "1. FC Köln": "쾰른", "Kasımpaşa": "카슴파샤", "KAA Gent Il": "헨트 2군", "Liège": "리에주", "Atletico Paranaense": "아틀레치쿠 파라나엔시", "Chapecoense-sc": "샤페코엔시",
   "OH Leuven": "루벤", "FC ST. Gallen": "장크트갈렌", "FC Sion": "시옹", "Lausanne": "로잔", "BSC Young Boys": "영 보이즈", "Servette FC": "세르베트", "Almere City FC": "알메러 시티", "Yeni Mersin Idmanyurdu": "메르신",
-  "Adanaspor": "아다나스포르", "Yeni Malatyaspor": "말라티아스포르", "Kirklarelispor": "키르클라렐리스포르"
+  "Adanaspor": "아다나스포르", "Yeni Malatyaspor": "말라티아스포르", "Kirklarelispor": "키르클라렐리스포르", "Znicz Pruszków": "즈니치 프루슈쿠프", "Valerenga": "발레렝아", "Ranheim": "란하임", "Moss": "모스",
+  "Stabaek": "스타백", "Asane": "오사네", "Austria Vienna": "아우스트리아 빈", "Rapid Vienna": "라피드 빈", "Castellón": "카스테욘", "FC Andorra": "안도라", "Zulte Waregem": "줄터 바레험", "Newells Old Boys": "뉴웰스 올드 보이스",
+  "Gimnasia M.": "힘나시아 M", "U.N.A.M. - Pumas": "푸마스 UNAM", "Mazatlán": "마사틀란", "Los Andes": "로스 안데스", "Chacarita Juniors": "차카리타 주니어스", "Gimnasia Y Tiro": "힘나시아 이 티로", "Defensores De Belgrano": "데펜소레스 데 벨그라노",
+  "Ciudad de Bolívar": "시우다드 데 볼리바르", "Ferro Carril Oeste": "페로 카릴 오에스테", "CA Estudiantes": "에스투디안테스", "Temperley": "템펄리", "Quilmes": "킬메스", "Coritiba": "코리치바", "Agropecuario": "아그로페쿠아리오",
+  "Gimnasia Jujuy": "힘나시아 후후이", "Deportivo Madryn": "데포르티보 마드린", "Almirante Brown": "알미란테 브라운", "Central Norte": "센트랄 노르테", "Atletico Mitre": "아틀레티코 미트레", "Chaco For Ever": "차코 포에버",
+  "All Boys": "올 보이스", "Club Atlético Güemes": "클루브 아틀레티코 구에메스", "Tigre": "티그레", "Birmingham Legion": "버밍엄 리전", "Pittsburgh Riverhounds": "피츠버그 리버하운즈", "America Mineiro": "아메리카 미네이루",
+  "Novorizontino": "노보리존치노", "Operario-PR": "오페라리오", "RB Bragantino": "브라간치노", "Deportivo Maipu": "데포르티보 마이푸", "Colegiales": "콜레히알레스", "São Bernardo": "상 베르나르두", "Fortaleza EC": "포르탈레자",
+  "Mineros de Zacatecas": "미네로스 데 사카테카스", "Correcaminos Uat": "코레카미노스", "Londrina": "론드리나", "Etar Veliko Tarnovo": "에타르 벨리코 타르노보", "Dunav Ruse": "두나브 루세"
   
 };
 
