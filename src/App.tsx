@@ -535,22 +535,68 @@ export default function App() {
                 <h3 className="text-xl font-black text-slate-800 text-center mb-5">{dict.modalGuideTitle}</h3>
                 
                 <div className="text-sm text-slate-600 text-center mb-8 space-y-3 bg-slate-50 p-5 rounded-[24px] border border-slate-100 leading-relaxed">
-                  {isiOS && !isAndroid ? (
-                    <div className="space-y-4 text-left px-2">
-                      <div>
-                        <span className="inline-block bg-slate-200 text-slate-700 text-[10px] font-black px-2 py-0.5 rounded mb-1">Chrome</span>
-                        <p className="text-xs text-slate-600">Share(⬆️) ➔ <strong className="text-[#0f3460]">Add to Home Screen</strong></p>
+                  
+                  {/* 🔥 언어에 따라 한국어/영어 맞춤 가이드 출력 */}
+                  {lang === 'ko' ? (
+                    // 🇰🇷 한국어 안내
+                    isiOS && !isAndroid ? (
+                      <div className="space-y-4 text-left px-2">
+                        <div>
+                          <span className="inline-block bg-slate-200 text-slate-700 text-[10px] font-black px-2 py-0.5 rounded mb-1">Chrome 브라우저</span>
+                          <p className="text-xs text-slate-600">우측 상단 <strong>공유(네모 안 화살표 ⬆️)</strong> ➔ <strong className="text-[#0f3460]">'홈 화면에 추가'</strong></p>
+                        </div>
+                        <div className="border-t border-slate-200 pt-3">
+                          <span className="inline-block bg-slate-200 text-slate-700 text-[10px] font-black px-2 py-0.5 rounded mb-1">Safari 브라우저</span>
+                          <p className="text-xs text-slate-600">하단 중앙 <strong>공유(네모 안 화살표 ⬆️)</strong> ➔ <strong className="text-[#0f3460]">'홈 화면에 추가'</strong></p>
+                        </div>
                       </div>
-                      <div className="border-t border-slate-200 pt-3">
-                        <span className="inline-block bg-slate-200 text-slate-700 text-[10px] font-black px-2 py-0.5 rounded mb-1">Safari</span>
-                        <p className="text-xs text-slate-600">Share(⬆️) ➔ <strong className="text-[#0f3460]">Add to Home Screen</strong></p>
+                    ) : isAndroid && !isiOS ? (
+                      <p>Chrome 브라우저 우측 상단의<br/><strong>메뉴 버튼(점 3개 ⋮)</strong>를 누른 후<br/><span className="text-[#0f3460] font-bold underline">'홈 화면에 추가'</span> 또는<br/><span className="text-[#0f3460] font-bold underline">'앱 설치'</span>를 선택해주세요!</p>
+                    ) : isUnknownMobile ? (
+                      <div className="space-y-4 text-left px-2">
+                        <div>
+                          <span className="inline-block bg-slate-200 text-slate-700 text-[10px] font-black px-2 py-0.5 rounded mb-1">아이폰 (Chrome/Safari)</span>
+                          <p className="text-xs text-slate-600"><strong>공유(네모 안 화살표 ⬆️)</strong> ➔ <strong className="text-[#0f3460]">'홈 화면에 추가'</strong></p>
+                        </div>
+                        <div className="border-t border-slate-200 pt-3">
+                          <span className="inline-block bg-slate-200 text-slate-700 text-[10px] font-black px-2 py-0.5 rounded mb-1">안드로이드 (Chrome)</span>
+                          <p className="text-xs text-slate-600">상단 <strong>메뉴(점 3개 ⋮)</strong> ➔ <strong className="text-[#0f3460]">'홈 화면에 추가'</strong></p>
+                        </div>
                       </div>
-                    </div>
-                  ) : isAndroid && !isiOS ? (
-                    <p>Tap the <strong>Menu (⋮)</strong> ➔<br/><span className="text-[#0f3460] font-bold underline">Add to Home screen</span></p>
+                    ) : (
+                      <p>키보드에서 <strong className="text-[#0f3460] text-lg">{isMac ? 'Cmd + D' : 'Ctrl + D'}</strong> 를 누르면<br/>즐겨찾기에 즉시 추가됩니다!</p>
+                    )
                   ) : (
-                    <p>Press <strong className="text-[#0f3460] text-lg">{isMac ? 'Cmd + D' : 'Ctrl + D'}</strong> to bookmark!</p>
+                    // 🇺🇸 영어 안내
+                    isiOS && !isAndroid ? (
+                      <div className="space-y-4 text-left px-2">
+                        <div>
+                          <span className="inline-block bg-slate-200 text-slate-700 text-[10px] font-black px-2 py-0.5 rounded mb-1">Chrome</span>
+                          <p className="text-xs text-slate-600">Tap <strong>Share (⬆️)</strong> top right ➔ <strong className="text-[#0f3460]">Add to Home Screen</strong></p>
+                        </div>
+                        <div className="border-t border-slate-200 pt-3">
+                          <span className="inline-block bg-slate-200 text-slate-700 text-[10px] font-black px-2 py-0.5 rounded mb-1">Safari</span>
+                          <p className="text-xs text-slate-600">Tap <strong>Share (⬆️)</strong> bottom center ➔ <strong className="text-[#0f3460]">Add to Home Screen</strong></p>
+                        </div>
+                      </div>
+                    ) : isAndroid && !isiOS ? (
+                      <p>Tap the <strong>Menu (⋮)</strong> top right in Chrome ➔<br/><span className="text-[#0f3460] font-bold underline">Add to Home screen</span></p>
+                    ) : isUnknownMobile ? (
+                      <div className="space-y-4 text-left px-2">
+                        <div>
+                          <span className="inline-block bg-slate-200 text-slate-700 text-[10px] font-black px-2 py-0.5 rounded mb-1">iPhone (Chrome/Safari)</span>
+                          <p className="text-xs text-slate-600">Tap <strong>Share (⬆️)</strong> ➔ <strong className="text-[#0f3460]">Add to Home Screen</strong></p>
+                        </div>
+                        <div className="border-t border-slate-200 pt-3">
+                          <span className="inline-block bg-slate-200 text-slate-700 text-[10px] font-black px-2 py-0.5 rounded mb-1">Android (Chrome)</span>
+                          <p className="text-xs text-slate-600">Tap <strong>Menu (⋮)</strong> ➔ <strong className="text-[#0f3460]">Add to Home Screen</strong></p>
+                        </div>
+                      </div>
+                    ) : (
+                      <p>Press <strong className="text-[#0f3460] text-lg">{isMac ? 'Cmd + D' : 'Ctrl + D'}</strong> on your keyboard to bookmark!</p>
+                    )
                   )}
+
                 </div>
 
                 <button onClick={() => setShowBookmarkModal(false)} className="w-full py-4 bg-slate-900 text-white font-bold rounded-2xl hover:bg-slate-800 transition-colors shadow-lg shadow-slate-200">{dict.modalOk}</button>
