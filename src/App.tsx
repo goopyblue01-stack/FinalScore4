@@ -307,7 +307,7 @@ export default function App() {
     if (selectedDateIdx === 2) {
       stealthTimer = setInterval(() => {
         fetchData(true); 
-      }, 5 * 60 * 1000); 
+      }, 3 * 60 * 1000); // 🔥 여기 숫자 5를 3으로 바꿨습니다! (3분마다 실행)
     }
 
     return () => {
