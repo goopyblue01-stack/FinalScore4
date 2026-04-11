@@ -33,8 +33,13 @@ function MatchDetail({ match, onBack }: { match: any, onBack: () => void }) {
     { h: Math.max(0, match.predict.home - 1), a: match.predict.away, prob: "7%", rank: 5 },
   ];
 
+  // 🔥 [수정] FT, AET, PEN 모두 종료 상태로 처리!
   let centerStatus = "";
-  if (match.status === 'FT') centerStatus = 'FT';
+  if (['FT', 'AET', 'PEN'].includes(match.status)) {
+    if (match.status === 'FT') centerStatus = '종료';
+    else if (match.status === 'AET') centerStatus = '연장종료';
+    else if (match.status === 'PEN') centerStatus = '승부차기';
+  }
   else if (['PST', 'TBD', 'CANC', 'ABD', 'AWD', 'WO'].includes(match.status)) {
     if (match.status === 'PST') centerStatus = '연기';
     else if (match.status === 'TBD') centerStatus = '미정';
@@ -44,8 +49,8 @@ function MatchDetail({ match, onBack }: { match: any, onBack: () => void }) {
     centerStatus = match.elapsed ? `${match.elapsed}'` : 'LIVE';
   }
 
-  const isHomeWin = match.scoreHome > match.scoreAway;
-  const isAwayWin = match.scoreAway > match.scoreHome;
+  const isHomeWin = match.scoreHome > match.scoreAway || (match.penHome && match.penAway && match.penHome > match.penAway);
+  const isAwayWin = match.scoreAway > match.scoreHome || (match.penHome && match.penAway && match.penAway > match.penHome);
   
   const homeScoreClass = isHomeWin ? "text-red-500 font-black" : isAwayWin ? "text-slate-400 font-normal" : "text-slate-800 font-bold";
   const awayScoreClass = isAwayWin ? "text-red-500 font-black" : isHomeWin ? "text-slate-400 font-normal" : "text-slate-800 font-bold";
@@ -64,7 +69,7 @@ function MatchDetail({ match, onBack }: { match: any, onBack: () => void }) {
 
       <main className="max-w-4xl mx-auto px-3 mt-6">
         <div className={`rounded-[32px] p-6 mb-6 shadow-sm border ${
-          !['NS', 'FT', 'PST', 'TBD', 'CANC', 'ABD'].includes(match.status) ? 'bg-rose-50/40 border-rose-100' : 'bg-white border-slate-100'
+          !['NS', 'FT', 'AET', 'PEN', 'PST', 'TBD', 'CANC', 'ABD'].includes(match.status) ? 'bg-rose-50/40 border-rose-100' : 'bg-white border-slate-100'
         }`}>
           <div className="text-center text-sm font-bold text-slate-500 mb-2">
             {match.korTime}
@@ -80,9 +85,16 @@ function MatchDetail({ match, onBack }: { match: any, onBack: () => void }) {
               <div className="flex items-center gap-2 text-base md:text-xl">
                 {match.status === 'NS' ? <span className="text-slate-300 font-bold">VS</span> : 
                 <>
-                  <span className={homeScoreClass}>{match.scoreHome}</span>
+                  {/* 🔥 [수정] 승부차기 점수 괄호 렌더링 */}
+                  <span className={homeScoreClass}>
+                    {match.scoreHome}
+                    {match.penHome !== null && <span className="text-sm ml-1 text-orange-500">({match.penHome})</span>}
+                  </span>
                   <span className="text-sm font-bold text-slate-300 lowercase">vs</span>
-                  <span className={awayScoreClass}>{match.scoreAway}</span>
+                  <span className={awayScoreClass}>
+                    {match.penAway !== null && <span className="text-sm mr-1 text-orange-500">({match.penAway})</span>}
+                    {match.scoreAway}
+                  </span>
                 </>}
               </div>
             </div>
@@ -307,7 +319,7 @@ export default function App() {
     if (selectedDateIdx === 2) {
       stealthTimer = setInterval(() => {
         fetchData(true); 
-      }, 3 * 60 * 1000); // 🔥 여기 숫자 5를 3으로 바꿨습니다! (3분마다 실행)
+      }, 3 * 60 * 1000); 
     }
 
     return () => {
@@ -374,8 +386,9 @@ export default function App() {
 
   if (selectedMatch) return <MatchDetail match={selectedMatch} onBack={goBackToList} />;
 
+  // 🔥 [수정] AET, PEN 모두 완료된 상태이므로 필터에서 제거합니다.
   const displayedMatches = isLiveMode 
-    ? matches.filter(m => !['NS', 'FT', 'CANC', 'ABD', 'PST', 'TBD', 'AWD', 'WO'].includes(m.status))
+    ? matches.filter(m => !['NS', 'FT', 'AET', 'PEN', 'CANC', 'ABD', 'PST', 'TBD', 'AWD', 'WO'].includes(m.status))
     : matches;
 
   return (
@@ -396,7 +409,6 @@ export default function App() {
           ></div>
         </div>
 
-        {/* 🔥 다크 모드를 뺀 3버튼 조종실 (grid-cols-3으로 변경) */}
         <div className="w-full max-w-4xl px-4 mt-8 grid grid-cols-3 gap-3 items-center">
           
           <button 
@@ -551,17 +563,25 @@ export default function App() {
         ) : (
           <div className="space-y-3">
             {displayedMatches.map((match: any) => {
-              const isLive = !['NS', 'FT', 'CANC', 'ABD', 'PST', 'TBD', 'AWD', 'WO'].includes(match.status);
-              const isHomeWin = match.scoreHome > match.scoreAway;
-              const isAwayWin = match.scoreAway > match.scoreHome;
+              const isLive = !['NS', 'FT', 'AET', 'PEN', 'CANC', 'ABD', 'PST', 'TBD', 'AWD', 'WO'].includes(match.status);
+              
+              // 🔥 [수정] 승부차기 점수까지 고려하여 승/패/무 색상을 결정합니다.
+              const isHomeWin = match.scoreHome > match.scoreAway || (match.penHome && match.penAway && match.penHome > match.penAway);
+              const isAwayWin = match.scoreAway > match.scoreHome || (match.penHome && match.penAway && match.penAway > match.penHome);
+              
               const hExp = match.predict.home;
               const aExp = match.predict.away;
               const isHomePredWin = hExp > aExp;
               const isAwayPredWin = aExp > hExp;
               const isPredDraw = hExp === aExp;
               
+              // 🔥 [수정] 메인 리스트에서도 FT, AET, PEN 모두 종료 상태로 렌더링!
               let centerStatus = "";
-              if (match.status === 'FT') centerStatus = 'FT';
+              if (['FT', 'AET', 'PEN'].includes(match.status)) {
+                if (match.status === 'FT') centerStatus = '종료';
+                else if (match.status === 'AET') centerStatus = '연장종료';
+                else if (match.status === 'PEN') centerStatus = '승부차기';
+              }
               else if (['PST', 'TBD', 'CANC', 'ABD', 'AWD', 'WO'].includes(match.status)) {
                 if (match.status === 'PST') centerStatus = '연기';
                 else if (match.status === 'TBD') centerStatus = '미정';
@@ -602,9 +622,16 @@ export default function App() {
                           <div className="flex items-center gap-2 text-xl">
                               {match.status === 'NS' ? <span className="text-slate-300 text-sm font-bold mt-1">VS</span> : 
                               <>
-                                <span className={homeListScoreClass}>{match.scoreHome}</span>
+                                {/* 🔥 [수정] 메인 화면에서도 승부차기 괄호 점수 렌더링! */}
+                                <span className={homeListScoreClass}>
+                                  {match.scoreHome}
+                                  {match.penHome !== null && <span className="text-xs ml-1 text-orange-500">({match.penHome})</span>}
+                                </span>
                                 <span className="text-slate-300 text-sm font-bold lowercase">vs</span>
-                                <span className={awayListScoreClass}>{match.scoreAway}</span>
+                                <span className={awayListScoreClass}>
+                                  {match.penAway !== null && <span className="text-xs mr-1 text-orange-500">({match.penAway})</span>}
+                                  {match.scoreAway}
+                                </span>
                               </>}
                           </div>
                       </div>
@@ -635,7 +662,7 @@ export default function App() {
         )}
       </main>
 
-      <footer className="mt-12 py-8 text-center flex flex-col items-center justify-center gap-3">
+      <footer className="mt-12 py-8 text-center flex flex-col items-center justify-center gap-3 transition-colors duration-300">
         <div className="flex gap-4 text-xs text-slate-400 font-medium">
           <button onClick={() => goToPage('about')} className="hover:text-slate-600 transition-colors">소개</button>
           <span className="text-slate-200">|</span>
