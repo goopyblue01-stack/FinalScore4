@@ -556,8 +556,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const awayAttack = calcForm(awayRecent.filter((m: any) => !m.isHome), true);
       const awayDefense = calcForm(awayRecent.filter((m: any) => !m.isHome), false);
 
-      const expectedHomeGoals = Math.max(0.5, homeAttack * (awayDefense / leagueAvgGoals) * 1.1);
-      const expectedAwayGoals = Math.max(0.5, awayAttack * (homeDefense / leagueAvgGoals) * 0.9);
+      const expectedHomeGoals = Math.max(0.5, homeAttack * (awayDefense / leagueAvgGoals) * 1.15); // 🔥 홈 버프 15% 로 강화!
+      const expectedAwayGoals = Math.max(0.5, awayAttack * (homeDefense / leagueAvgGoals) * 0.85); // 🔥 원정 핸디캡 15% 로 강화!
 
       const logicBPredictions = poisson(expectedHomeGoals, expectedAwayGoals);
       const logicBProbHome = logicBPredictions.prob.home;
