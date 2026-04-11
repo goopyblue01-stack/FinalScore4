@@ -426,7 +426,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               });
             }
           });
-          leagueAvgMap[leagueKey] = totalPlayed > 0 ? totalGoals / totalPlayed : 1.3;
+          // 🔥 과속 방지턱 1: 리그 평균 골 구하기
+          let calcAvg = totalPlayed > 0 ? totalGoals / totalPlayed : 1.3;
+          // 너무 낮아서 점수가 뻥튀기되는 것(0점대)을 막기 위해 최소 1.2 보장
+          if (calcAvg < 0.9) calcAvg = 1.2; 
+          // 너무 높아서 점수가 깎이는 것을 막기 위해 최대 2.5 제한
+          if (calcAvg > 2.5) calcAvg = 2.0; 
+          
+          leagueAvgMap[leagueKey] = calcAvg;
         }
       } catch (e) {
         console.error("Standings processing error:", e);
@@ -591,8 +598,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       // 4. 결정된 버프 수치로 최종 예상 득점을 계산합니다.
-      const expectedHomeGoals = Math.max(0.5, homeAttack * (awayDefense / leagueAvgGoals) * homeAdv);
-      const expectedAwayGoals = Math.max(0.5, awayAttack * (homeDefense / leagueAvgGoals) * awayDis);
+      let expectedHomeGoals = Math.max(0.5, homeAttack * (awayDefense / leagueAvgGoals) * homeAdv);
+      let expectedAwayGoals = Math.max(0.5, awayAttack * (homeDefense / leagueAvgGoals) * awayDis);
+
+      // 🔥 과속 방지턱 2: 양민 학살 경기가 섞여 있어도 '평균 예측 골'은 4골을 넘지 못하도록 브레이크!
+      expectedHomeGoals = Math.min(expectedHomeGoals, 4.0);
+      expectedAwayGoals = Math.min(expectedAwayGoals, 4.0);
 
       // 5. 포아송 확률 계산 및 해외 배당률 섞기 (기존 동일)
       const logicBPredictions = poisson(expectedHomeGoals, expectedAwayGoals);
