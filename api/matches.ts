@@ -605,6 +605,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         away: teamNameMap[aName] || aName,
         scoreHome: item.goals.home ?? 0,
         scoreAway: item.goals.away ?? 0,
+        penHome: item.score?.penalty?.home ?? null, // 🔥 승부차기 홈팀 점수 추가!
+        penAway: item.score?.penalty?.away ?? null, // 🔥 승부차기 원정팀 점수 추가!
         status: item.fixture.status.short,
         elapsed: item.fixture.status.elapsed,
         korTime: customKorTime, 
@@ -616,7 +618,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       };
     })
     .sort((a: any, b: any) => {
-      const statusOrder: any = { 'LIVE': 0, '1H': 0, 'HT': 0, '2H': 0, 'ET': 0, 'P': 0, 'BT': 0, 'NS': 1, 'FT': 2 };
+      const statusOrder: any = { 'LIVE': 0, '1H': 0, 'HT': 0, '2H': 0, 'ET': 0, 'P': 0, 'BT': 0, 'NS': 1, 'FT': 2, 'AET': 2, 'PEN': 2 }; // 🔥 AET, PEN 추가!
       const orderA = statusOrder[a.status] ?? 3;
       const orderB = statusOrder[b.status] ?? 3;
       if (orderA !== orderB) return orderA - orderB;
