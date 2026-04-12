@@ -260,8 +260,10 @@ const teamNameMap: { [key: string]: string } = {
   "Gimnasia Jujuy": "힘나시아 후후이", "Deportivo Madryn": "데포르티보 마드린", "Almirante Brown": "알미란테 브라운", "Central Norte": "센트랄 노르테", "Atletico Mitre": "아틀레티코 미트레", "Chaco For Ever": "차코 포에버",
   "All Boys": "올 보이스", "Club Atlético Güemes": "클루브 아틀레티코 구에메스", "Tigre": "티그레", "Birmingham Legion": "버밍엄 리전", "Pittsburgh Riverhounds": "피츠버그 리버하운즈", "America Mineiro": "아메리카 미네이루",
   "Novorizontino": "노보리존치노", "Operario-PR": "오페라리오", "RB Bragantino": "브라간치노", "Deportivo Maipu": "데포르티보 마이푸", "Colegiales": "콜레히알레스", "São Bernardo": "상 베르나르두", "Fortaleza EC": "포르탈레자",
-  "Mineros de Zacatecas": "미네로스 데 사카테카스", "Correcaminos Uat": "코레카미노스", "Londrina": "론드리나", "Etar Veliko Tarnovo": "에타르 벨리코 타르노보", "Dunav Ruse": "두나브 루세"
-  
+  "Mineros de Zacatecas": "미네로스 데 사카테카스", "Correcaminos Uat": "코레카미노스", "Londrina": "론드리나", "Etar Veliko Tarnovo": "에타르 벨리코 타르노보", "Dunav Ruse": "두나브 루세", "Eyüpspor": "에윱스포르",
+  "Lusitânia Lourosa": "루지타니아 루로사", "Raufoss": "라우포스", "FC Fredericia": "프레데리시아", "Kisvarda FC": "키슈바르다", "Debreceni VSC": "데브레체니", "FC OSS": "오스", "Jong PSV U21": "용 PSV",
+  "Estac Troyes": "트루아", "GIL Vicente": "질 비센테", "Atletico DE Rafaela": "아틀레티코 라파엘라", "Central Cordoba de Santiago": "센트랄 코르도바", "San Martin S.J.": "산 마르틴 SJ", "Tractor Sazi": "트락토르 사지",
+  "Shabab Al Ahli Dubai": "샤밥 알 아흘리", "ŁKS Łódź": "LKS 우치", "Pogoń Grod. Mazowiecki": "포곤 그로지스크 마조비에츠키"  
 };
 
 // ==========================
