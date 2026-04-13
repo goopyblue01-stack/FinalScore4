@@ -48,7 +48,7 @@ const t = {
     modalOk: "확인했습니다",
     lineups: "선발 명단",
     coach: "감독",
-    startingXI: "선발 라인업"
+    startingXI: "선발 라인업",
     predictionDisclaimer: "* 예상 스코어는 경기 시작 전까지 해외 배당 흐름에 따라 실시간으로 변동될 수 있습니다."
   },
   en: {
@@ -85,7 +85,7 @@ const t = {
     modalOk: "I got it",
     lineups: "Lineups",
     coach: "Coach",
-    startingXI: "Starting XI"
+    startingXI: "Starting XI",
     predictionDisclaimer: "* Expected scores may fluctuate in real-time based on global odds trends before kickoff."
   }
 };
