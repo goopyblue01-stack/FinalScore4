@@ -148,6 +148,11 @@ const processMatchesWithTrends = (fetchedMatches: any[], dateStr: string) => {
 function MatchDetail({ match, onBack, lang }: { match: any, onBack: () => void, lang: 'ko' | 'en' }) {
   const dict = t[lang];
 
+  // 🔥 [스크롤 엘리베이터] 상세페이지 진입 시 화면을 무조건 맨 위로 끌어올립니다!
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   const getRank1Style = (h: number, a: number) => {
     if (h > a) return { h: "text-red-500 font-black", a: "text-slate-400 font-normal" };
     if (a > h) return { h: "text-slate-400 font-normal", a: "text-red-500 font-black" };
