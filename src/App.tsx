@@ -12,6 +12,20 @@ declare global {
   }
 }
 
+// 🔥 프로토(스포츠토토) 발매 대상 주요 리그 ID 모음
+const PROTO_LEAGUES = [
+  39, 40, 45, 48,       // 잉글랜드 (EPL, 챔피언십, FA컵, 카라바오컵)
+  140, 143,             // 스페인 (라리가, 국왕컵)
+  78, 79, 81,           // 독일 (분데스리가, 2부, 포칼)
+  135, 137,             // 이탈리아 (세리에A, 코파 이탈리아)
+  61, 66,               // 프랑스 (리그앙, 쿠프드프랑스)
+  88, 94, 179,          // 네덜란드, 포르투갈, 스코틀랜드 1부
+  292, 293,             // 한국 (K리그1, K리그2)
+  98, 253, 188,         // 일본 J리그, 미국 MLS, 호주 A리그
+  2, 3, 848,            // 챔스, 유로파, 컨퍼런스리그
+  15, 4, 1, 9, 10       // 월드컵, 유로, 아시안컵, 코파 아메리카, 친선전
+];
+
 // 🔥 [글로벌] 완벽한 번역 사전
 const t = {
   ko: {
@@ -758,7 +772,15 @@ export default function App() {
                      }`}>
                   <div className="p-3 md:p-4">
                     <div className="flex justify-between items-center mb-2">
-                      <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase ${isLive ? 'bg-rose-100/50 text-rose-500' : 'bg-[#e8f8f0] text-[#56ad6a]'}`}>{match.league[lang]}</span>
+                      {/* 🔥 프로토 뱃지 + 리그 이름 묶음 */}
+                      <div className="flex items-center gap-1.5">
+                        {PROTO_LEAGUES.includes(match.leagueId) && (
+                          <span className="bg-[#0f3460] text-white text-[8px] font-black px-1.5 py-0.5 rounded flex items-center justify-center tracking-wider shadow-sm">
+                            PROTO
+                          </span>
+                        )}
+                        <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase ${isLive ? 'bg-rose-100/50 text-rose-500' : 'bg-[#e8f8f0] text-[#56ad6a]'}`}>{match.league[lang]}</span>
+                      </div>
                       <span className="text-[10px] font-bold text-slate-700">{match.time[lang]}</span>
                     </div>
                     
