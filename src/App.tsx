@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, ArrowRight, TrendingUp, Info, ChevronUp, ChevronDown, Activity, ListOrdered, Star, X, RefreshCw, Circle, Globe } from 'lucide-react';
+import { ArrowLeft, ArrowRight, TrendingUp, Info, ChevronUp, ChevronDown, Activity, ListOrdered, Star, X, RefreshCw, Circle, Globe, Users } from 'lucide-react';
 import { format, addDays, startOfToday } from 'date-fns';
 
 import About from './pages/About';
@@ -45,7 +45,10 @@ const t = {
     modalNo: "아니오",
     modalYes: "예",
     modalGuideTitle: "추가 방법 안내",
-    modalOk: "확인했습니다"
+    modalOk: "확인했습니다",
+    lineups: "선발 명단",
+    coach: "감독",
+    startingXI: "선발 라인업"
   },
   en: {
     liveMatches: "No live matches at the moment.",
@@ -78,7 +81,10 @@ const t = {
     modalNo: "No, thanks",
     modalYes: "Yes, add it",
     modalGuideTitle: "How to add",
-    modalOk: "I got it"
+    modalOk: "I got it",
+    lineups: "Lineups",
+    coach: "Coach",
+    startingXI: "Starting XI"
   }
 };
 
@@ -164,6 +170,59 @@ function MatchDetail({ match, onBack, lang }: { match: any, onBack: () => void, 
             <div className={`flex-1 text-left text-base md:text-xl truncate ${awayNameClass}`}>{match.away[lang]}</div>
           </div>
         </div>
+
+        {/* 🔥 선발 명단 노출 영역 */}
+        {match.lineups && match.lineups.length > 0 && (
+          <div className="bg-white rounded-[24px] p-6 border border-slate-100 shadow-sm mb-6 animate-in fade-in duration-500">
+            <div className="flex items-center gap-2 mb-5 text-blue-500 font-bold">
+              <Users className="w-5 h-5" /><span>{dict.lineups}</span>
+            </div>
+            
+            <div className="flex justify-between gap-4">
+              {/* 홈팀 명단 */}
+              <div className="flex-1 text-left overflow-hidden">
+                {match.lineups.filter((l:any) => l.team.id === match.homeId).map((homeLineup: any, idx: number) => (
+                  <div key={idx}>
+                    <div className="font-black text-slate-800 mb-1">{homeLineup.formation}</div>
+                    <div className="text-[10px] font-bold text-slate-300 mb-2 border-b border-slate-100 pb-1 uppercase tracking-wider">{dict.startingXI}</div>
+                    <ul className="space-y-1.5 mb-4">
+                      {homeLineup.startXI?.map((p: any, i: number) => (
+                        <li key={i} className="text-xs text-slate-600 flex items-center gap-2">
+                          <span className="text-[10px] font-bold text-slate-400 w-4 shrink-0">{p.player.number}</span>
+                          <span className="truncate">{p.player.name}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="text-[10px] font-bold text-slate-300 mb-1 uppercase tracking-wider">{dict.coach}</div>
+                    <div className="text-xs text-slate-500 font-medium truncate">{homeLineup.coach?.name}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="w-px bg-slate-50 shrink-0"></div>
+
+              {/* 원정팀 명단 */}
+              <div className="flex-1 text-right overflow-hidden">
+                {match.lineups.filter((l:any) => l.team.id === match.awayId).map((awayLineup: any, idx: number) => (
+                  <div key={idx}>
+                    <div className="font-black text-slate-800 mb-1">{awayLineup.formation}</div>
+                    <div className="text-[10px] font-bold text-slate-300 mb-2 border-b border-slate-100 pb-1 uppercase tracking-wider">{dict.startingXI}</div>
+                    <ul className="space-y-1.5 mb-4 flex flex-col items-end">
+                      {awayLineup.startXI?.map((p: any, i: number) => (
+                        <li key={i} className="text-xs text-slate-600 flex items-center gap-2 flex-row-reverse">
+                          <span className="text-[10px] font-bold text-slate-400 w-4 text-right shrink-0">{p.player.number}</span>
+                          <span className="truncate">{p.player.name}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="text-[10px] font-bold text-slate-300 mb-1 uppercase tracking-wider">{dict.coach}</div>
+                    <div className="text-xs text-slate-500 font-medium truncate">{awayLineup.coach?.name}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         {match.status !== 'NS' && match.events && match.events.length > 0 && (
           <div className="bg-white rounded-[24px] p-6 border border-slate-100 shadow-sm mb-6">
@@ -535,68 +594,22 @@ export default function App() {
                 <h3 className="text-xl font-black text-slate-800 text-center mb-5">{dict.modalGuideTitle}</h3>
                 
                 <div className="text-sm text-slate-600 text-center mb-8 space-y-3 bg-slate-50 p-5 rounded-[24px] border border-slate-100 leading-relaxed">
-                  
-                  {/* 🔥 언어에 따라 한국어/영어 맞춤 가이드 출력 */}
-                  {lang === 'ko' ? (
-                    // 🇰🇷 한국어 안내
-                    isiOS && !isAndroid ? (
-                      <div className="space-y-4 text-left px-2">
-                        <div>
-                          <span className="inline-block bg-slate-200 text-slate-700 text-[10px] font-black px-2 py-0.5 rounded mb-1">Chrome 브라우저</span>
-                          <p className="text-xs text-slate-600">우측 상단 <strong>공유(네모 안 화살표 ⬆️)</strong> ➔ <strong className="text-[#0f3460]">'홈 화면에 추가'</strong></p>
-                        </div>
-                        <div className="border-t border-slate-200 pt-3">
-                          <span className="inline-block bg-slate-200 text-slate-700 text-[10px] font-black px-2 py-0.5 rounded mb-1">Safari 브라우저</span>
-                          <p className="text-xs text-slate-600">하단 중앙 <strong>공유(네모 안 화살표 ⬆️)</strong> ➔ <strong className="text-[#0f3460]">'홈 화면에 추가'</strong></p>
-                        </div>
+                  {isiOS && !isAndroid ? (
+                    <div className="space-y-4 text-left px-2">
+                      <div>
+                        <span className="inline-block bg-slate-200 text-slate-700 text-[10px] font-black px-2 py-0.5 rounded mb-1">Chrome</span>
+                        <p className="text-xs text-slate-600">Share(⬆️) ➔ <strong className="text-[#0f3460]">Add to Home Screen</strong></p>
                       </div>
-                    ) : isAndroid && !isiOS ? (
-                      <p>Chrome 브라우저 우측 상단의<br/><strong>메뉴 버튼(점 3개 ⋮)</strong>를 누른 후<br/><span className="text-[#0f3460] font-bold underline">'홈 화면에 추가'</span> 또는<br/><span className="text-[#0f3460] font-bold underline">'앱 설치'</span>를 선택해주세요!</p>
-                    ) : isUnknownMobile ? (
-                      <div className="space-y-4 text-left px-2">
-                        <div>
-                          <span className="inline-block bg-slate-200 text-slate-700 text-[10px] font-black px-2 py-0.5 rounded mb-1">아이폰 (Chrome/Safari)</span>
-                          <p className="text-xs text-slate-600"><strong>공유(네모 안 화살표 ⬆️)</strong> ➔ <strong className="text-[#0f3460]">'홈 화면에 추가'</strong></p>
-                        </div>
-                        <div className="border-t border-slate-200 pt-3">
-                          <span className="inline-block bg-slate-200 text-slate-700 text-[10px] font-black px-2 py-0.5 rounded mb-1">안드로이드 (Chrome)</span>
-                          <p className="text-xs text-slate-600">상단 <strong>메뉴(점 3개 ⋮)</strong> ➔ <strong className="text-[#0f3460]">'홈 화면에 추가'</strong></p>
-                        </div>
+                      <div className="border-t border-slate-200 pt-3">
+                        <span className="inline-block bg-slate-200 text-slate-700 text-[10px] font-black px-2 py-0.5 rounded mb-1">Safari</span>
+                        <p className="text-xs text-slate-600">Share(⬆️) ➔ <strong className="text-[#0f3460]">Add to Home Screen</strong></p>
                       </div>
-                    ) : (
-                      <p>키보드에서 <strong className="text-[#0f3460] text-lg">{isMac ? 'Cmd + D' : 'Ctrl + D'}</strong> 를 누르면<br/>즐겨찾기에 즉시 추가됩니다!</p>
-                    )
+                    </div>
+                  ) : isAndroid && !isiOS ? (
+                    <p>Tap the <strong>Menu (⋮)</strong> ➔<br/><span className="text-[#0f3460] font-bold underline">Add to Home screen</span></p>
                   ) : (
-                    // 🇺🇸 영어 안내
-                    isiOS && !isAndroid ? (
-                      <div className="space-y-4 text-left px-2">
-                        <div>
-                          <span className="inline-block bg-slate-200 text-slate-700 text-[10px] font-black px-2 py-0.5 rounded mb-1">Chrome</span>
-                          <p className="text-xs text-slate-600">Tap <strong>Share (⬆️)</strong> top right ➔ <strong className="text-[#0f3460]">Add to Home Screen</strong></p>
-                        </div>
-                        <div className="border-t border-slate-200 pt-3">
-                          <span className="inline-block bg-slate-200 text-slate-700 text-[10px] font-black px-2 py-0.5 rounded mb-1">Safari</span>
-                          <p className="text-xs text-slate-600">Tap <strong>Share (⬆️)</strong> bottom center ➔ <strong className="text-[#0f3460]">Add to Home Screen</strong></p>
-                        </div>
-                      </div>
-                    ) : isAndroid && !isiOS ? (
-                      <p>Tap the <strong>Menu (⋮)</strong> top right in Chrome ➔<br/><span className="text-[#0f3460] font-bold underline">Add to Home screen</span></p>
-                    ) : isUnknownMobile ? (
-                      <div className="space-y-4 text-left px-2">
-                        <div>
-                          <span className="inline-block bg-slate-200 text-slate-700 text-[10px] font-black px-2 py-0.5 rounded mb-1">iPhone (Chrome/Safari)</span>
-                          <p className="text-xs text-slate-600">Tap <strong>Share (⬆️)</strong> ➔ <strong className="text-[#0f3460]">Add to Home Screen</strong></p>
-                        </div>
-                        <div className="border-t border-slate-200 pt-3">
-                          <span className="inline-block bg-slate-200 text-slate-700 text-[10px] font-black px-2 py-0.5 rounded mb-1">Android (Chrome)</span>
-                          <p className="text-xs text-slate-600">Tap <strong>Menu (⋮)</strong> ➔ <strong className="text-[#0f3460]">Add to Home Screen</strong></p>
-                        </div>
-                      </div>
-                    ) : (
-                      <p>Press <strong className="text-[#0f3460] text-lg">{isMac ? 'Cmd + D' : 'Ctrl + D'}</strong> on your keyboard to bookmark!</p>
-                    )
+                    <p>Press <strong className="text-[#0f3460] text-lg">{isMac ? 'Cmd + D' : 'Ctrl + D'}</strong> to bookmark!</p>
                   )}
-
                 </div>
 
                 <button onClick={() => setShowBookmarkModal(false)} className="w-full py-4 bg-slate-900 text-white font-bold rounded-2xl hover:bg-slate-800 transition-colors shadow-lg shadow-slate-200">{dict.modalOk}</button>
