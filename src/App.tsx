@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, ArrowRight, TrendingUp, Info, ChevronUp, ChevronDown, Activity, ListOrdered, Star, X, RefreshCw, Circle, Globe, Users } from 'lucide-react';
+import { ArrowLeft, ArrowRight, TrendingUp, Info, ChevronUp, ChevronDown, Activity, ListOrdered, Star, X, RefreshCw, Circle, Globe, Users, LayoutList } from 'lucide-react';
 import { format, addDays, startOfToday } from 'date-fns';
 
 import About from './pages/About';
@@ -187,7 +187,6 @@ function MatchDetail({ match, onBack, lang }: { match: any, onBack: () => void, 
           </div>
         </div>
 
-        {/* 🔥 선발 명단 노출 영역 */}
         {match.lineups && match.lineups.length > 0 && (
           <div className="bg-white rounded-[24px] p-6 border border-slate-100 shadow-sm mb-6 animate-in fade-in duration-500">
             <div className="flex items-center gap-2 mb-5 text-blue-500 font-bold">
@@ -195,7 +194,6 @@ function MatchDetail({ match, onBack, lang }: { match: any, onBack: () => void, 
             </div>
             
             <div className="flex justify-between gap-4">
-              {/* 홈팀 명단 */}
               <div className="flex-1 text-left overflow-hidden">
                 {match.lineups.filter((l:any) => l.team.id === match.homeId).map((homeLineup: any, idx: number) => (
                   <div key={idx}>
@@ -217,7 +215,6 @@ function MatchDetail({ match, onBack, lang }: { match: any, onBack: () => void, 
 
               <div className="w-px bg-slate-50 shrink-0"></div>
 
-              {/* 원정팀 명단 */}
               <div className="flex-1 text-right overflow-hidden">
                 {match.lineups.filter((l:any) => l.team.id === match.awayId).map((awayLineup: any, idx: number) => (
                   <div key={idx}>
@@ -289,7 +286,7 @@ function MatchDetail({ match, onBack, lang }: { match: any, onBack: () => void, 
           </div>
         )}
 
-        <div className="bg-white rounded-[24px] p-6 border border-slate-100 shadow-sm mb-4">
+        <div className="bg-white rounded-[24px] p-6 border border-slate-100 shadow-sm mb-6">
           <div className="flex items-center gap-2 mb-6 text-[#56ad6a] font-bold"><TrendingUp className="w-5 h-5" /><span>{dict.topPredictions}</span></div>
           <div className="flex flex-col gap-2.5">
             {topPredictions.map((p: any) => {
@@ -311,7 +308,6 @@ function MatchDetail({ match, onBack, lang }: { match: any, onBack: () => void, 
               );
             })}
           </div>
-          {/* 🔥 5위 밑에 작고 부드럽게 안내 문구 추가 */}
           <p className="mt-5 text-[10px] text-slate-400 text-center italic leading-relaxed break-keep">
             {dict.predictionDisclaimer}
           </p>
@@ -405,13 +401,14 @@ export default function App() {
   const [showStep2, setShowStep2] = useState(false);
 
   const [isLiveMode, setIsLiveMode] = useState(false);
+  
+  // 🔥 [새로운 기능] 요약 보기(List View) 토글 상태
+  const [isListView, setIsListView] = useState(false);
 
-  // 🔥 [글로벌] 언어 상태 (기본은 KOR, 접속 시 자동 감지)
   const [lang, setLang] = useState<'ko' | 'en'>('ko');
   const dict = t[lang];
 
   useEffect(() => {
-    // 폰 설정 언어가 영어나 기타 언어면 자동으로 영어 모드
     const browserLang = navigator.language || (navigator as any).userLanguage;
     if (browserLang && !browserLang.toLowerCase().includes('ko')) {
       setLang('en');
@@ -447,7 +444,6 @@ export default function App() {
       const json = await res.json();
       const fetchedMatches = json.matches || [];
       
-      // 🔥 진짜 배당 추적 로직 (과거 데이터와 비교)
       setMatches(prevMatches => {
         const updatedMatches = fetchedMatches.map((newMatch: any) => {
           const oldMatch = prevMatches.find((m: any) => m.id === newMatch.id);
@@ -485,7 +481,6 @@ export default function App() {
         const json = await res.json();
         const fetchedMatches = json.matches || [];
         
-        // 🔥 스텔스 모드 진짜 배당 추적 로직
         setMatches(prevMatches => {
           const updatedMatches = fetchedMatches.map((newMatch: any) => {
             const oldMatch = prevMatches.find((m: any) => m.id === newMatch.id);
@@ -566,7 +561,6 @@ export default function App() {
   const isiOS = /iPhone|iPad|iPod/i.test(userAgent);
   const isAndroid = /Android/i.test(userAgent);
   const isUnknownMobile = !isiOS && !isAndroid && /Mobi|webOS/i.test(userAgent);
-  const isMobile = isiOS || isAndroid || isUnknownMobile;
   const isMac = /Mac/i.test(userAgent);
 
   if (selectedPage === 'about') return <About onBack={() => goHome()} />;
@@ -597,7 +591,8 @@ export default function App() {
           ></div>
         </div>
 
-        <div className="w-full max-w-4xl px-4 mt-8 grid grid-cols-4 gap-2 items-center">
+        {/* 🔥 5버튼 조종실로 업그레이드! (LIST 버튼 추가) */}
+        <div className="w-full max-w-4xl px-4 mt-8 grid grid-cols-5 gap-1.5 md:gap-2 items-center">
           
           <button 
             onClick={() => setIsLiveMode(!isLiveMode)} 
@@ -607,6 +602,17 @@ export default function App() {
           >
             <Circle className={`w-3 h-3 md:w-3.5 md:h-3.5 ${isLiveMode ? 'fill-white text-white' : 'fill-slate-300 text-slate-300'}`} />
             LIVE
+          </button>
+
+          {/* 🔥 [신규 기능] 요약 보기 버튼 */}
+          <button 
+            onClick={() => setIsListView(!isListView)} 
+            className={`h-11 flex flex-row items-center justify-center gap-1.5 rounded-xl font-bold text-xs md:text-sm transition-all shadow-sm border ${
+              isListView ? 'bg-slate-800 border-slate-800 text-white shadow-md shadow-slate-500/20' : 'bg-white border-slate-100 text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            <LayoutList className={`w-4 h-4 ${isListView ? 'text-white' : 'text-slate-500'}`} />
+            {isListView ? 'CARD' : 'LIST'}
           </button>
 
           <button 
@@ -765,6 +771,52 @@ export default function App() {
               const homePredBoxClass = isPredDraw ? predDrawBoxClass : isHomePredWin ? predWinBoxClass : predLoseBoxClass;
               const awayPredBoxClass = isPredDraw ? predDrawBoxClass : isAwayPredWin ? predWinBoxClass : predLoseBoxClass;
 
+              // 🔥 [신규 기능] 요약 보기 (List View) 모드일 때
+              if (isListView) {
+                return (
+                  <div key={match.id} onClick={() => goToMatch(match)}
+                       className={`flex items-center justify-between p-3 mb-2 rounded-2xl border shadow-sm cursor-pointer transition-all hover:scale-[1.01] ${
+                         isLive ? 'bg-rose-50/40 border-rose-100' : 'bg-white border-slate-100'
+                       }`}>
+                    
+                    {/* 1. 대회명 (왼쪽) */}
+                    <div className="w-14 md:w-20 shrink-0 flex flex-col justify-center pr-2 border-r border-slate-100">
+                       {PROTO_LEAGUES.includes(match.leagueId) && (
+                          <span className="bg-[#0f3460] text-white text-[7px] font-black px-1 py-0.5 rounded-sm w-max tracking-wider mb-1 shadow-sm">PROTO</span>
+                       )}
+                       <span className={`text-[9px] font-black uppercase truncate ${isLive ? 'text-rose-500' : 'text-[#56ad6a]'}`}>{match.league[lang]}</span>
+                    </div>
+
+                    {/* 2. 중앙 메인 영역: 홈팀 - 예상스코어 - 원정팀 */}
+                    <div className="flex flex-1 items-center justify-center gap-2 md:gap-4 px-2 md:px-4 overflow-hidden">
+                       <div className={`flex-1 text-right text-[11px] md:text-sm truncate ${homeListNameClass}`}>
+                          {match.home[lang]}
+                       </div>
+                       
+                       {/* 🔥 예상 스코어 부각 (가운데 전광판 스타일) */}
+                       <div className="shrink-0 bg-slate-800 text-[#84cc16] px-3 py-1.5 md:px-4 md:py-2 rounded-xl font-black text-sm md:text-lg shadow-inner min-w-[60px] md:min-w-[80px] text-center flex items-center justify-center">
+                          {hExp} <span className="text-slate-400 mx-1 text-xs md:text-sm">:</span> {aExp}
+                       </div>
+
+                       <div className={`flex-1 text-left text-[11px] md:text-sm truncate ${awayListNameClass}`}>
+                          {match.away[lang]}
+                       </div>
+                    </div>
+
+                    {/* 3. 경기 시각 및 상태 (오른쪽) */}
+                    <div className="w-12 md:w-16 shrink-0 flex flex-col items-end pl-2 border-l border-slate-100">
+                       {match.status !== 'NS' ? (
+                          <span className="text-[10px] font-black text-orange-500">{centerStatus}</span>
+                       ) : (
+                          // 시각 문자열에서 마지막 04:00 부분만 잘라서 깔끔하게 노출
+                          <span className="text-[10px] font-bold text-slate-400">{match.time[lang].split(' ').pop()}</span>
+                       )}
+                    </div>
+                  </div>
+                );
+              }
+
+              // 기존의 상세 카드 보기 (Card View) 모드일 때
               return (
                 <div key={match.id} onClick={() => goToMatch(match)}
                      className={`rounded-[24px] border shadow-sm overflow-hidden relative cursor-pointer transition-all hover:scale-[1.005] duration-300 ${
@@ -772,7 +824,6 @@ export default function App() {
                      }`}>
                   <div className="p-3 md:p-4">
                     <div className="flex justify-between items-center mb-2">
-                      {/* 🔥 프로토 뱃지 + 리그 이름 묶음 */}
                       <div className="flex items-center gap-1.5">
                         {PROTO_LEAGUES.includes(match.leagueId) && (
                           <span className="bg-[#0f3460] text-white text-[8px] font-black px-1.5 py-0.5 rounded flex items-center justify-center tracking-wider shadow-sm">
