@@ -2,7 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel.node';
 
 const API_KEY = process.env.API_SPORTS_KEY;
 
-// [1. 리그 한글 매핑 리스트]
+// [1. 리그 한글 매핑 리스트 - 대표님 데이터 완벽 보존!]
 const leagueNameMap: { [key: number]: string } = {
   39: "잉글랜드 프리미어리그", 40: "잉글랜드 챔피언십", 45: "잉글랜드 FA컵", 48: "EFL컵",
   140: "스페인 라리가", 141: "스페인 세군다 디비시온", 143: "코파 델 레이",
@@ -35,14 +35,14 @@ const leagueNameMap: { [key: number]: string } = {
   2: "UEFA 챔피언스리그", 3: "UEFA 유로파리그", 848: "UEFA 유로파 컨퍼런스리그", 13: "코파 리베르타도레스", 17: "AFC 챔피언스리그"
 };
 
-// [2. 주요 팀 한글 매핑 리스트 - 🔥 쉼표 오류 완벽 수정본!]
+// [2. 주요 팀 한글 매핑 리스트 - 대표님 데이터 완벽 보존!]
 const teamNameMap: { [key: string]: string } = {
   "Arsenal": "아스널", "Aston Villa": "아스톤 빌라", "Bournemouth": "본머스", "Brentford": "브렌트포드", "Brighton": "브라이튼", "Chelsea": "첼시", "Crystal Palace": "크리스탈 팰리스", "Everton": "에버턴", "Fulham": "풀럼", "Ipswich": "입스위치", "Leicester": "레스터", "Liverpool": "리버풀", "Manchester City": "맨시티", "Manchester United": "맨체스터 유나이티드", "Newcastle": "뉴캐슬", "Nottingham Forest": "노팅엄", "Southampton": "사우샘프턴", "Tottenham": "토트넘", "West Ham": "웨스트햄", "Wolves": "울버햄튼",
   "Alaves": "알라베스", "Athletic Club": "빌바오", "Atletico Madrid": "AT 마드리드", "Barcelona": "바르셀로나", "Celta Vigo": "셀타 비고", "Espanyol": "에스파뇰", "Getafe": "헤타페", "Girona": "지로나", "Las Palmas": "라스팔마스", "Leganes": "레가네스", "Mallorca": "마요르카", "Osasuna": "오사수나", "Ray오 Vallecano": "라요", "Real Betis": "베티스", "Real Madrid": "레알 마드리드", "Real Sociedad": "소시에다드", "Sevilla": "세비야", "Valencia": "발렌시아", "Valladolid": "바야돌리드", "Villarreal": "비야레알",
   "Augsburg": "아우크스부르크", "Bayer Leverkusen": "레버쿠젠", "Bayern München": "바이에른 뮌헨", "Bayern Munich": "바이에른 뮌헨", "Borussia Dortmund": "도르트문트", "Borussia Monchengladbach": "글라트바흐", "Eintracht Frankfurt": "프랑크푸르트", "SC Freiburg": "프라이부르크", "Heidenheim": "하이덴하임", "Hoffenheim": "호펜하임", "Holstein Kiel": "홀슈타인 킬", "RB Leipzig": "라이프치히", "FSV Mainz 05": "마인츠", "St. Pauli": "상파울루", "VfB Stuttgart": "슈투트가르트", "Union Berlin": "우니온 베를린", "Werder Bremen": "브레멘", "Wolfsburg": "볼프스부르크",
   "AC Milan": "AC 밀란", "Atalanta": "아탈란타", "Bologna": "볼로냐", "Cagliari": "칼리아리", "Como": "코모", "Empoli": "엠폴리", "Fiorentina": "피오렌티나", "Genoa": "제노아", "Inter": "인테르", "Juventus": "유벤투스", "Lazio": "라치오", "Lecce": "레체", "Monza": "몬차", "Napoli": "나폴리", "Parma": "파르마", "Roma": "AS 로마", "Torino": "토리노", "Udinese": "우디네세", "Venezia": "베네치아", "Verona": "베로나",
   "Auxerre": "오세르", "Angers": "앙제", "Brest": "브레스투아", "Le Havre": "르아브르", "Lens": "랑스", "Lille": "릴", "Lyon": "리옹", "Marseille": "마르세유", "Monaco": "모나코", "Montpellier": "몽펠리에", "Nantes": "낭트", "Nice": "니스", "Paris Saint Germain": "PSG", "Reims": "랭스", "Rennes": "렌", "Saint Etienne": "생테티엔", "Strasbourg": "스트라스부르", "Toulouse": "툴루즈",
-  "Ulsan HD": "울산 HD", "Pohang Steelers": "포항 스틸러스", "Gwangju FC": "광주 FC", "Jeonbuk Motors": "전북 현대", "Daegu FC": "대구 FC", "Incheon United": "인천 유나이티드", "FC Seoul": "FC 서울", "Daejeon Citizen": "대전 하나시티즌", "Jeju United": "제주 유나이티드", "Gangwon FC": "강원 FC", "Suwon FC": "수원 FC", "Gimcheon Sangmu": "김천 상무", // 🔥 1번 쉼표 추가!
+  "Ulsan HD": "울산 HD", "Pohang Steelers": "포항 스틸러스", "Gwangju FC": "광주 FC", "Jeonbuk Motors": "전북 현대", "Daegu FC": "대구 FC", "Incheon United": "인천 유나이티드", "FC Seoul": "FC 서울", "Daejeon Citizen": "대전 하나시티즌", "Jeju United": "제주 유나이티드", "Gangwon FC": "강원 FC", "Suwon FC": "수원 FC", "Gimcheon Sangmu": "김천 상무",
   "Benfica": "벤피카", "FC Porto": "FC 포르투", "Sporting CP": "스포르팅 CP", "SC Braga": "브라가", "Guimaraes": "비토리아 기마랑이스", "Moreirense": "모레이렌세", "Arouca": "아로카",
   "Famalicao": "파말리캉", "Casa Pia": "카사 피아", "Farense": "파렌세", "Rio Ave": "히우 아브", "Gil Vicente": "질 비센트", "Estoril": "에스토릴", "Boavista": "보아비스타", "Estrela": "이스트렐라",
   "AVS": "AVS", "Santa Clara": "산타 클라라", "Nacional": "나시오날", "Portimonense": "포르티모넨세", "Vizela": "비젤라", "Chaves": "샤베스", "Maritimo": "마리티무", "Pacos de Ferreira": "파수스 드 페헤이라",
@@ -140,7 +140,7 @@ const teamNameMap: { [key: string]: string } = {
   "SV Elversberg": "엘버스베르크", "Ulm": "울름", "Eintracht Braunschweig": "브라운슈바이크", "Bari": "바리", "Brescia": "브레시아", "Carrarese": "카라레세", "Catanzaro": "카탄차로", "Cesena": "체세나", "Cittadella": "치타델라",
   "Cosenza": "코센차", "Cremonese": "크레모네세", "Frosinone": "프로시노네", "Juve Stabia": "유베 스타비아", "Mantova": "만토바", "Modena": "모데나", "Palermo": "팔레르모", "Pisa": "피사", "Reggiana": "레지아나",
   "Salernitana": "살레르니타나", "Sampdoria": "삼프도리아", "Sassuolo": "사수올로", "Spezia": "스페치아", "Sudtirol": "쥐트티롤", "Ajaccio": "아작시오", "Amiens": "아미앵", "Annecy": "안시", "Bastia": "바스티아", "Caen": "캉",
-  "Clermont Foot": "클레르몽", "Dunkerque": "됭케르크", "Grenoble": "그르노블", "Nancy": "낭시", "Guingamp": "갱강", "Laval": "라발", "Lorient": "로리앙", "Martigues": "마르티그", "Metz": "메스", "Paris FC": "파리 FC", "PAU": "포", // 🔥 2번 쉼표 추가!
+  "Clermont Foot": "클레르몽", "Dunkerque": "됭케르크", "Grenoble": "그르노블", "Nancy": "낭시", "Guingamp": "갱강", "Laval": "라발", "Lorient": "로리앙", "Martigues": "마르티그", "Metz": "메스", "Paris FC": "파리 FC", "PAU": "포",
   "Red Star": "레드 스타", "Rodez": "로데즈", "Troyes": "트루아", "Busan I'Park": "부산 아이파크", "Gyeongnam FC": "경남 FC", "Bucheon FC 1995": "부천 FC 1995", "FC Anyang": "FC 안양", "Jeonnam Dragons": "전남 드래곤즈", "Chungbuk Cheongju": "충북 청주",
   "Seongnam FC": "성남 FC", "Chungnam Asan": "충남 아산", "Seoul E-Land": "서울 이랜드", "Gimpo FC": "김포 FC", "Ansan Greeners": "안산 그리너스", "Cheonan City": "천안 시티", "Vissel Kobe": "비셀 고베",
   "Yokohama F. Marinos": "요코하마 F. 마리노스", "Kawasaki Frontale": "가와사키 프론탈레", "Sanfrecce Hiroshima": "산프레체 히로시마", "Kashima Antlers": "가시마 앤틀러스", "Nagoya Grampus": "나고야 그램퍼스", "Urawa Red Diamonds": "우라와 레드 다이아몬즈",
@@ -156,7 +156,7 @@ const teamNameMap: { [key: string]: string } = {
   "Liaoning Tieli": "랴오닝 톄리", "Guangzhou FC": "광저우 FC", "Yunnan Yukun": "윈난 위쿤", "Dalian Young Boy": "다롄 영 보이", "Chongqing Tonglianglong": "충칭 퉁량룽", "Wuxi Wugo": "우시 우거", "Jiangxi Lushan": "장시 루산",
   "Foshan Nanshi": "포산 난스", "RB Salzburg": "잘츠부르크", "Shakhtar Donetsk": "샤흐타르", "Sparta Praha": "스파르타 프라하", "Sturm Graz": "슈투름 그라츠", "Slovan Bratislava": "슬로반 브라티슬라바",
   "FK Crvena Zvezda": "즈베즈다", "Cerro Porteno": "세로 포르테뇨", "Kifisia": "키피시아", "Al-Ahli Jeddah": "알 아흘리 제다", "Ghazl El Mehalla": "가즐 엘 마할라", "El Gouna FC": "엘 구나 FC",
-  "Haras El Hodood": "하라스 엘 호두드", "Future FC": "퓨처 FC", "Wadi Degla": "와디 데글라", "Pharco": "파르코", "Orange County SC": "오렌지 카운티 SC", "San Antonio": "샌안토니오 FC", "Lokomotiv Sofia": "로코모티브 소피아", // 🔥 3번 쉼표 추가!
+  "Haras El Hodood": "하라스 엘 호두드", "Future FC": "퓨처 FC", "Wadi Degla": "와디 데글라", "Pharco": "파르코", "Orange County SC": "오렌지 카운티 SC", "San Antonio": "샌안토니오 FC", "Lokomotiv Sofia": "로코모티브 소피아",
   "Sevlievo": "세블리에보", "Spartak Pleven": "스파르탁 플레벤", "Chernomorets 1919 Burgas": "체르노모레츠 부르가스", "Pirin Blagoevgrad": "피린 블라고에브그라드", "Montana": "몬타나", "Cherno More Varna": "체르노 모레 바르나",
   "Belasitsa": "벨라시차", "Fratria": "프라트리아", "Lokomotiv G. Oryahovitsa": "로코모티브 고르나 오랴호비차", "Dobrudzha": "도브루자", "Botev Vratsa": "보테프 브라차", "Ludogorets II": "루도고레츠 2군", "FK Minyor Pernik": "미뇨르 페르니크",
   "Sportist Svoge": "스포르티스트 스보게", "CSKA Sofia II": "CSKA 소피아 2군", "Marek": "마레크", "Vihren": "비흐렌", "Zawisza Bydgoszcz": "자비샤 비드고슈치", "Miedz Legnica": "미에츠 레그니차", "Polonia Bytom": "폴로니아 비톰",
@@ -209,34 +209,7 @@ const teamNameMap: { [key: string]: string } = {
   "CF Montreal": "CF 몬트리올", "FC Thun": "툰", "FC Basel 1893": "바젤", "Almagro": "알마그로", "Patronato": "파트로나토", "San Miguel": "산 미겔", "Deportivo Moron": "데포르티보 모론", "San Telmo": "산 텔모", "St. Truiden": "신트트라위던",
   "Remo": "레모", "Vasco DA Gama": "바스쿠 다 가마", "Detroit City": "디트로이트 시티", "Sporting JAX": "스포르팅 JAX", "Union Santa Fe": "우니온 산타페", "Ponte Preta": "폰치 프레타", "Vila Nova": "빌라 노바",
   "Sport Recife": "스포르트 헤시피", "Avai": "아바이", "Colon Santa Fe": "콜론 산타페", "Racing Cordoba": "라싱 코르도바", "Santos": "산투스", "Atletico-MG": "아틀레치쿠 미네이루", "Guadalajara Chivas": "과달라하라",
-  "Brooklyn": "브루클린", "Charleston Battery": "찰스턴 배터리", "Hartford Athletic": "하트퍼드", "El Paso Locomotive": "엘파소 로코모티브", "SK Beveren": "베베런", "Deportivo Riestra": "데포르티보 리에스트라",
-  "SV Darmstadt 98": "다름슈타트", "Indy Eleven": "인디 일레븐", "Monterey Bay": "몬터레이 베이", "Lexington": "렉싱턴", "Rhode Island": "로드아일랜드", "Irapuato": "이라푸아토", "Charlotte": "샬럿",
-  "DC United": "DC 유나이티드", "Tampa Bay Rowdies": "탬파베이", "Oakland Roots": "오클랜드 루츠", "Ceara": "세아라", "Nautico Recife": "나우치쿠", "FC Tulsa": "털사", "Atlanta United FC": "애틀랜타 유나이티드",
-  "St. Louis City": "세인트루이스 시티", "Miami FC": "마이애미", "Barracas CentralBarracas Central": "바라카스 센트랄", "Monarcas": "모나르카스", "Cancún": "칸쿤", "Atlante FC": "아틀란테", "Venados FC": "베나도스",
-  "Leones Negros UDG": "레오네스 네그로스", "Phoenix Rising": "피닉스 라이징", "New Mexico United": "뉴멕시코 유나이티드", "San Diego": "샌디에이고", "Minnesota United FC": "미네소타 유나이티드", "Las Vegas Lights": "라스베가스 라이츠",
-  "Sacramento Republic": "새크라멘토", "Parceiro Nagano": "파르세이루 나가노", "Urawa": "우라와", "Cheongju": "청주", "Gimpo Citizen": "김포시민", "Sagamihara": "사가미하라", "Tochigi City": "도치기 시티",
-  "Thespakusatsu Gunma": "군마", "Matsumoto Yamaga": "마쓰모토 야마가", "Omiya Ardija": "오미야 아르디자", "Fukushima United": "후쿠시마 유나이티드", "Iwaki": "이와키", "Kochi United": "고치 유나이티드",
-  "Nara Club": "나라 클럽", "Kamatamare Sanuki": "가마타마레 사누키", "Kanazawa": "가나자와", "Imabari": "이마바리", "Kitakyushu": "기타큐슈", "Tegevajaro Miyazaki": "미야자키", "Gainare Tottori": "가이나레 돗토리", "Biwako Shiga": "비와코 시가",
-  "FC Ryukyu": "류큐", "Chuncheon": "춘천", "Gangneung City": "강릉시청", "Ulsan Citizen": "울산시민", "Jeonbuk Motors II": "전북 현대 2군", "Kashima": "가시마", "Dalian Huayi": "다롄 화이", "Gimcheon Sangmu FC": "김천 상무",
-  "Asan Mugunghwa": "아산 무궁화", "Gimhae City": "김해시청", "First Vienna": "퍼스트 비엔나", "Macarthur": "맥아서", "Pogoń Siedice": "포곤 시에들체", "Tychy 71": "티히", "Cracovia Krakow": "크라코비아", "Birmingham": "버밍엄",
-  "Tianjin Teda": "톈진 TEDA", "Qingdao Jonoon": "칭다오 중넝", "VfL Bochum": "보훔", "FC Schalke 04": "샬케", "SC Paderborn 07": "파더보른", "1. FC Magdeburg": "마그데부르크", "Fatih Karagümrük": "카라귐뤼크",
-  "Heilongjiang Lava Spring": "헤이룽장", "Hebei Kungfu": "허베이 쿵푸", "Dongguan United": "둥관 유나이티드", "Chengdu Better City": "청두 룽청", "Cultural Leonesa": "쿨투랄 레오네사", "Sanlıurfaspor": "샨리우르파스포르",
-  "Altınordu": "알튼오르두", "Ankara Demirspor": "앙카라 데미르스포르", "Bursaspor": "부르사스포르", "Somaspor": "소마스포르", "68 Aksaray Belediyespor": "악사라이", "1461 Trabzon FK": "트라브존 1461",
-  "Isparta 32 Spor": "이스파르타", "Güzide Gebzespor": "게브제스포르", "Fethiyespor": "페티예스포르", "Aliağa FAŞ": "알리아아", "Menemen FK": "메네멘", "Muş Sport Klübü": "무슈 스포르", "Arnavutköy Belediyespor": "아르나부트쾨이",
-  "Mardin 1969": "마르딘", "Kahramanmaraş istiklal Spor": "카흐라만마라쉬", "Sichuan Jiuniu": "쓰촨 지우니우", "Wisla Krakow": "비스와 크라쿠프", "TSV Hartberg": "하르트베르크", "Padova": "파도바",
-  "1. FC Köln": "쾰른", "Kasımpaşa": "카슴파샤", "KAA Gent Il": "헨트 2군", "Liège": "리에주", "Atletico Paranaense": "아틀레치쿠 파라나엔시", "Chapecoense-sc": "샤페코엔시", "OH Leuven": "루벤",
-  "FC ST. Gallen": "장크트갈렌", "FC Sion": "시옹", "Lausanne": "로잔", "BSC Young Boys": "영 보이즈", "Servette FC": "세르베트", "Almere City FC": "알메러 시티", "Yeni Mersin Idmanyurdu": "메르신",
-  "Adanaspor": "아다나스포르", "Yeni Malatyaspor": "말라티아스포르", "Kirklarelispor": "키르클라렐리스포르", "Ajka": "아이카", "Tiszakecske FC": "티서케치케", "Csakvar": "차크바르",
-  "Karcag SE": "카르차그", "Fehérvár FC": "페헤르바르", "Soroksar": "쇼로크샤르", "Kecskeméti TE": "케치케메트", "Bekescsaba 1912": "베케슈차바", "SCR Altach": "알타흐", "Grazer AK": "그라처 AK",
-  "Wolfsberger AC": "볼프스베르거", "Ried": "리트", "Avellino": "아벨리노", "Zalaegerszegi TE": "잘라에게르세그", "Bandirmaspor": "반디르마스포르", "FC Winterthur": "빈터투어", "Grasshoppers": "그라스호퍼",
-  "FC Lugano": "루가노", "KVC Westerlo": "베스테를로", "Stenhousemuir": "스텐하우스뮤어", "Inverness CT": "인버네스", "FC St. Pauli": "장크트 파울리", "Budapest Honved": "부다페스트 혼베드", "Kozarmisleny FC": "코자르미슬레니",
-  "Fenerbahçe": "페네르바흐체", "União de Leiria": "우니앙 레이리아", "Górnik kęczna": "고르니크 렝치나", "Wieczysta Kraków": "비에치스타 크라쿠프", "Stal Rzeszów": "스탈 제슈프", "FC BW Linz": "블라우바이스 린츠",
-  "WSG Wattens": "바텐스", "Paks": "팍시", "GO Ahead Eagles": "고 어헤드 이글스", "Francs Borains": "프랑 보랭", "KRC Genk I!": "헹크 2군", "Olympic Charleroi": "올림픽 샤를루아", "K. Lierse S.K.": "리르세",
-  "Lommel United": "롬멜", "Club Brugge II": "클럽 브뤼헤 2군", "Austin": "오스틴", "Los Angeles Galaxy": "LA 갤럭시", "CF Montreal": "CF 몬트리올", "FC Thun": "툰", "FC Basel 1893": "바젤", "Almagro": "알마그로",
-  "Patronato": "파트로나토", "San Miguel": "산 미겔", "Deportivo Moron": "데포르티보 모론", "San Telmo": "산 텔모", "St. Truiden": "신트트라위던", "Remo": "레모", "Vasco DA Gama": "바스쿠 다 가마",
-  "Detroit City": "디트로이트 시티", "Sporting JAX": "스포르팅 JAX", "Union Santa Fe": "우니온 산타페", "Ponte Preta": "폰치 프레타", "Vila Nova": "빌라 노바", "Sport Recife": "스포르트 헤시피", "Avai": "아바이",
-  "Colon Santa Fe": "콜론 산타페", "Racing Cordoba": "라싱 코르도바", "Santos": "산투스", "Atletico-MG": "아틀레치쿠 미네이루", "Guadalajara Chivas": "과달라하라", "Brooklyn": "브루클린",
-  "Charleston Battery": "찰스턴 배터리", "Hartford Athletic": "하트퍼드", "El Paso Locomotive": "엘파소 로코모티브", "SK Beveren": "베베런", "Deportivo Riestra": "데포르티보 리에스트라", "SV Darmstadt 98": "다름슈타트",
+  "Brooklyn": "브루클린", "Charleston Battery": "찰스턴 배터리", "Hartford Athletic": "하트퍼드", "El Paso Locomotive": "엘파소 로코모티브", "SK Beveren": "베베런", "Deportivo Riestra": "데포르티보 리에스트라", "SV Darmstadt 98": "다름슈타트",
   "Indy Eleven": "인디 일레븐", "Monterey Bay": "몬터레이 베이", "Lexington": "렉싱턴", "Rhode Island": "로드아일랜드", "Irapuato": "이라푸아토", "Charlotte": "샬럿", "DC United": "DC 유나이티드",
   "Tampa Bay Rowdies": "탬파베이", "Oakland Roots": "오클랜드 루츠", "Ceara": "세아라", "Nautico Recife": "나우치쿠", "FC Tulsa": "털사", "Atlanta United FC": "애틀랜타 유나이티드",
   "St. Louis City": "세인트루이스 시티", "Miami FC": "마이애미", "Barracas CentralBarracas Central": "바라카스 센트랄", "Monarcas": "모나르카스", "Cancún": "칸쿤", "Atlante FC": "아틀란테", "Venados FC": "베나도스",
@@ -261,11 +234,10 @@ const teamNameMap: { [key: string]: string } = {
   "All Boys": "올 보이스", "Club Atlético Güemes": "클루브 아틀레티코 구에메스", "Tigre": "티그레", "Birmingham Legion": "버밍엄 리전", "Pittsburgh Riverhounds": "피츠버그 리버하운즈", "America Mineiro": "아메리카 미네이루",
   "Novorizontino": "노보리존치노", "Operario-PR": "오페라리오", "RB Bragantino": "브라간치노", "Deportivo Maipu": "데포르티보 마이푸", "Colegiales": "콜레히알레스", "São Bernardo": "상 베르나르두", "Fortaleza EC": "포르탈레자",
   "Mineros de Zacatecas": "미네로스 데 사카테카스", "Correcaminos Uat": "코레카미노스", "Londrina": "론드리나", "Etar Veliko Tarnovo": "에타르 벨리코 타르노보", "Dunav Ruse": "두나브 루세"
-  
 };
 
 // ==========================
-// 🔥 로직: 시간 가중치 폼 계산 함수
+// 🔥 시간 가중치 폼 계산 함수
 // ==========================
 function calcForm(matches: any[], isAttack: boolean) {
   if (matches.length === 0) return 1.3;
@@ -307,7 +279,9 @@ function poisson(homeGoals: number, awayGoals: number) {
   };
 }
 
-// 🛡️ API 보호용 글로벌 메모리 캐시
+// ==========================
+// 🛡️ API 보호용 글로벌 메모리 수첩
+// ==========================
 let fixturesCache: { [dateStr: string]: { timestamp: number, data: any } } = {};
 let predictionCache: { [leagueSeason: string]: { timestamp: number, data: any[] } } = {};
 let oddsCache: { [fixtureId: number]: { timestamp: number, data: any } } = {}; 
@@ -317,7 +291,7 @@ let lineupsCache: { [fixtureId: number]: { timestamp: number, data: any[] } } = 
 
 const FIXTURES_CACHE_TTL = 1 * 60 * 1000;
 const CACHE_TTL = 60 * 60 * 1000; 
-const ODDS_CACHE_TTL = 5 * 60 * 1000; // 🔥 배당 갱신 주기 5분으로 단축
+const ODDS_CACHE_TTL = 5 * 60 * 1000; // 🔥 해외 배당 실시간 갱신 (5분)
 const STANDINGS_CACHE_TTL = 6 * 60 * 60 * 1000; 
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -328,10 +302,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const targetDateStr = typeof date === 'string' ? date : new Date().toISOString().split('T')[0];
 
   try {
-    const now = Date.now();
     const prevDate = new Date(targetDateStr);
     prevDate.setDate(prevDate.getDate() - 1);
     const prevDateStr = prevDate.toISOString().split('T')[0];
+
+    const now = Date.now();
 
     const fetchAPI = (endpoint: string, params: string) => 
       fetch(`https://v3.football.api-sports.io/${endpoint}?${params}`, { 
@@ -351,12 +326,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return data;
     };
 
-    const [targetData, prevDataResult] = await Promise.all([
+    const [targetData, prevData] = await Promise.all([
       getFixturesWithCache(targetDateStr),
       getFixturesWithCache(prevDateStr)
     ]);
 
-    const allMatches = [...(targetData.response || []), ...(prevDataResult.response || [])];
+    const allMatches = [...(targetData.response || []), ...(prevData.response || [])];
 
     const rawFilteredMatches = allMatches.filter((item: any) => {
       if (leagueNameMap[item.league.id] === undefined) return false;
@@ -392,10 +367,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             if (!Array.isArray(group)) return [];
             return group.map((t: any) => {
               const tName = t.team.name;
-              const mappedName = teamNameMap[tName] || tName;
+              const mappedName = typeof teamNameMap !== 'undefined' && teamNameMap[tName] ? teamNameMap[tName] : tName;
               return {
                 rank: t.rank,
                 team: { en: tName, ko: mappedName },
+                groupName: t.group,
                 played: t.all.played,
                 win: t.all.win,
                 draw: t.all.draw,
@@ -420,9 +396,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           let calcAvg = totalPlayed > 0 ? totalGoals / totalPlayed : 1.3;
           if (calcAvg < 0.9) calcAvg = 1.2; 
           if (calcAvg > 2.5) calcAvg = 2.0; 
+          
           leagueAvgMap[leagueKey] = calcAvg;
         }
-      } catch (e) {}
+      } catch (e) {
+        console.error("Standings processing error:", e);
+      }
     });
 
     await Promise.all(Array.from(uniqueLeagues).map(async (key) => {
@@ -448,9 +427,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         try {
           const oddsRes = await fetchAPI('odds', `fixture=${fId}&bet=1`);
           let oddsData = null;
+          
           if (oddsRes && oddsRes.response && oddsRes.response.length > 0) {
             let bookmaker = oddsRes.response[0].bookmakers.find((b: any) => b.id === 8 || b.name === 'Bet365');
             if (!bookmaker) bookmaker = oddsRes.response[0].bookmakers[0]; 
+
             const market = bookmaker?.bets[0];
             if (market) {
               oddsData = {
@@ -468,7 +449,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       await new Promise(resolve => setTimeout(resolve, 300));
     }
 
-    // 경기 이벤트 가져오기
+    // 경기 주요 이벤트 가져오기
     const fixturesToFetchEvents = rawFilteredMatches.filter((item: any) => {
       const fId = item.fixture.id;
       const status = item.fixture.status.short;
@@ -494,7 +475,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       await new Promise(resolve => setTimeout(resolve, 300));
     }
 
-    // 선발 명단 가져오기
+    // 🔥 [복구 완료] 선발 명단 가져오기
     const fixturesToFetchLineups = rawFilteredMatches.filter((item: any) => {
       const fId = item.fixture.id;
       const status = item.fixture.status.short;
@@ -530,21 +511,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const leagueKey = `${item.league.id}-${item.league.season}`;
       
       const pastMatches = predictionCache[leagueKey]?.data || [];
-      // 🔥 스코어 박제 (타임머신 차단): 무조건 해당 경기 시작 시간 이전 데이터만 사용!
+      
+      // 🔥 [복구 완료] 예상 스코어 박제 (미래 경기 차단)
       const validPastMatches = pastMatches.filter((m: any) => 
         m.fixture.id !== item.fixture.id && 
         m.fixture.timestamp < item.fixture.timestamp
       );
+
       const leagueAvgGoals = leagueAvgMap[leagueKey] || 1.3;
 
       const rawEvents = eventsCache[item.fixture.id]?.data || [];
       const mappedEvents = rawEvents.map((ev: any) => {
         let type = "";
         if (ev.type === "Goal") type = "goal";
-        else if (ev.type === "Card" && ev.detail.includes("Yellow")) type = "yellow";
-        else if (ev.type === "Card" && ev.detail.includes("Red")) type = "red";
+        // 🔥 [에러 원인 수정 완료] 옵셔널 체이닝(?.)을 달아서 빈 내용물이 와도 서버가 죽지 않게 방어막 설치!
+        else if (ev.type === "Card" && ev.detail?.includes("Yellow")) type = "yellow";
+        else if (ev.type === "Card" && ev.detail?.includes("Red")) type = "red";
         else if (ev.type === "subst") type = "sub";
+
         if (!type) return null; 
+
         return {
           minute: ev.time.elapsed,
           team: ev.team.id === homeId ? "home" : "away",
@@ -573,6 +559,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const homeRecent = getRecentMatches(homeId, validPastMatches);
       const awayRecent = getRecentMatches(awayId, validPastMatches);
+
       const homeAttack = calcForm(homeRecent.filter((m: any) => m.isHome), true);
       const homeDefense = calcForm(homeRecent.filter((m: any) => m.isHome), false);
       const awayAttack = calcForm(awayRecent.filter((m: any) => !m.isHome), true);
@@ -580,25 +567,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const allGroups = leagueStandingsMap[leagueKey] || [];
       let correctStandings: any[] = [];
+
       for (const group of allGroups) {
         if (Array.isArray(group) && group.some((s: any) => s.team?.en === hName || s.team?.en === aName)) {
-          correctStandings = group;
+          correctStandings = group; 
           break;
         }
       }
-      if (correctStandings.length === 0 && allGroups.length > 0) correctStandings = allGroups[0];
+      if (correctStandings.length === 0 && allGroups.length > 0) {
+        correctStandings = allGroups[0];
+      }
 
       const homeTeamInfo = correctStandings.find((s: any) => s.team?.en === hName);
       const awayTeamInfo = correctStandings.find((s: any) => s.team?.en === aName);
       const homeRank = homeTeamInfo ? homeTeamInfo.rank : 999;
       const awayRank = awayTeamInfo ? awayTeamInfo.rank : 999;
 
-      let homeAdv = 1.10; let awayDis = 0.90;
-      if (homeRank < awayRank) { homeAdv = 1.15; awayDis = 0.85; }
-      else if (homeRank > awayRank) { homeAdv = 1.05; awayDis = 0.95; }
+      let homeAdv = 1.10; 
+      let awayDis = 0.90;
+
+      if (homeRank < awayRank) { 
+        homeAdv = 1.15;
+        awayDis = 0.85;
+      } else if (homeRank > awayRank) {
+        homeAdv = 1.05;
+        awayDis = 0.95;
+      }
 
       let expectedHomeGoals = Math.max(0.5, homeAttack * (awayDefense / leagueAvgGoals) * homeAdv);
       let expectedAwayGoals = Math.max(0.5, awayAttack * (homeDefense / leagueAvgGoals) * awayDis);
+
       expectedHomeGoals = Math.min(expectedHomeGoals, 4.0);
       expectedAwayGoals = Math.min(expectedAwayGoals, 4.0);
 
@@ -607,39 +605,54 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const logicBProbDraw = logicBPredictions.prob.draw;
       const logicBProbAway = logicBPredictions.prob.away;
 
+      let logicCProbHome = 33, logicCProbDraw = 33, logicCProbAway = 34;
+      let hasOdds = false;
+      
       const matchOdds = oddsCache[item.fixture.id]?.data || null;
-      let finalProbHome = logicBProbHome;
-      let finalProbDraw = logicBProbDraw;
-      let finalProbAway = logicBProbAway;
-
       if (matchOdds && matchOdds.home && matchOdds.draw && matchOdds.away) {
         const invHome = 1 / parseFloat(matchOdds.home);
         const invDraw = 1 / parseFloat(matchOdds.draw);
         const invAway = 1 / parseFloat(matchOdds.away);
         const totalInv = invHome + invDraw + invAway;
-        const oH = (invHome / totalInv) * 100;
-        const oD = (invDraw / totalInv) * 100;
-        const oA = (invAway / totalInv) * 100;
-        finalProbHome = Math.round((logicBProbHome * 0.6) + (oH * 0.4));
-        finalProbDraw = Math.round((logicBProbDraw * 0.6) + (oD * 0.4));
-        finalProbAway = Math.max(0, 100 - finalProbHome - finalProbDraw);
+
+        logicCProbHome = (invHome / totalInv) * 100;
+        logicCProbDraw = (invDraw / totalInv) * 100;
+        logicCProbAway = (invAway / totalInv) * 100;
+        hasOdds = true;
+      }
+
+      let finalProbHome = logicBProbHome;
+      let finalProbDraw = logicBProbDraw;
+      let finalProbAway = logicBProbAway;
+
+      if (hasOdds) {
+        finalProbHome = Math.round((logicBProbHome * 0.6) + (logicCProbHome * 0.4));
+        finalProbDraw = Math.round((logicBProbDraw * 0.6) + (logicCProbDraw * 0.4));
+        finalProbAway = Math.max(0, 100 - finalProbHome - finalProbDraw); 
       }
 
       let predictHome = Math.round(expectedHomeGoals);
       let predictAway = Math.round(expectedAwayGoals);
+
       if (predictHome === predictAway) {
         if (finalProbHome - finalProbAway >= 10) predictHome += 1;
         else if (finalProbAway - finalProbHome >= 10) predictAway += 1;
       }
 
       const kstDate = new Date(new Date(item.fixture.date).toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
-      const timeKo = `${kstDate.getMonth() + 1}/${kstDate.getDate()} (${['일', '월', '화', '수', '목', '금', '토'][kstDate.getDay()]}) ${String(kstDate.getHours()).padStart(2, '0')}:${String(kstDate.getMinutes()).padStart(2, '0')}`;
-      const timeEn = `${kstDate.getMonth() + 1}/${kstDate.getDate()} (${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][kstDate.getDay()]}) ${String(kstDate.getHours()).padStart(2, '0')}:${String(kstDate.getMinutes()).padStart(2, '0')}`;
+      const m = kstDate.getMonth() + 1;
+      const d = kstDate.getDate();
+      const daysKo = ['일', '월', '화', '수', '목', '금', '토'];
+      const daysEn = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const h = String(kstDate.getHours()).padStart(2, '0');
+      const min = String(kstDate.getMinutes()).padStart(2, '0');
+      const timeKo = `${m}/${d} (${daysKo[kstDate.getDay()]}) ${h}:${min}`;
+      const timeEn = `${m}/${d} (${daysEn[kstDate.getDay()]}) ${h}:${min}`;
 
       return {
         id: item.fixture.id,
         timestamp: item.fixture.timestamp,
-        leagueId: item.fixture.league.id ?? item.league.id, // 🔥 프로토 판별을 위한 리그 ID 전송
+        leagueId: item.fixture.league?.id ?? item.league.id, // 🔥 [복구 완료] 프로토 판별 ID
         league: { en: item.league.name, ko: leagueNameMap[item.league.id] || item.league.name },
         home: { en: hName, ko: teamNameMap[hName] || hName },
         away: { en: aName, ko: teamNameMap[aName] || aName },
@@ -654,7 +667,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         probs: { home: finalProbHome, draw: finalProbDraw, away: finalProbAway },
         odds: matchOdds,
         events: mappedEvents,
-        lineups: lineupsCache[item.fixture.id]?.data || [], // 🔥 선발 명단 데이터 전송
+        lineups: lineupsCache[item.fixture.id]?.data || [], // 🔥 [복구 완료] 선발 명단 추가
         homeId: homeId,
         awayId: awayId,
         standings: correctStandings
