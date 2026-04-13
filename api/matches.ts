@@ -265,7 +265,7 @@ const teamNameMap: { [key: string]: string } = {
 };
 
 // ==========================
-// 🔥 Logic B: 시간 가중치 폼 계산 함수
+// 🔥 로직: 시간 가중치 폼 계산 함수
 // ==========================
 function calcForm(matches: any[], isAttack: boolean) {
   if (matches.length === 0) return 1.3;
@@ -313,11 +313,11 @@ let predictionCache: { [leagueSeason: string]: { timestamp: number, data: any[] 
 let oddsCache: { [fixtureId: number]: { timestamp: number, data: any } } = {}; 
 let standingsCache: { [leagueSeason: string]: { timestamp: number, data: any } } = {};
 let eventsCache: { [fixtureId: number]: { timestamp: number, data: any[] } } = {};
-let lineupsCache: { [fixtureId: number]: { timestamp: number, data: any[] } } = {}; // 🔥 라인업 캐시 추가
+let lineupsCache: { [fixtureId: number]: { timestamp: number, data: any[] } } = {};
 
 const FIXTURES_CACHE_TTL = 1 * 60 * 1000;
 const CACHE_TTL = 60 * 60 * 1000; 
-const ODDS_CACHE_TTL = 5 * 60 * 1000; // 🔥 배당 갱신 주기를 2시간에서 5분으로 단축!
+const ODDS_CACHE_TTL = 5 * 60 * 1000; // 🔥 배당 갱신 주기 5분으로 단축
 const STANDINGS_CACHE_TTL = 6 * 60 * 60 * 1000; 
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -494,16 +494,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       await new Promise(resolve => setTimeout(resolve, 300));
     }
 
-    // 🔥 [선발 명단(Lineups) 가져오기 로직]
+    // 선발 명단 가져오기
     const fixturesToFetchLineups = rawFilteredMatches.filter((item: any) => {
       const fId = item.fixture.id;
       const status = item.fixture.status.short;
       const timeToKickoff = item.fixture.timestamp * 1000 - now;
-
       if (['PST', 'CANC', 'TBD', 'ABD'].includes(status)) return false;
-      // 시작까지 1시간 이상 남은 경기는 스킵
       if (status === 'NS' && timeToKickoff > 60 * 60 * 1000) return false;
-
       const cached = lineupsCache[fId];
       if (!cached) return true;
       const isFinished = ['FT', 'AET', 'PEN'].includes(status);
@@ -533,7 +530,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const leagueKey = `${item.league.id}-${item.league.season}`;
       
       const pastMatches = predictionCache[leagueKey]?.data || [];
-      // 🔥 타임머신 완벽 차단 (박제 로직): 무조건 '이 경기 시작 시간'보다 과거에 끝난 경기만 폼 계산에 포함!
+      // 🔥 스코어 박제 (타임머신 차단): 무조건 해당 경기 시작 시간 이전 데이터만 사용!
       const validPastMatches = pastMatches.filter((m: any) => 
         m.fixture.id !== item.fixture.id && 
         m.fixture.timestamp < item.fixture.timestamp
@@ -610,7 +607,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const logicBProbDraw = logicBPredictions.prob.draw;
       const logicBProbAway = logicBPredictions.prob.away;
 
-      let hasOdds = false;
       const matchOdds = oddsCache[item.fixture.id]?.data || null;
       let finalProbHome = logicBProbHome;
       let finalProbDraw = logicBProbDraw;
@@ -627,7 +623,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         finalProbHome = Math.round((logicBProbHome * 0.6) + (oH * 0.4));
         finalProbDraw = Math.round((logicBProbDraw * 0.6) + (oD * 0.4));
         finalProbAway = Math.max(0, 100 - finalProbHome - finalProbDraw);
-        hasOdds = true;
       }
 
       let predictHome = Math.round(expectedHomeGoals);
@@ -644,7 +639,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return {
         id: item.fixture.id,
         timestamp: item.fixture.timestamp,
-        leagueId: item.fixture.league.id ?? item.league.id, // 🔥 프로토 판별을 위한 리그 ID 추가!
+        leagueId: item.fixture.league.id ?? item.league.id, // 🔥 프로토 판별을 위한 리그 ID 전송
         league: { en: item.league.name, ko: leagueNameMap[item.league.id] || item.league.name },
         home: { en: hName, ko: teamNameMap[hName] || hName },
         away: { en: aName, ko: teamNameMap[aName] || aName },
@@ -659,8 +654,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         probs: { home: finalProbHome, draw: finalProbDraw, away: finalProbAway },
         odds: matchOdds,
         events: mappedEvents,
-        lineups: lineupsCache[item.fixture.id]?.data || [], // 🔥 라인업 배송
-        homeId: homeId, // 🔥 구분용
+        lineups: lineupsCache[item.fixture.id]?.data || [], // 🔥 선발 명단 데이터 전송
+        homeId: homeId,
         awayId: awayId,
         standings: correctStandings
       };
