@@ -49,6 +49,7 @@ const t = {
     lineups: "선발 명단",
     coach: "감독",
     startingXI: "선발 라인업"
+    predictionDisclaimer: "* 예상 스코어는 경기 시작 전까지 해외 배당 흐름에 따라 실시간으로 변동될 수 있습니다."
   },
   en: {
     liveMatches: "No live matches at the moment.",
@@ -85,6 +86,7 @@ const t = {
     lineups: "Lineups",
     coach: "Coach",
     startingXI: "Starting XI"
+    predictionDisclaimer: "* Expected scores may fluctuate in real-time based on global odds trends before kickoff."
   }
 };
 
@@ -295,6 +297,10 @@ function MatchDetail({ match, onBack, lang }: { match: any, onBack: () => void, 
               );
             })}
           </div>
+          {/* 🔥 5위 밑에 작고 부드럽게 안내 문구 추가 */}
+          <p className="mt-5 text-[10px] text-slate-400 text-center italic leading-relaxed break-keep">
+            {dict.predictionDisclaimer}
+          </p>
         </div>
 
         <div className="bg-white rounded-[24px] p-6 border border-slate-100 shadow-sm mb-6">
