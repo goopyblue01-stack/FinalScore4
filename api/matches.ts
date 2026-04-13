@@ -644,6 +644,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return {
         id: item.fixture.id,
         timestamp: item.fixture.timestamp,
+        leagueId: item.fixture.league.id ?? item.league.id, // 🔥 프로토 판별을 위한 리그 ID 추가!
         league: { en: item.league.name, ko: leagueNameMap[item.league.id] || item.league.name },
         home: { en: hName, ko: teamNameMap[hName] || hName },
         away: { en: aName, ko: teamNameMap[aName] || aName },
