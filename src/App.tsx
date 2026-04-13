@@ -303,7 +303,11 @@ function MatchDetail({ match, onBack, lang }: { match: any, onBack: () => void, 
             <div className="grid grid-cols-3 gap-3 text-center">
               <div className="flex flex-col items-center p-4 bg-red-50 rounded-2xl border border-red-100">
                 <span className="text-[10px] font-bold text-red-400 mb-1">{dict.winShort}</span>
-                <div className="flex items-center gap-1"><ChevronDown className="w-4 h-4 text-red-500" strokeWidth={3}/><span className="text-lg font-black text-red-500">{match.odds.home}</span></div>
+                <div className="flex items-center gap-1">
+                  {match.oddsTrend?.home === 'down' && <ChevronDown className="w-4 h-4 text-red-500" strokeWidth={3}/>}
+                  {match.oddsTrend?.home === 'up' && <ChevronUp className="w-4 h-4 text-red-500" strokeWidth={3}/>}
+                  <span className="text-lg font-black text-red-500">{match.odds.home}</span>
+                </div>
               </div>
               <div className="flex flex-col items-center p-4 bg-slate-50 rounded-2xl border border-slate-100">
                 <span className="text-[10px] font-bold text-slate-400 mb-1">{dict.drawShort}</span>
@@ -311,7 +315,11 @@ function MatchDetail({ match, onBack, lang }: { match: any, onBack: () => void, 
               </div>
               <div className="flex flex-col items-center p-4 bg-blue-50 rounded-2xl border border-blue-100">
                 <span className="text-[10px] font-bold text-blue-400 mb-1">{dict.loseShort}</span>
-                <div className="flex items-center gap-1"><ChevronUp className="w-4 h-4 text-blue-600" strokeWidth={3}/><span className="text-lg font-black text-blue-600">{match.odds.away}</span></div>
+                <div className="flex items-center gap-1">
+                  {match.oddsTrend?.away === 'down' && <ChevronDown className="w-4 h-4 text-blue-600" strokeWidth={3}/>}
+                  {match.oddsTrend?.away === 'up' && <ChevronUp className="w-4 h-4 text-blue-600" strokeWidth={3}/>}
+                  <span className="text-lg font-black text-blue-600">{match.odds.away}</span>
+                </div>
               </div>
             </div>
           ) : (
@@ -418,8 +426,29 @@ export default function App() {
       const res = await fetch(`/api/matches?date=${dateStr}`);
       const json = await res.json();
       const fetchedMatches = json.matches || [];
-      setMatches(fetchedMatches);
-      setMatchCache(prev => ({ ...prev, [dateStr]: fetchedMatches }));
+      
+      // 🔥 진짜 배당 추적 로직 (과거 데이터와 비교)
+      setMatches(prevMatches => {
+        const updatedMatches = fetchedMatches.map((newMatch: any) => {
+          const oldMatch = prevMatches.find((m: any) => m.id === newMatch.id);
+          let trend = oldMatch?.oddsTrend || { home: null, away: null };
+          
+          if (oldMatch?.odds && newMatch.odds) {
+            const oldHome = parseFloat(oldMatch.odds.home);
+            const newHome = parseFloat(newMatch.odds.home);
+            if (newHome < oldHome) trend.home = 'down';
+            else if (newHome > oldHome) trend.home = 'up';
+
+            const oldAway = parseFloat(oldMatch.odds.away);
+            const newAway = parseFloat(newMatch.odds.away);
+            if (newAway < oldAway) trend.away = 'down';
+            else if (newAway > oldAway) trend.away = 'up';
+          }
+          return { ...newMatch, oddsTrend: trend };
+        });
+        setMatchCache(prev => ({ ...prev, [dateStr]: updatedMatches }));
+        return updatedMatches;
+      });
     } catch (e) {
       console.error(e);
     } finally {
@@ -435,8 +464,29 @@ export default function App() {
         const res = await fetch(`/api/matches?date=${dateStr}`);
         const json = await res.json();
         const fetchedMatches = json.matches || [];
-        setMatches(fetchedMatches);
-        setMatchCache(prev => ({ ...prev, [dateStr]: fetchedMatches }));
+        
+        // 🔥 스텔스 모드 진짜 배당 추적 로직
+        setMatches(prevMatches => {
+          const updatedMatches = fetchedMatches.map((newMatch: any) => {
+            const oldMatch = prevMatches.find((m: any) => m.id === newMatch.id);
+            let trend = oldMatch?.oddsTrend || { home: null, away: null };
+            
+            if (oldMatch?.odds && newMatch.odds) {
+              const oldHome = parseFloat(oldMatch.odds.home);
+              const newHome = parseFloat(newMatch.odds.home);
+              if (newHome < oldHome) trend.home = 'down';
+              else if (newHome > oldHome) trend.home = 'up';
+
+              const oldAway = parseFloat(oldMatch.odds.away);
+              const newAway = parseFloat(newMatch.odds.away);
+              if (newAway < oldAway) trend.away = 'down';
+              else if (newAway > oldAway) trend.away = 'up';
+            }
+            return { ...newMatch, oddsTrend: trend };
+          });
+          setMatchCache(prev => ({ ...prev, [dateStr]: updatedMatches }));
+          return updatedMatches;
+        });
       } catch (e) { 
       } finally {
         if (!isStealthMode) setIsLoading(false); 
@@ -527,7 +577,6 @@ export default function App() {
           ></div>
         </div>
 
-        {/* 🔥 [글로벌] 4버튼 조종실로 개조! (언어 선택 버튼 추가) */}
         <div className="w-full max-w-4xl px-4 mt-8 grid grid-cols-4 gap-2 items-center">
           
           <button 
