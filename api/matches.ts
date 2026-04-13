@@ -49,7 +49,7 @@ const teamNameMap: { [key: string]: string } = {
   "Tondela": "톤델라", "Torreense": "토렌세", "Benfica B": "벤피카 B", "Mafra": "마프라", "Porto B": "포르투 B", "Leixoes": "레이숑이스 (레이소에스)", "Alverca": "알베르카", "Feirense": "페이렌세", "Academico Viseu": "아카데미코 비제우",
   "Penafiel": "페나피엘", "Felgueiras": "펠게이라스", "Oliveirense": "올리베이렌세", "Leiria": "레이리아", "Galatasaray": "갈라타사라이", "Fenerbahce": "페네르바흐체", "Beşiktaş": "베식타시", "Trabzonspor": "트라브존스포르",
   "Basaksehir": "바샥셰히르", "Kasimpasa": "카슴파샤", "Alanyaspor": "알라니아스포르", "Antalyaspor": "안탈리아스포르", "Sivasspor": "시바스스포르", "Rizespor": "리제스포르", "Konyaspor": "코냐스포르",
-  "Gaziantep FK": "가지안테프 FK", "Göztepe": "괴즈테페", "Eyupspor": "에위프스포르", "Samsunspor": "삼순스포르", "Bodrumspor": "보드룸스포르", "Hatayspor": "하타이스포르", "Kayserispor": "카이세리스포르", "Ankaragucu": "앙카라귀쥐",
+  "Gaziantep FK": "가지안테프 FK", "Göztepe": "괴즈테페", "Eyüpspor": "에위프스포르", "Samsunspor": "삼순스포르", "Bodrumspor": "보드룸스포르", "Hatayspor": "하타이스포르", "Kayserispor": "카이세리스포르", "Ankaragucu": "앙카라귀쥐",
   "Pendikspor": "펜디크스포르", "Karagumruk": "카라귐뤼크", "Istanbulspor": "이스탄불스포르", "Corum FK": "초룸 FK", "Kocaelispor": "코자엘리스포르", "Sakaryaspor": "사카리아스포르", "Genclerbirligi": "겐츨레르비를리이",
   "Boluspor": "볼루스포르", "Bandirmaspor": "반드르마스포르", "Erzurumspor": "에르주룸스포르", "Manisa F.K.": "마니사 FK", "Ümraniyespor": "움라니예스포르", "Keçiörengücü": "케치외렌귀쥐", "Iğdır FK": "이그디르 FK",
   "Esenler Erokspor": "에센레르 에록스포르", "Amed SK": "아메드 SK", "Sanliurfaspor": "샨리우르파스포르", "PAOK": "PAOK (파오크)", "AEK Athens": "AEK 아테네", "Olympiacos": "올림피아코스",
@@ -160,7 +160,7 @@ const teamNameMap: { [key: string]: string } = {
   "Sevlievo": "세블리에보", "Spartak Pleven": "스파르탁 플레벤", "Chernomorets 1919 Burgas": "체르노모레츠 부르가스", "Pirin Blagoevgrad": "피린 블라고에브그라드", "Montana": "몬타나", "Cherno More Varna": "체르노 모레 바르나",
   "Belasitsa": "벨라시차", "Fratria": "프라트리아", "Lokomotiv G. Oryahovitsa": "로코모티브 고르나 오랴호비차", "Dobrudzha": "도브루자", "Botev Vratsa": "보테프 브라차", "Ludogorets II": "루도고레츠 2군", "FK Minyor Pernik": "미뇨르 페르니크",
   "Sportist Svoge": "스포르티스트 스보게", "CSKA Sofia II": "CSKA 소피아 2군", "Marek": "마레크", "Vihren": "비흐렌", "Zawisza Bydgoszcz": "자비샤 비드고슈치", "Miedz Legnica": "미에츠 레그니차", "Polonia Bytom": "폴로니아 비톰",
-  "Arka Gdynia": "아르카 그디니아", "Chrobry Głogów": "크로브리 그워구프", "Ruch Chorzów": "루흐 호주프", "Pogon Grodzisk Mazowiecki": "포곤 그로지스크 마조비에츠키", "Korona Kielce": "코로나 키엘체", "Wisla Plock": "비스와 프워츠크",
+  "Arka Gdynia": "아르카 그디니아", "Chrobry Głogów": "크로브리 그워구프", "Ruch Chorzów": "루흐 호주프", "Pogoń Grod. Mazowiecki": "포곤 그로지스크 마조비에츠키", "Korona Kielce": "코로나 키엘체", "Wisla Plock": "비스와 프워츠크",
   "Polonia Warszawa": "폴로니아 바르샤바", "Jong PSV": "용 PSV", "FC Volendam": "FC 폴렌담", "Schwarz-Weiß Bregenz": "슈바르츠바이스 브레겐츠", "Sturm Graz II": "슈투름 그라츠 2군", "SKN ST. Polten": "장크트 푈텐",
   "Austria Klagenfurt": "아우스트리아 클라겐푸르트", "Admira Wacker": "아드미라 바커", "Stripfing": "슈트리핑", "SKU Amstetten": "암슈테텐", "Rapid Wien II": "라피드 빈 2군", "WSPG Wels": "벨스", "SV Kapfenberg": "카펜베르크",
   "Red Bull Salzburg": "잘츠부르크", "LASK Linz": "LASK 린츠", "Çorum FK": "초룸 FK", "Bodrum FK": "보드룸 FK", "İnegölspor": "이네골스포르", "Elazığspor": "엘라즈으스포르", "Serik Spor": "세리크스포르", "Vanspor FK": "반스포르",
@@ -260,7 +260,12 @@ const teamNameMap: { [key: string]: string } = {
   "Gimnasia Jujuy": "힘나시아 후후이", "Deportivo Madryn": "데포르티보 마드린", "Almirante Brown": "알미란테 브라운", "Central Norte": "센트랄 노르테", "Atletico Mitre": "아틀레티코 미트레", "Chaco For Ever": "차코 포에버",
   "All Boys": "올 보이스", "Club Atlético Güemes": "클루브 아틀레티코 구에메스", "Tigre": "티그레", "Birmingham Legion": "버밍엄 리전", "Pittsburgh Riverhounds": "피츠버그 리버하운즈", "America Mineiro": "아메리카 미네이루",
   "Novorizontino": "노보리존치노", "Operario-PR": "오페라리오", "RB Bragantino": "브라간치노", "Deportivo Maipu": "데포르티보 마이푸", "Colegiales": "콜레히알레스", "São Bernardo": "상 베르나르두", "Fortaleza EC": "포르탈레자",
-  "Mineros de Zacatecas": "미네로스 데 사카테카스", "Correcaminos Uat": "코레카미노스", "Londrina": "론드리나", "Etar Veliko Tarnovo": "에타르 벨리코 타르노보", "Dunav Ruse": "두나브 루세"
+  "Mineros de Zacatecas": "미네로스 데 사카테카스", "Correcaminos Uat": "코레카미노스", "Londrina": "론드리나", "Etar Veliko Tarnovo": "에타르 벨리코 타르노보", "Dunav Ruse": "두나브 루세", "Eyüpspor": "에윱스포르",
+  "Lusitânia Lourosa": "루지타니아 루로사", "Raufoss": "라우포스", "FC Fredericia": "프레데리시아", "Kisvarda FC": "키슈바르다", "Debreceni VSC": "데브레체니", "FC OSS": "오스", "Jong PSV U21": "용 PSV",
+  "Estac Troyes": "트루아", "GIL Vicente": "질 비센테", "Atletico DE Rafaela": "아틀레티코 라파엘라", "Central Cordoba de Santiago": "센트랄 코르도바", "San Martin S.J.": "산 마르틴 SJ", "Tractor Sazi": "트락토르 사지",
+  "Shabab Al Ahli Dubai": "샤밥 알 아흘리", "ŁKS Łódź": "우치", "Pogoń Grod. Mazowiecki": "포곤 그로지스크 마조비에츠키",  "Westchester SC": "웨스트체스터", "Colorado Springs": "콜로라도 스프링스", "Union Omaha": "유니언 오마하",
+  "O'Connor Knights": "오코너 나이츠", "Naples": "나폴리", "Charlotte Independence": "샬럿 인디펜던스", "Chattanooga": "채터누가", "One Knoxville": "원 녹스빌", "Richmond Kickers": "리치먼드 키커스"  
+
 };
 
 // ==========================
