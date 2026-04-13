@@ -64,7 +64,7 @@ const t = {
     coach: "감독",
     startingXI: "선발 라인업",
     predictionDisclaimer: "* 예상 스코어는 경기 시작 전까지 해외 배당 흐름에 따라 실시간으로 변동될 수 있습니다.",
-    listDisclaimer: "현재 표시되는 점수는 예상 스코어 입니다." // 🔥 안내 문구 추가
+    listDisclaimer: "현재 표시되는 점수는 예상 스코어 입니다."
   },
   en: {
     liveMatches: "No live matches at the moment.",
@@ -102,8 +102,47 @@ const t = {
     coach: "Coach",
     startingXI: "Starting XI",
     predictionDisclaimer: "* Expected scores may fluctuate in real-time based on global odds trends before kickoff.",
-    listDisclaimer: "The scores currently displayed are predicted scores." // 🔥 안내 문구 추가
+    listDisclaimer: "The scores currently displayed are predicted scores."
   }
+};
+
+// 🔥 [핵심 마법] 브라우저 비밀 수첩(LocalStorage)을 활용한 배당 추적 함수!
+const processMatchesWithTrends = (fetchedMatches: any[], dateStr: string) => {
+  const storageKey = `scoredLab_odds_${dateStr}`;
+  const storedData = localStorage.getItem(storageKey);
+  let oldMatches: any[] = [];
+  
+  if (storedData) {
+    try { oldMatches = JSON.parse(storedData); } catch (e) {}
+  }
+
+  const updatedMatches = fetchedMatches.map(newMatch => {
+    const oldMatch = oldMatches.find(m => m.id === newMatch.id);
+    
+    // 이전 화살표 방향을 그대로 물려받습니다. (변화가 없어도 화살표 유지!)
+    let trend = oldMatch?.oddsTrend || { home: null, away: null };
+
+    if (oldMatch?.odds && newMatch.odds) {
+      const oldHome = parseFloat(oldMatch.odds.home);
+      const newHome = parseFloat(newMatch.odds.home);
+      
+      // 숫자가 변했을 때만 화살표 방향을 새로 갱신합니다.
+      if (newHome < oldHome) trend.home = 'down';
+      else if (newHome > oldHome) trend.home = 'up';
+
+      const oldAway = parseFloat(oldMatch.odds.away);
+      const newAway = parseFloat(newMatch.odds.away);
+      
+      if (newAway < oldAway) trend.away = 'down';
+      else if (newAway > oldAway) trend.away = 'up';
+    }
+
+    return { ...newMatch, oddsTrend: trend };
+  });
+
+  // 갱신된 데이터를 다시 비밀 수첩에 안전하게 적어둡니다. (새로고침 방어!)
+  localStorage.setItem(storageKey, JSON.stringify(updatedMatches));
+  return updatedMatches;
 };
 
 function MatchDetail({ match, onBack, lang }: { match: any, onBack: () => void, lang: 'ko' | 'en' }) {
@@ -442,29 +481,12 @@ export default function App() {
     try {
       const res = await fetch(`/api/matches?date=${dateStr}`);
       const json = await res.json();
-      const fetchedMatches = json.matches || [];
       
-      setMatches(prevMatches => {
-        const updatedMatches = fetchedMatches.map((newMatch: any) => {
-          const oldMatch = prevMatches.find((m: any) => m.id === newMatch.id);
-          let trend = oldMatch?.oddsTrend || { home: null, away: null };
-          
-          if (oldMatch?.odds && newMatch.odds) {
-            const oldHome = parseFloat(oldMatch.odds.home);
-            const newHome = parseFloat(newMatch.odds.home);
-            if (newHome < oldHome) trend.home = 'down';
-            else if (newHome > oldHome) trend.home = 'up';
-
-            const oldAway = parseFloat(oldMatch.odds.away);
-            const newAway = parseFloat(newMatch.odds.away);
-            if (newAway < oldAway) trend.away = 'down';
-            else if (newAway > oldAway) trend.away = 'up';
-          }
-          return { ...newMatch, oddsTrend: trend };
-        });
-        setMatchCache(prev => ({ ...prev, [dateStr]: updatedMatches }));
-        return updatedMatches;
-      });
+      // 🔥 서버에서 가져온 새 데이터를 '비밀 수첩' 함수에 통과시킵니다.
+      const updatedMatches = processMatchesWithTrends(json.matches || [], dateStr);
+      
+      setMatches(updatedMatches);
+      setMatchCache(prev => ({ ...prev, [dateStr]: updatedMatches }));
     } catch (e) {
       console.error(e);
     } finally {
@@ -479,29 +501,12 @@ export default function App() {
       try {
         const res = await fetch(`/api/matches?date=${dateStr}`);
         const json = await res.json();
-        const fetchedMatches = json.matches || [];
         
-        setMatches(prevMatches => {
-          const updatedMatches = fetchedMatches.map((newMatch: any) => {
-            const oldMatch = prevMatches.find((m: any) => m.id === newMatch.id);
-            let trend = oldMatch?.oddsTrend || { home: null, away: null };
-            
-            if (oldMatch?.odds && newMatch.odds) {
-              const oldHome = parseFloat(oldMatch.odds.home);
-              const newHome = parseFloat(newMatch.odds.home);
-              if (newHome < oldHome) trend.home = 'down';
-              else if (newHome > oldHome) trend.home = 'up';
-
-              const oldAway = parseFloat(oldMatch.odds.away);
-              const newAway = parseFloat(newMatch.odds.away);
-              if (newAway < oldAway) trend.away = 'down';
-              else if (newAway > oldAway) trend.away = 'up';
-            }
-            return { ...newMatch, oddsTrend: trend };
-          });
-          setMatchCache(prev => ({ ...prev, [dateStr]: updatedMatches }));
-          return updatedMatches;
-        });
+        // 🔥 자동 갱신 시에도 '비밀 수첩' 함수를 통해 화살표를 유지/갱신합니다.
+        const updatedMatches = processMatchesWithTrends(json.matches || [], dateStr);
+        
+        setMatches(updatedMatches);
+        setMatchCache(prev => ({ ...prev, [dateStr]: updatedMatches }));
       } catch (e) { 
       } finally {
         if (!isStealthMode) setIsLoading(false); 
@@ -708,7 +713,6 @@ export default function App() {
 
       <main className="max-w-4xl mx-auto px-4 mt-6">
         
-        {/* 🔥 [신규] 리스트 뷰 안내 문구 (LIST 버튼이 활성화되었을 때만 나타남) */}
         {isListView && !isLoading && displayedMatches.length > 0 && (
           <div className="bg-slate-800 text-white text-xs font-bold text-center py-3 rounded-2xl mb-4 shadow-sm animate-in fade-in">
             💡 {dict.listDisclaimer}
@@ -777,7 +781,6 @@ export default function App() {
               const homePredBoxClass = isPredDraw ? predDrawBoxClass : isHomePredWin ? predWinBoxClass : predLoseBoxClass;
               const awayPredBoxClass = isPredDraw ? predDrawBoxClass : isAwayPredWin ? predWinBoxClass : predLoseBoxClass;
 
-              // 🔥 [디자인 변경 완료] 요약 보기 (List View) 모드일 때
               if (isListView) {
                 return (
                   <div key={match.id} onClick={() => goToMatch(match)}
@@ -785,7 +788,6 @@ export default function App() {
                          isLive ? 'bg-rose-50/40 border-rose-100' : 'bg-white border-slate-100'
                        }`}>
                     
-                    {/* 1. 대회명 (왼쪽) */}
                     <div className="w-14 md:w-20 shrink-0 flex flex-col justify-center pr-2 border-r border-slate-100">
                        {PROTO_LEAGUES.includes(match.leagueId) && (
                           <span className="bg-[#0f3460] text-white text-[7px] font-black px-1 py-0.5 rounded-sm w-max tracking-wider mb-1 shadow-sm">PROTO</span>
@@ -793,13 +795,11 @@ export default function App() {
                        <span className={`text-[9px] font-black uppercase truncate ${isLive ? 'text-rose-500' : 'text-[#56ad6a]'}`}>{match.league[lang]}</span>
                     </div>
 
-                    {/* 2. 중앙 메인 영역: 홈팀 - 예상스코어 - 원정팀 */}
                     <div className="flex flex-1 items-center justify-center gap-3 md:gap-6 px-2 md:px-4 overflow-hidden">
                        <div className={`flex-1 text-right text-xs md:text-sm truncate ${homeListNameClass}`}>
                           {match.home[lang]}
                        </div>
                        
-                       {/* 🔥 예상 스코어 (메인 카드와 완벽하게 동일한 승/무/패 컬러 박스 스타일 적용!) */}
                        <div className="shrink-0 flex items-center gap-2 md:gap-3 text-base md:text-lg">
                           <div className={`w-8 h-8 md:w-10 md:h-10 rounded-xl flex items-center justify-center border transition-colors duration-300 ${homePredBoxClass}`}>{hExp}</div>
                           <span className="text-slate-300 font-bold text-xs md:text-sm">:</span>
@@ -811,7 +811,6 @@ export default function App() {
                        </div>
                     </div>
 
-                    {/* 3. 경기 시각 및 상태 (오른쪽) */}
                     <div className="w-12 md:w-16 shrink-0 flex flex-col items-end pl-2 border-l border-slate-100">
                        {match.status !== 'NS' ? (
                           <span className="text-[10px] font-black text-orange-500">{centerStatus}</span>
@@ -823,7 +822,6 @@ export default function App() {
                 );
               }
 
-              // 기존의 상세 카드 보기 (Card View) 모드일 때
               return (
                 <div key={match.id} onClick={() => goToMatch(match)}
                      className={`rounded-[24px] border shadow-sm overflow-hidden relative cursor-pointer transition-all hover:scale-[1.005] duration-300 ${
