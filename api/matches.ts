@@ -317,7 +317,7 @@ let lineupsCache: { [fixtureId: number]: { timestamp: number, data: any[] } } = 
 
 const FIXTURES_CACHE_TTL = 1 * 60 * 1000;
 const CACHE_TTL = 60 * 60 * 1000; 
-const ODDS_CACHE_TTL = 2 * 60 * 60 * 1000;
+const ODDS_CACHE_TTL = 5 * 60 * 1000; // 🔥 배당 갱신 주기를 2시간에서 5분으로 단축!
 const STANDINGS_CACHE_TTL = 6 * 60 * 60 * 1000; 
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
