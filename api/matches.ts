@@ -533,7 +533,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const leagueKey = `${item.league.id}-${item.league.season}`;
       
       const pastMatches = predictionCache[leagueKey]?.data || [];
-      const validPastMatches = pastMatches.filter((m: any) => m.fixture.id !== item.fixture.id);
+      // 🔥 타임머신 완벽 차단 (박제 로직): 무조건 '이 경기 시작 시간'보다 과거에 끝난 경기만 폼 계산에 포함!
+      const validPastMatches = pastMatches.filter((m: any) => 
+        m.fixture.id !== item.fixture.id && 
+        m.fixture.timestamp < item.fixture.timestamp
+      );
       const leagueAvgGoals = leagueAvgMap[leagueKey] || 1.3;
 
       const rawEvents = eventsCache[item.fixture.id]?.data || [];
