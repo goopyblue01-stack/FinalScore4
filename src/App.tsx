@@ -63,7 +63,8 @@ const t = {
     lineups: "선발 명단",
     coach: "감독",
     startingXI: "선발 라인업",
-    predictionDisclaimer: "* 예상 스코어는 경기 시작 전까지 해외 배당 흐름에 따라 실시간으로 변동될 수 있습니다."
+    predictionDisclaimer: "* 예상 스코어는 경기 시작 전까지 해외 배당 흐름에 따라 실시간으로 변동될 수 있습니다.",
+    listDisclaimer: "현재 표시되는 점수는 예상 스코어 입니다." // 🔥 안내 문구 추가
   },
   en: {
     liveMatches: "No live matches at the moment.",
@@ -100,7 +101,8 @@ const t = {
     lineups: "Lineups",
     coach: "Coach",
     startingXI: "Starting XI",
-    predictionDisclaimer: "* Expected scores may fluctuate in real-time based on global odds trends before kickoff."
+    predictionDisclaimer: "* Expected scores may fluctuate in real-time based on global odds trends before kickoff.",
+    listDisclaimer: "The scores currently displayed are predicted scores." // 🔥 안내 문구 추가
   }
 };
 
@@ -401,8 +403,6 @@ export default function App() {
   const [showStep2, setShowStep2] = useState(false);
 
   const [isLiveMode, setIsLiveMode] = useState(false);
-  
-  // 🔥 [새로운 기능] 요약 보기(List View) 토글 상태
   const [isListView, setIsListView] = useState(false);
 
   const [lang, setLang] = useState<'ko' | 'en'>('ko');
@@ -591,7 +591,6 @@ export default function App() {
           ></div>
         </div>
 
-        {/* 🔥 5버튼 조종실로 업그레이드! (LIST 버튼 추가) */}
         <div className="w-full max-w-4xl px-4 mt-8 grid grid-cols-5 gap-1.5 md:gap-2 items-center">
           
           <button 
@@ -604,7 +603,6 @@ export default function App() {
             LIVE
           </button>
 
-          {/* 🔥 [신규 기능] 요약 보기 버튼 */}
           <button 
             onClick={() => setIsListView(!isListView)} 
             className={`h-11 flex flex-row items-center justify-center gap-1.5 rounded-xl font-bold text-xs md:text-sm transition-all shadow-sm border ${
@@ -709,6 +707,14 @@ export default function App() {
       </nav>
 
       <main className="max-w-4xl mx-auto px-4 mt-6">
+        
+        {/* 🔥 [신규] 리스트 뷰 안내 문구 (LIST 버튼이 활성화되었을 때만 나타남) */}
+        {isListView && !isLoading && displayedMatches.length > 0 && (
+          <div className="bg-slate-800 text-white text-xs font-bold text-center py-3 rounded-2xl mb-4 shadow-sm animate-in fade-in">
+            💡 {dict.listDisclaimer}
+          </div>
+        )}
+
         {isLoading ? (
           <div className="space-y-3">
             {[1, 2, 3, 4].map((n) => (
@@ -771,7 +777,7 @@ export default function App() {
               const homePredBoxClass = isPredDraw ? predDrawBoxClass : isHomePredWin ? predWinBoxClass : predLoseBoxClass;
               const awayPredBoxClass = isPredDraw ? predDrawBoxClass : isAwayPredWin ? predWinBoxClass : predLoseBoxClass;
 
-              // 🔥 [신규 기능] 요약 보기 (List View) 모드일 때
+              // 🔥 [디자인 변경 완료] 요약 보기 (List View) 모드일 때
               if (isListView) {
                 return (
                   <div key={match.id} onClick={() => goToMatch(match)}
@@ -788,17 +794,19 @@ export default function App() {
                     </div>
 
                     {/* 2. 중앙 메인 영역: 홈팀 - 예상스코어 - 원정팀 */}
-                    <div className="flex flex-1 items-center justify-center gap-2 md:gap-4 px-2 md:px-4 overflow-hidden">
-                       <div className={`flex-1 text-right text-[11px] md:text-sm truncate ${homeListNameClass}`}>
+                    <div className="flex flex-1 items-center justify-center gap-3 md:gap-6 px-2 md:px-4 overflow-hidden">
+                       <div className={`flex-1 text-right text-xs md:text-sm truncate ${homeListNameClass}`}>
                           {match.home[lang]}
                        </div>
                        
-                       {/* 🔥 예상 스코어 부각 (가운데 전광판 스타일) */}
-                       <div className="shrink-0 bg-slate-800 text-[#84cc16] px-3 py-1.5 md:px-4 md:py-2 rounded-xl font-black text-sm md:text-lg shadow-inner min-w-[60px] md:min-w-[80px] text-center flex items-center justify-center">
-                          {hExp} <span className="text-slate-400 mx-1 text-xs md:text-sm">:</span> {aExp}
+                       {/* 🔥 예상 스코어 (메인 카드와 완벽하게 동일한 승/무/패 컬러 박스 스타일 적용!) */}
+                       <div className="shrink-0 flex items-center gap-2 md:gap-3 text-base md:text-lg">
+                          <div className={`w-8 h-8 md:w-10 md:h-10 rounded-xl flex items-center justify-center border transition-colors duration-300 ${homePredBoxClass}`}>{hExp}</div>
+                          <span className="text-slate-300 font-bold text-xs md:text-sm">:</span>
+                          <div className={`w-8 h-8 md:w-10 md:h-10 rounded-xl flex items-center justify-center border transition-colors duration-300 ${awayPredBoxClass}`}>{aExp}</div>
                        </div>
 
-                       <div className={`flex-1 text-left text-[11px] md:text-sm truncate ${awayListNameClass}`}>
+                       <div className={`flex-1 text-left text-xs md:text-sm truncate ${awayListNameClass}`}>
                           {match.away[lang]}
                        </div>
                     </div>
@@ -808,7 +816,6 @@ export default function App() {
                        {match.status !== 'NS' ? (
                           <span className="text-[10px] font-black text-orange-500">{centerStatus}</span>
                        ) : (
-                          // 시각 문자열에서 마지막 04:00 부분만 잘라서 깔끔하게 노출
                           <span className="text-[10px] font-bold text-slate-400">{match.time[lang].split(' ').pop()}</span>
                        )}
                     </div>
