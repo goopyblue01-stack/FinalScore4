@@ -30,14 +30,10 @@ const t = {
     predictionDisclaimer: "* 예상 스코어는 경기 시작 전까지 해외 배당 흐름에 따라 실시간으로 변동될 수 있습니다.",
     listDisclaimer: "현재 표시되는 점수는 예상 스코어 입니다.",
     oddsHistoryTitle: "과거 배당 변동 내역", oddsHistoryDesc: "위쪽이 최신입니다",
-    
-    // 🔥 [신규 추가] 엄청나게 방대해진 경기 통계 번역!
-    statsTitle: "경기 기록", 
-    statPossession: "볼 점유율 (%)", statShotsTotal: "총 슈팅", statShotsOn: "유효 슈팅",
+    statsTitle: "경기 기록", statPossession: "볼 점유율 (%)", statShotsTotal: "총 슈팅", statShotsOn: "유효 슈팅",
     statShotsOff: "빗나간 슈팅", statShotsBlocked: "막힌 슈팅", statShotsInside: "박스 안 슈팅", statShotsOutside: "박스 밖 슈팅",
     statPassesTotal: "패스 횟수", statPassesAccurate: "패스 성공", statPassesPct: "패스 성공률 (%)",
-    statOffsides: "오프사이드", statSaves: "골키퍼 선방",
-    statFouls: "파울", statCorners: "코너킥", statYellows: "경고", statReds: "퇴장"
+    statOffsides: "오프사이드", statSaves: "골키퍼 선방", statFouls: "파울", statCorners: "코너킥", statYellows: "경고", statReds: "퇴장"
   },
   en: {
     liveMatches: "No live matches at the moment.", noMatches: "No matches scheduled for this date.",
@@ -55,14 +51,10 @@ const t = {
     predictionDisclaimer: "* Expected scores may fluctuate in real-time based on global odds trends before kickoff.",
     listDisclaimer: "The scores currently displayed are predicted scores.",
     oddsHistoryTitle: "Past Odds History", oddsHistoryDesc: "Top is the latest",
-    
-    // 🔥 [신규 추가] 엄청나게 방대해진 경기 통계 번역!
-    statsTitle: "Match Stats", 
-    statPossession: "Possession (%)", statShotsTotal: "Total Shots", statShotsOn: "Shots on Goal",
+    statsTitle: "Match Stats", statPossession: "Possession (%)", statShotsTotal: "Total Shots", statShotsOn: "Shots on Goal",
     statShotsOff: "Shots off Goal", statShotsBlocked: "Blocked Shots", statShotsInside: "Shots inside box", statShotsOutside: "Shots outside box",
     statPassesTotal: "Total Passes", statPassesAccurate: "Accurate Passes", statPassesPct: "Pass Accuracy (%)",
-    statOffsides: "Offsides", statSaves: "Goalkeeper Saves",
-    statFouls: "Fouls", statCorners: "Corners", statYellows: "Yellow Cards", statReds: "Red Cards"
+    statOffsides: "Offsides", statSaves: "Goalkeeper Saves", statFouls: "Fouls", statCorners: "Corners", statYellows: "Yellow Cards", statReds: "Red Cards"
   }
 };
 
@@ -87,12 +79,11 @@ const processMatchesWithTrends = (fetchedMatches: any[], dateStr: string) => {
   return updatedMatches;
 };
 
-// 🔥 줄다리기 그래프 바 컴포넌트
 const StatBar = ({ label, home, away }: { label: string, home: number, away: number }) => {
+  if (home === undefined || away === undefined) return null; // 🔥 안전장치 추가!
   const total = home + away;
   const homePct = total === 0 ? 50 : (home / total) * 100;
   const awayPct = total === 0 ? 50 : (away / total) * 100;
-  
   const isPercent = label.includes('%');
   const displayLabel = label.replace(' (%)', '');
 
@@ -207,42 +198,39 @@ function MatchDetail({ match, onBack, lang }: { match: any, onBack: () => void, 
           </div>
         </div>
 
-        {/* 🔥 [업그레이드] 엄청나게 방대해진 경기 통계 영역! */}
-        {match.stats && (
+        {/* 🔥 안전장치가 적용된 엄청나게 방대해진 경기 통계! */}
+        {match.stats && match.stats.possession && (
           <div className="bg-white rounded-[24px] p-6 border border-slate-100 shadow-sm mb-6 animate-in fade-in duration-500">
             <div className="flex items-center gap-2 mb-6 text-[#9d4edd] font-bold">
               <BarChart3 className="w-5 h-5" /><span>{dict.statsTitle}</span>
             </div>
             
-            {/* 공격 및 흐름 지표 */}
             <div className="mb-4">
-              <StatBar label={dict.statPossession} home={match.stats.possession.home} away={match.stats.possession.away} />
-              <StatBar label={dict.statShotsTotal} home={match.stats.shotsTotal.home} away={match.stats.shotsTotal.away} />
-              <StatBar label={dict.statShotsOn} home={match.stats.shotsOn.home} away={match.stats.shotsOn.away} />
-              <StatBar label={dict.statShotsOff} home={match.stats.shotsOff.home} away={match.stats.shotsOff.away} />
-              <StatBar label={dict.statShotsBlocked} home={match.stats.shotsBlocked.home} away={match.stats.shotsBlocked.away} />
-              <StatBar label={dict.statShotsInside} home={match.stats.shotsInside.home} away={match.stats.shotsInside.away} />
-              <StatBar label={dict.statShotsOutside} home={match.stats.shotsOutside.home} away={match.stats.shotsOutside.away} />
+              <StatBar label={dict.statPossession} home={match.stats.possession?.home} away={match.stats.possession?.away} />
+              <StatBar label={dict.statShotsTotal} home={match.stats.shotsTotal?.home} away={match.stats.shotsTotal?.away} />
+              <StatBar label={dict.statShotsOn} home={match.stats.shotsOn?.home} away={match.stats.shotsOn?.away} />
+              <StatBar label={dict.statShotsOff} home={match.stats.shotsOff?.home} away={match.stats.shotsOff?.away} />
+              <StatBar label={dict.statShotsBlocked} home={match.stats.shotsBlocked?.home} away={match.stats.shotsBlocked?.away} />
+              <StatBar label={dict.statShotsInside} home={match.stats.shotsInside?.home} away={match.stats.shotsInside?.away} />
+              <StatBar label={dict.statShotsOutside} home={match.stats.shotsOutside?.home} away={match.stats.shotsOutside?.away} />
             </div>
 
-            {/* 패스 지표 */}
             <div className="mb-4 border-t border-slate-50 pt-4">
-              <StatBar label={dict.statPassesTotal} home={match.stats.passesTotal.home} away={match.stats.passesTotal.away} />
-              <StatBar label={dict.statPassesAccurate} home={match.stats.passesAccurate.home} away={match.stats.passesAccurate.away} />
-              <StatBar label={dict.statPassesPct} home={match.stats.passesPct.home} away={match.stats.passesPct.away} />
+              <StatBar label={dict.statPassesTotal} home={match.stats.passesTotal?.home} away={match.stats.passesTotal?.away} />
+              <StatBar label={dict.statPassesAccurate} home={match.stats.passesAccurate?.home} away={match.stats.passesAccurate?.away} />
+              <StatBar label={dict.statPassesPct} home={match.stats.passesPct?.home} away={match.stats.passesPct?.away} />
             </div>
 
-            {/* 세트피스 및 수비/징계 지표 */}
             <div className="border-t border-slate-50 pt-4">
-              <StatBar label={dict.statCorners} home={match.stats.corners.home} away={match.stats.corners.away} />
-              <StatBar label={dict.statOffsides} home={match.stats.offsides.home} away={match.stats.offsides.away} />
-              <StatBar label={dict.statFouls} home={match.stats.fouls.home} away={match.stats.fouls.away} />
-              <StatBar label={dict.statSaves} home={match.stats.saves.home} away={match.stats.saves.away} />
-              {(match.stats.yellows.home > 0 || match.stats.yellows.away > 0) && (
-                <StatBar label={dict.statYellows} home={match.stats.yellows.home} away={match.stats.yellows.away} />
+              <StatBar label={dict.statCorners} home={match.stats.corners?.home} away={match.stats.corners?.away} />
+              <StatBar label={dict.statOffsides} home={match.stats.offsides?.home} away={match.stats.offsides?.away} />
+              <StatBar label={dict.statFouls} home={match.stats.fouls?.home} away={match.stats.fouls?.away} />
+              <StatBar label={dict.statSaves} home={match.stats.saves?.home} away={match.stats.saves?.away} />
+              {(match.stats.yellows?.home > 0 || match.stats.yellows?.away > 0) && (
+                <StatBar label={dict.statYellows} home={match.stats.yellows?.home} away={match.stats.yellows?.away} />
               )}
-              {(match.stats.reds.home > 0 || match.stats.reds.away > 0) && (
-                <StatBar label={dict.statReds} home={match.stats.reds.home} away={match.stats.reds.away} />
+              {(match.stats.reds?.home > 0 || match.stats.reds?.away > 0) && (
+                <StatBar label={dict.statReds} home={match.stats.reds?.home} away={match.stats.reds?.away} />
               )}
             </div>
           </div>
@@ -509,110 +497,4 @@ export default function App() {
       <header className="bg-white pt-10 pb-6 flex flex-col items-center border-b border-slate-100 shadow-sm relative">
         <div className="flex flex-col items-center cursor-pointer hover:opacity-80 transition-opacity" onClick={goHome}>
           <h1 className="text-5xl md:text-6xl font-black tracking-tighter italic leading-none"><span className="text-[#0f3460]">Scored</span><span className="text-[#84cc16]">Lab</span></h1>
-          <div className="w-16 h-1.5 mt-2 rounded-full" style={{ background: 'linear-gradient(to right, #0f3460, #84cc16)' }}></div>
-        </div>
-        <div className="w-full max-w-4xl px-4 mt-8 grid grid-cols-5 gap-1.5 md:gap-2 items-center">
-          <button onClick={() => setIsLiveMode(!isLiveMode)} className={`h-11 flex flex-row items-center justify-center gap-1.5 rounded-xl font-black text-xs md:text-sm transition-all shadow-sm border ${isLiveMode ? 'bg-[#56ad6a] border-[#56ad6a] text-white shadow-md shadow-green-500/20' : 'bg-white border-slate-100 text-slate-400 hover:bg-slate-50'}`}><Circle className={`w-3 h-3 md:w-3.5 md:h-3.5 ${isLiveMode ? 'fill-white text-white' : 'fill-slate-300 text-slate-300'}`} />LIVE</button>
-          <button onClick={() => setIsListView(!isListView)} className={`h-11 flex flex-row items-center justify-center gap-1.5 rounded-xl font-bold text-xs md:text-sm transition-all shadow-sm border ${isListView ? 'bg-slate-800 border-slate-800 text-white shadow-md shadow-slate-500/20' : 'bg-white border-slate-100 text-slate-600 hover:bg-slate-50'}`}><LayoutList className={`w-4 h-4 ${isListView ? 'text-white' : 'text-slate-500'}`} />{isListView ? 'CARD' : 'LIST'}</button>
-          <button onClick={() => setLang(lang === 'ko' ? 'en' : 'ko')} className="h-11 flex items-center justify-center gap-1.5 rounded-xl bg-white border border-slate-100 transition-all shadow-sm hover:bg-slate-50 font-bold text-xs text-slate-600"><Globe className="w-4 h-4 text-[#0f3460]" />{lang === 'ko' ? 'ENG' : 'KOR'}</button>
-          <button onClick={() => { setShowBookmarkModal(true); setShowStep2(false); }} className="h-11 flex items-center justify-center rounded-xl bg-white border border-slate-100 transition-all shadow-sm hover:bg-slate-50"><Star className="w-5 h-5 text-yellow-400 fill-yellow-400" /></button>
-          <button onClick={handleRefresh} className={`h-11 flex items-center justify-center rounded-xl bg-white border border-slate-100 transition-all shadow-sm hover:bg-slate-50 ${isRefreshing ? 'opacity-70 scale-95' : 'active:scale-95'}`}><RefreshCw className={`w-5 h-5 text-[#56ad6a] ${isRefreshing ? 'animate-spin' : ''}`} /></button>
-        </div>
-      </header>
-
-      <nav className="bg-white border-b border-slate-100 py-4 px-4 sticky top-0 z-20 shadow-sm">
-        <div className="max-w-4xl mx-auto flex justify-between gap-2">
-          {dates.map((date, idx) => (
-             <button key={idx} onClick={() => handleDateClick(idx)} className={`flex-1 h-12 rounded-xl flex flex-col items-center justify-center transition-all ${selectedDateIdx === idx ? 'bg-[#56ad6a] text-white shadow-md' : 'bg-slate-50 text-slate-400'}`}><span className="text-sm font-bold">{lang === 'ko' ? date.dayKo : date.dayEn}</span><span className="text-[9px]">{lang === 'ko' ? date.labelKo : date.labelEn}</span></button>
-          ))}
-        </div>
-      </nav>
-
-      <main className="max-w-4xl mx-auto px-4 mt-6">
-        {isListView && !isLoading && displayedMatches.length > 0 && <div className="bg-slate-800 text-white text-xs font-bold text-center py-3 rounded-2xl mb-4 shadow-sm animate-in fade-in">💡 {dict.listDisclaimer}</div>}
-        {isLoading ? (
-          <div className="space-y-3">{[1, 2, 3, 4].map((n) => (<div key={n} className="rounded-[24px] border border-slate-100 bg-white p-4 shadow-sm animate-pulse"><div className="flex justify-between items-center mb-4"><div className="w-12 h-3 bg-slate-100 rounded"></div><div className="w-16 h-3 bg-slate-100 rounded"></div></div><div className="flex items-center justify-center gap-3 mb-6 pt-2"><div className="flex-1 h-4 bg-slate-100 rounded"></div><div className="w-8 h-8 bg-slate-100 rounded-full"></div><div className="flex-1 h-4 bg-slate-100 rounded"></div></div></div>))}</div>
-        ) : displayedMatches.length === 0 ? (
-          <div className="py-16 text-center bg-white rounded-[24px] border border-slate-100 shadow-sm"><div className="text-4xl mb-3">⚽</div><div className="text-slate-500 font-bold">{isLiveMode ? dict.liveMatches : dict.noMatches}</div><p className="text-[10px] text-slate-300 mt-4 px-6">{dict.apiLimit}</p></div>
-        ) : (
-          <div className="space-y-3">
-            {displayedMatches.map((match: any) => {
-              const isLive = !['NS', 'FT', 'AET', 'PEN', 'CANC', 'ABD', 'PST', 'TBD', 'AWD', 'WO'].includes(match.status);
-              const isHomeWin = match.scoreHome > match.scoreAway || (match.penHome && match.penAway && match.penHome > match.penAway);
-              const isAwayWin = match.scoreAway > match.scoreHome || (match.penHome && match.penAway && match.penAway > match.penHome);
-              const hExp = match.predict.home; const aExp = match.predict.away;
-              const isHomePredWin = hExp > aExp; const isAwayPredWin = aExp > hExp; const isPredDraw = hExp === aExp;
-              
-              let centerStatus = "";
-              if (['FT', 'AET', 'PEN', 'PST', 'TBD', 'CANC'].includes(match.status)) centerStatus = (dict.status as any)[match.status] || match.status;
-              else if (match.status !== 'NS') centerStatus = match.elapsed ? `${match.elapsed}'` : 'LIVE';
-
-              const homeListScoreClass = isHomeWin ? "text-red-500 font-black" : isAwayWin ? "text-slate-400 font-normal" : "text-slate-800 font-bold";
-              const awayListScoreClass = isAwayWin ? "text-red-500 font-black" : isHomeWin ? "text-slate-400 font-normal" : "text-slate-800 font-bold";
-              const homeListNameClass = isHomeWin ? "font-black text-slate-900" : isAwayWin ? "font-medium text-slate-400" : "font-bold text-slate-700";
-              const awayListNameClass = isAwayWin ? "font-black text-slate-900" : isHomeWin ? "font-medium text-slate-400" : "font-bold text-slate-700";
-
-              const predWinBoxClass = "bg-red-50 border-red-100 text-red-500 font-black";
-              const predLoseBoxClass = "bg-slate-50 border-slate-100 text-slate-400 font-normal";
-              const predDrawBoxClass = "bg-slate-200 border-slate-300 text-slate-900 font-bold";
-              const homePredBoxClass = isPredDraw ? predDrawBoxClass : isHomePredWin ? predWinBoxClass : predLoseBoxClass;
-              const awayPredBoxClass = isPredDraw ? predDrawBoxClass : isAwayPredWin ? predWinBoxClass : predLoseBoxClass;
-
-              if (isListView) {
-                return (
-                  <div key={match.id} onClick={() => goToMatch(match)} className={`flex items-center justify-between p-3 mb-2 rounded-2xl border shadow-sm cursor-pointer transition-all hover:scale-[1.01] ${isLive ? 'bg-rose-50/40 border-rose-100' : 'bg-white border-slate-100'}`}>
-                    <div className="w-14 md:w-20 shrink-0 flex flex-col justify-center pr-2 border-r border-slate-100">
-                       {PROTO_LEAGUES.includes(match.leagueId) && <span className="bg-[#0f3460] text-white text-[7px] font-black px-1 py-0.5 rounded-sm w-max tracking-wider mb-1 shadow-sm">PROTO</span>}
-                       <span className={`text-[9px] font-black uppercase truncate ${isLive ? 'text-rose-500' : 'text-[#56ad6a]'}`}>{match.league[lang]}</span>
-                    </div>
-                    <div className="flex flex-1 items-center justify-center gap-3 md:gap-6 px-2 md:px-4 overflow-hidden">
-                       <div className={`flex-1 text-right text-xs md:text-sm truncate ${homeListNameClass}`}>{match.home[lang]}</div>
-                       <div className="shrink-0 flex items-center gap-2 md:gap-3 text-base md:text-lg">
-                          <div className={`w-8 h-8 md:w-10 md:h-10 rounded-xl flex items-center justify-center border transition-colors duration-300 ${homePredBoxClass}`}>{hExp}</div><span className="text-slate-300 font-bold text-xs md:text-sm">:</span><div className={`w-8 h-8 md:w-10 md:h-10 rounded-xl flex items-center justify-center border transition-colors duration-300 ${awayPredBoxClass}`}>{aExp}</div>
-                       </div>
-                       <div className={`flex-1 text-left text-xs md:text-sm truncate ${awayListNameClass}`}>{match.away[lang]}</div>
-                    </div>
-                    <div className="w-12 md:w-16 shrink-0 flex flex-col items-end pl-2 border-l border-slate-100">
-                       {match.status !== 'NS' ? <span className="text-[10px] font-black text-orange-500">{centerStatus}</span> : <span className="text-[10px] font-bold text-slate-400">{match.time[lang].split(' ').pop()}</span>}
-                    </div>
-                  </div>
-                );
-              }
-
-              return (
-                <div key={match.id} onClick={() => goToMatch(match)} className={`rounded-[24px] border shadow-sm overflow-hidden relative cursor-pointer transition-all hover:scale-[1.005] duration-300 ${isLive ? 'bg-rose-50/40 border-rose-100' : 'bg-white border-slate-100'}`}>
-                  <div className="p-3 md:p-4">
-                    <div className="flex justify-between items-center mb-2">
-                      <div className="flex items-center gap-1.5">{PROTO_LEAGUES.includes(match.leagueId) && <span className="bg-[#0f3460] text-white text-[8px] font-black px-1.5 py-0.5 rounded flex items-center justify-center tracking-wider shadow-sm">PROTO</span>}<span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase ${isLive ? 'bg-rose-100/50 text-rose-500' : 'bg-[#e8f8f0] text-[#56ad6a]'}`}>{match.league[lang]}</span></div>
-                      <span className="text-[10px] font-bold text-slate-700">{match.time[lang]}</span>
-                    </div>
-                    <div className="flex items-center justify-center gap-3 mb-3 pt-4">
-                      <div className={`flex-1 text-right text-sm md:text-base truncate ${homeListNameClass}`}>{match.home[lang]}</div>
-                      <div className="relative flex items-center justify-center min-w-[80px]">
-                          {match.status !== 'NS' && <span className="absolute -top-6 text-orange-400 font-medium text-sm tracking-wide">{centerStatus}</span>}
-                          <div className="flex items-center gap-2 text-xl">{match.status === 'NS' ? <span className="text-slate-300 text-sm font-bold mt-1">VS</span> : <><span className={homeListScoreClass}>{match.scoreHome}{match.penHome !== null && <span className="text-xs ml-1 text-orange-500">({match.penHome})</span>}</span><span className="text-slate-300 text-sm font-bold lowercase">vs</span><span className={awayListScoreClass}>{match.penAway !== null && <span className="text-xs mr-1 text-orange-500">({match.penAway})</span>}{match.scoreAway}</span></>}</div>
-                      </div>
-                      <div className={`flex-1 text-left text-sm md:text-base truncate ${awayListNameClass}`}>{match.away[lang]}</div>
-                    </div>
-                    <div className="flex flex-col items-center gap-2">
-                       <span className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">{dict.expectedScore}</span>
-                       <div className="flex items-center gap-3 text-lg"><div className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-colors duration-300 ${homePredBoxClass}`}>{hExp}</div><span className="text-slate-300 font-bold">:</span><div className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-colors duration-300 ${awayPredBoxClass}`}>{aExp}</div></div>
-                    </div>
-                    <div className="mt-4"><div className="h-1.5 flex rounded-full overflow-hidden bg-slate-100/50"><div style={{ width: `${match.probs.home}%` }} className="bg-red-500"></div><div style={{ width: `${match.probs.draw}%` }} className="bg-slate-300"></div><div style={{ width: `${match.probs.away}%` }} className="bg-blue-500"></div></div></div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </main>
-
-      <footer className="mt-12 py-8 text-center flex flex-col items-center justify-center gap-3">
-        <div className="flex gap-4 text-xs text-slate-400 font-medium">
-          <button onClick={() => goToPage('about')} className="hover:text-slate-600 transition-colors">{dict.about}</button><span className="text-slate-200">|</span><button onClick={() => goToPage('terms')} className="hover:text-slate-600 transition-colors">{dict.terms}</button><span className="text-slate-200">|</span><button onClick={() => goToPage('privacy')} className="hover:text-slate-600 transition-colors">{dict.privacy}</button>
-        </div>
-        <p className="text-[10px] text-slate-300">© {new Date().getFullYear()} ScoredLab. All rights reserved.</p>
-      </footer>
-    </div>
-  );
-}
+          <div className="w-16 h-1.
