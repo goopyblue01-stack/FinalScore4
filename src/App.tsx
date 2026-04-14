@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, ArrowRight, TrendingUp, Info, ChevronUp, ChevronDown, Activity, ListOrdered, Star, X, RefreshCw, Circle, Globe, Users, LayoutList } from 'lucide-react';
+import { ArrowLeft, ArrowRight, TrendingUp, Info, ChevronUp, ChevronDown, Activity, ListOrdered, Star, X, RefreshCw, Circle, Globe, Users, LayoutList, History } from 'lucide-react';
 import { format, addDays, startOfToday } from 'date-fns';
 
 import About from './pages/About';
@@ -64,7 +64,9 @@ const t = {
     coach: "감독",
     startingXI: "선발 라인업",
     predictionDisclaimer: "* 예상 스코어는 경기 시작 전까지 해외 배당 흐름에 따라 실시간으로 변동될 수 있습니다.",
-    listDisclaimer: "현재 표시되는 점수는 예상 스코어 입니다."
+    listDisclaimer: "현재 표시되는 점수는 예상 스코어 입니다.",
+    oddsHistoryTitle: "과거 배당 변동 내역", // 🔥 추가된 번역
+    oddsHistoryDesc: "위쪽이 최신입니다"     // 🔥 추가된 번역
   },
   en: {
     liveMatches: "No live matches at the moment.",
@@ -102,53 +104,52 @@ const t = {
     coach: "Coach",
     startingXI: "Starting XI",
     predictionDisclaimer: "* Expected scores may fluctuate in real-time based on global odds trends before kickoff.",
-    listDisclaimer: "The scores currently displayed are predicted scores."
+    listDisclaimer: "The scores currently displayed are predicted scores.",
+    oddsHistoryTitle: "Past Odds History", // 🔥 추가된 번역
+    oddsHistoryDesc: "Top is the latest"   // 🔥 추가된 번역
   }
 };
 
-// 🔥 [핵심 마법] 브라우저 비밀 수첩(LocalStorage)을 활용한 배당 추적 함수!
+// 🔥 [업그레이드된 마법] 배당 '기록장' 구축
 const processMatchesWithTrends = (fetchedMatches: any[], dateStr: string) => {
-  const storageKey = `scoredLab_odds_${dateStr}`;
+  const storageKey = `scoredLab_oddsHistory_${dateStr}`; // 수첩 이름 변경 (배열 저장용)
   const storedData = localStorage.getItem(storageKey);
-  let oldMatches: any[] = [];
+  let oldHistoryMap: { [id: number]: any[] } = {};
   
   if (storedData) {
-    try { oldMatches = JSON.parse(storedData); } catch (e) {}
+    try { oldHistoryMap = JSON.parse(storedData); } catch (e) {}
   }
 
   const updatedMatches = fetchedMatches.map(newMatch => {
-    const oldMatch = oldMatches.find(m => m.id === newMatch.id);
-    
-    // 이전 화살표 방향을 그대로 물려받습니다. (변화가 없어도 화살표 유지!)
-    let trend = oldMatch?.oddsTrend || { home: null, away: null };
+    let history = oldHistoryMap[newMatch.id] || [];
 
-    if (oldMatch?.odds && newMatch.odds) {
-      const oldHome = parseFloat(oldMatch.odds.home);
-      const newHome = parseFloat(newMatch.odds.home);
+    // API에서 배당을 정상적으로 가져왔을 때만 실행
+    if (newMatch.odds && newMatch.odds.home && newMatch.odds.draw && newMatch.odds.away) {
+      const latest = history.length > 0 ? history[0] : null;
       
-      // 숫자가 변했을 때만 화살표 방향을 새로 갱신합니다.
-      if (newHome < oldHome) trend.home = 'down';
-      else if (newHome > oldHome) trend.home = 'up';
+      // 가장 최근에 기록된 배당과 숫자가 하나라도 다른지 확인!
+      const isChanged = !latest ||
+                        latest.home !== newMatch.odds.home ||
+                        latest.draw !== newMatch.odds.draw ||
+                        latest.away !== newMatch.odds.away;
 
-      const oldAway = parseFloat(oldMatch.odds.away);
-      const newAway = parseFloat(newMatch.odds.away);
-      
-      if (newAway < oldAway) trend.away = 'down';
-      else if (newAway > oldAway) trend.away = 'up';
+      // 변화가 있으면 맨 윗줄에 새 배당을 밀어넣고, 최대 5줄까지만 유지합니다.
+      if (isChanged) {
+        history = [newMatch.odds, ...history].slice(0, 5);
+      }
     }
 
-    return { ...newMatch, oddsTrend: trend };
+    oldHistoryMap[newMatch.id] = history; // 수첩에 업데이트
+    return { ...newMatch, oddsHistory: history }; // 프론트엔드로 배송
   });
 
-  // 갱신된 데이터를 다시 비밀 수첩에 안전하게 적어둡니다. (새로고침 방어!)
-  localStorage.setItem(storageKey, JSON.stringify(updatedMatches));
+  localStorage.setItem(storageKey, JSON.stringify(oldHistoryMap));
   return updatedMatches;
 };
 
 function MatchDetail({ match, onBack, lang }: { match: any, onBack: () => void, lang: 'ko' | 'en' }) {
   const dict = t[lang];
 
-  // 🔥 [스크롤 엘리베이터] 상세페이지 진입 시 화면을 무조건 맨 위로 끌어올립니다!
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
@@ -188,6 +189,49 @@ function MatchDetail({ match, onBack, lang }: { match: any, onBack: () => void, 
   
   const homeNameClass = isHomeWin ? "font-black text-slate-900" : isAwayWin ? "font-medium text-slate-400" : "font-black text-slate-800";
   const awayNameClass = isAwayWin ? "font-black text-slate-900" : isHomeWin ? "font-medium text-slate-400" : "font-black text-slate-800";
+
+  // 🔥 [핵심 로직] 배당 그리기용 데이터 추출
+  const history = match.oddsHistory || (match.odds ? [match.odds] : []);
+  let hProps, dProps, aProps;
+
+  if (history.length > 0) {
+    const latest = history[0];
+    const past = history.length > 1 ? history[1] : null;
+
+    const styleMap: Record<string, any> = {
+      red: { bg: 'bg-red-50 border-red-100', label: 'text-red-400', text: 'text-red-600' },
+      blue: { bg: 'bg-blue-50 border-blue-100', label: 'text-blue-400', text: 'text-blue-600' },
+      gray: { bg: 'bg-slate-50 border-slate-100', label: 'text-slate-400', text: 'text-slate-800' }
+    };
+
+    const getProps = (type: 'home' | 'draw' | 'away') => {
+        let color = 'gray';
+        let icon = null;
+        const currVal = parseFloat(latest[type]);
+        const pastVal = past ? parseFloat(past[type]) : null;
+
+        // 1순위: 이전 배당이 존재하고, 숫자가 변했을 때 (추세 우선)
+        if (pastVal !== null && currVal !== pastVal) {
+            if (currVal < pastVal) { color = 'red'; icon = 'down'; } // 하락 = 빨강(승리확률UP)
+            else { color = 'blue'; icon = 'up'; }                    // 상승 = 파랑(승리확률DOWN)
+        } 
+        // 2순위: 변동이 없거나 최초 로딩일 때 (정배/역배 디폴트)
+        else if (type === 'home' || type === 'away') {
+            const h = parseFloat(latest.home);
+            const a = parseFloat(latest.away);
+            if (type === 'home' && h < a) color = 'red';      // 홈 정배 = 빨강
+            if (type === 'home' && h > a) color = 'blue';     // 홈 역배 = 파랑
+            if (type === 'away' && a < h) color = 'red';      // 원정 정배 = 빨강
+            if (type === 'away' && a > h) color = 'blue';     // 원정 역배 = 파랑
+        }
+
+        return { ...styleMap[color], icon, val: latest[type] };
+    };
+
+    hProps = getProps('home');
+    dProps = getProps('draw');
+    aProps = getProps('away');
+  }
 
   return (
     <div className="min-h-screen bg-[#f8faff] pb-10">
@@ -361,28 +405,63 @@ function MatchDetail({ match, onBack, lang }: { match: any, onBack: () => void, 
 
         <div className="bg-white rounded-[24px] p-6 border border-slate-100 shadow-sm mb-6">
           <div className="flex items-center gap-2 mb-6 text-[#bf953f] font-bold"><Info className="w-5 h-5" /><span>{dict.oddsInfo}</span></div>
-          {match.odds ? (
-            <div className="grid grid-cols-3 gap-3 text-center">
-              <div className="flex flex-col items-center p-4 bg-red-50 rounded-2xl border border-red-100">
-                <span className="text-[10px] font-bold text-red-400 mb-1">{dict.winShort}</span>
-                <div className="flex items-center gap-1">
-                  {match.oddsTrend?.home === 'down' && <ChevronDown className="w-4 h-4 text-red-500" strokeWidth={3}/>}
-                  {match.oddsTrend?.home === 'up' && <ChevronUp className="w-4 h-4 text-red-500" strokeWidth={3}/>}
-                  <span className="text-lg font-black text-red-500">{match.odds.home}</span>
+          
+          {history.length > 0 && hProps && dProps && aProps ? (
+            <div>
+              {/* 🔥 1층: 최신 배당 (크게!) */}
+              <div className="grid grid-cols-3 gap-3 text-center">
+                <div className={`flex flex-col items-center p-4 rounded-2xl border ${hProps.bg}`}>
+                  <span className={`text-[10px] font-bold mb-1 ${hProps.label}`}>{dict.winShort}</span>
+                  <div className="flex items-center gap-1">
+                    {hProps.icon === 'down' && <ChevronDown className={`w-4 h-4 ${hProps.text}`} strokeWidth={3}/>}
+                    {hProps.icon === 'up' && <ChevronUp className={`w-4 h-4 ${hProps.text}`} strokeWidth={3}/>}
+                    <span className={`text-lg font-black ${hProps.text}`}>{hProps.val}</span>
+                  </div>
+                </div>
+                <div className={`flex flex-col items-center p-4 rounded-2xl border ${dProps.bg}`}>
+                  <span className={`text-[10px] font-bold mb-1 ${dProps.label}`}>{dict.drawShort}</span>
+                  <div className="flex items-center gap-1">
+                    {dProps.icon === 'down' && <ChevronDown className={`w-4 h-4 ${dProps.text}`} strokeWidth={3}/>}
+                    {dProps.icon === 'up' && <ChevronUp className={`w-4 h-4 ${dProps.text}`} strokeWidth={3}/>}
+                    <span className={`text-lg font-black ${dProps.text}`}>{dProps.val}</span>
+                  </div>
+                </div>
+                <div className={`flex flex-col items-center p-4 rounded-2xl border ${aProps.bg}`}>
+                  <span className={`text-[10px] font-bold mb-1 ${aProps.label}`}>{dict.loseShort}</span>
+                  <div className="flex items-center gap-1">
+                    {aProps.icon === 'down' && <ChevronDown className={`w-4 h-4 ${aProps.text}`} strokeWidth={3}/>}
+                    {aProps.icon === 'up' && <ChevronUp className={`w-4 h-4 ${aProps.text}`} strokeWidth={3}/>}
+                    <span className={`text-lg font-black ${aProps.text}`}>{aProps.val}</span>
+                  </div>
                 </div>
               </div>
-              <div className="flex flex-col items-center p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                <span className="text-[10px] font-bold text-slate-400 mb-1">{dict.drawShort}</span>
-                <span className="text-lg font-black text-slate-800">{match.odds.draw}</span>
-              </div>
-              <div className="flex flex-col items-center p-4 bg-blue-50 rounded-2xl border border-blue-100">
-                <span className="text-[10px] font-bold text-blue-400 mb-1">{dict.loseShort}</span>
-                <div className="flex items-center gap-1">
-                  {match.oddsTrend?.away === 'down' && <ChevronDown className="w-4 h-4 text-blue-600" strokeWidth={3}/>}
-                  {match.oddsTrend?.away === 'up' && <ChevronUp className="w-4 h-4 text-blue-600" strokeWidth={3}/>}
-                  <span className="text-lg font-black text-blue-600">{match.odds.away}</span>
+
+              {/* 🔥 2층~5층: 과거 배당 기록들 (흐릿하게!) */}
+              {history.length > 1 && (
+                <div className="mt-4 border-t border-slate-100 pt-5 flex flex-col gap-2 relative animate-in fade-in duration-500">
+                  <div className="text-[10px] text-slate-500 font-bold mb-2 flex items-center justify-between px-1">
+                    <span className="flex items-center gap-1.5">
+                      <History className="w-3.5 h-3.5"/> {dict.oddsHistoryTitle}
+                    </span>
+                    <span className="text-slate-400 font-normal text-[9px] bg-slate-100 px-2 py-0.5 rounded-md">
+                      {dict.oddsHistoryDesc}
+                    </span>
+                  </div>
+                  
+                  <div className="flex flex-col gap-1.5">
+                     {history.slice(1).map((old: any, idx: number) => {
+                       const opacityClass = idx === 0 ? 'opacity-80' : idx === 1 ? 'opacity-60' : 'opacity-40';
+                       return (
+                         <div key={idx} className={`grid grid-cols-3 gap-3 text-center bg-slate-50 rounded-xl py-2 border border-slate-100/50 ${opacityClass} hover:opacity-100 transition-opacity`}>
+                           <span className="text-xs font-bold text-slate-500">{old.home}</span>
+                           <span className="text-xs font-medium text-slate-400">{old.draw}</span>
+                           <span className="text-xs font-bold text-slate-500">{old.away}</span>
+                         </div>
+                       );
+                     })}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           ) : (
             <div className="py-10 text-center text-slate-400 text-xs italic bg-slate-50 rounded-2xl border border-dashed">{dict.noOdds}</div>
@@ -487,7 +566,6 @@ export default function App() {
       const res = await fetch(`/api/matches?date=${dateStr}`);
       const json = await res.json();
       
-      // 🔥 서버에서 가져온 새 데이터를 '비밀 수첩' 함수에 통과시킵니다.
       const updatedMatches = processMatchesWithTrends(json.matches || [], dateStr);
       
       setMatches(updatedMatches);
@@ -507,7 +585,6 @@ export default function App() {
         const res = await fetch(`/api/matches?date=${dateStr}`);
         const json = await res.json();
         
-        // 🔥 자동 갱신 시에도 '비밀 수첩' 함수를 통해 화살표를 유지/갱신합니다.
         const updatedMatches = processMatchesWithTrends(json.matches || [], dateStr);
         
         setMatches(updatedMatches);
