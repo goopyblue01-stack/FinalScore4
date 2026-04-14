@@ -592,10 +592,38 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const homeRecent = getRecentMatches(homeId, validPastMatches);
       const awayRecent = getRecentMatches(awayId, validPastMatches);
 
-      const homeAttack = calcForm(homeRecent.filter((m: any) => m.isHome), true);
-      const homeDefense = calcForm(homeRecent.filter((m: any) => m.isHome), false);
-      const awayAttack = calcForm(awayRecent.filter((m: any) => !m.isHome), true);
-      const awayDefense = calcForm(awayRecent.filter((m: any) => !m.isHome), false);
+      let homeAttack = calcForm(homeRecent.filter((m: any) => m.isHome), true);
+      let homeDefense = calcForm(homeRecent.filter((m: any) => m.isHome), false);
+      let awayAttack = calcForm(awayRecent.filter((m: any) => !m.isHome), true);
+      let awayDefense = calcForm(awayRecent.filter((m: any) => !m.isHome), false);
+
+      // 🔥 [신규 기능] 휴식일 기반 피로도 (Rest Days & Fatigue) 로직 장착!
+      const getRestDays = (recentMatches: any[], currentTimestamp: number) => {
+        if (recentMatches.length === 0) return 7; // 과거 데이터가 없으면 푹 쉰 것으로 간주
+        const lastMatchTimestamp = new Date(recentMatches[0].date).getTime() / 1000;
+        return (currentTimestamp - lastMatchTimestamp) / (24 * 3600); // 며칠 쉬었는지 계산
+      };
+
+      const homeRestDays = getRestDays(homeRecent, item.fixture.timestamp);
+      const awayRestDays = getRestDays(awayRecent, item.fixture.timestamp);
+
+      // 🔻 홈팀 피로도 가중치 (4일 이하 휴식 시 10% 하락, 6일 이상 휴식 시 5% 상승)
+      if (homeRestDays <= 4) { // 🔥 기존 3에서 4로 수정!
+        homeAttack *= 0.90;  
+        homeDefense *= 0.90;
+      } else if (homeRestDays >= 6) {
+        homeAttack *= 1.05;  
+        homeDefense *= 1.05;
+      }
+
+      // 🔻 원정팀 피로도 가중치 (원정 이동 피로 고려! 4일 이하 휴식 시 15% 하락)
+      if (awayRestDays <= 4) { // 🔥 기존 3에서 4로 수정!
+        awayAttack *= 0.85;  
+        awayDefense *= 0.85;
+      } else if (awayRestDays >= 6) {
+        awayAttack *= 1.05;  
+        awayDefense *= 1.05;
+      }
 
       const allGroups = leagueStandingsMap[leagueKey] || [];
       let correctStandings: any[] = [];
