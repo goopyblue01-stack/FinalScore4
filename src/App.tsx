@@ -30,8 +30,13 @@ const t = {
     predictionDisclaimer: "* 예상 스코어는 경기 시작 전까지 해외 배당 흐름에 따라 실시간으로 변동될 수 있습니다.",
     listDisclaimer: "현재 표시되는 점수는 예상 스코어 입니다.",
     oddsHistoryTitle: "과거 배당 변동 내역", oddsHistoryDesc: "위쪽이 최신입니다",
-    // 🔥 경기 통계(Stats) 번역 추가
-    statsTitle: "경기 기록", statPossession: "볼 점유율 (%)", statShotsTotal: "총 슈팅", statShotsOn: "유효 슈팅",
+    
+    // 🔥 [신규 추가] 엄청나게 방대해진 경기 통계 번역!
+    statsTitle: "경기 기록", 
+    statPossession: "볼 점유율 (%)", statShotsTotal: "총 슈팅", statShotsOn: "유효 슈팅",
+    statShotsOff: "빗나간 슈팅", statShotsBlocked: "막힌 슈팅", statShotsInside: "박스 안 슈팅", statShotsOutside: "박스 밖 슈팅",
+    statPassesTotal: "패스 횟수", statPassesAccurate: "패스 성공", statPassesPct: "패스 성공률 (%)",
+    statOffsides: "오프사이드", statSaves: "골키퍼 선방",
     statFouls: "파울", statCorners: "코너킥", statYellows: "경고", statReds: "퇴장"
   },
   en: {
@@ -50,8 +55,13 @@ const t = {
     predictionDisclaimer: "* Expected scores may fluctuate in real-time based on global odds trends before kickoff.",
     listDisclaimer: "The scores currently displayed are predicted scores.",
     oddsHistoryTitle: "Past Odds History", oddsHistoryDesc: "Top is the latest",
-    // 🔥 경기 통계(Stats) 번역 추가
-    statsTitle: "Match Stats", statPossession: "Possession (%)", statShotsTotal: "Total Shots", statShotsOn: "Shots on Goal",
+    
+    // 🔥 [신규 추가] 엄청나게 방대해진 경기 통계 번역!
+    statsTitle: "Match Stats", 
+    statPossession: "Possession (%)", statShotsTotal: "Total Shots", statShotsOn: "Shots on Goal",
+    statShotsOff: "Shots off Goal", statShotsBlocked: "Blocked Shots", statShotsInside: "Shots inside box", statShotsOutside: "Shots outside box",
+    statPassesTotal: "Total Passes", statPassesAccurate: "Accurate Passes", statPassesPct: "Pass Accuracy (%)",
+    statOffsides: "Offsides", statSaves: "Goalkeeper Saves",
     statFouls: "Fouls", statCorners: "Corners", statYellows: "Yellow Cards", statReds: "Red Cards"
   }
 };
@@ -77,17 +87,15 @@ const processMatchesWithTrends = (fetchedMatches: any[], dateStr: string) => {
   return updatedMatches;
 };
 
-// 🔥 [신규 컴포넌트] 멋진 줄다리기 그래프 바!
+// 🔥 줄다리기 그래프 바 컴포넌트
 const StatBar = ({ label, home, away }: { label: string, home: number, away: number }) => {
   const total = home + away;
-  // 분모가 0일 때는 정확히 반반(50%)로 표시하여 게이지가 깨지지 않게 방어
   const homePct = total === 0 ? 50 : (home / total) * 100;
   const awayPct = total === 0 ? 50 : (away / total) * 100;
   
   const isPercent = label.includes('%');
   const displayLabel = label.replace(' (%)', '');
 
-  // 숫자가 더 큰 쪽이 브랜드 컬러(빨강/파랑)로 칠해집니다.
   const homeColor = home > away ? 'bg-red-500' : home < away ? 'bg-slate-200' : 'bg-slate-400';
   const awayColor = away > home ? 'bg-blue-500' : away < home ? 'bg-slate-200' : 'bg-slate-400';
   const homeTextClass = home > away ? 'text-red-500 font-black' : 'text-slate-500 font-bold';
@@ -199,18 +207,37 @@ function MatchDetail({ match, onBack, lang }: { match: any, onBack: () => void, 
           </div>
         </div>
 
-        {/* 🔥 [신규] 경기 통계 (Stats) 영역 추가! */}
+        {/* 🔥 [업그레이드] 엄청나게 방대해진 경기 통계 영역! */}
         {match.stats && (
           <div className="bg-white rounded-[24px] p-6 border border-slate-100 shadow-sm mb-6 animate-in fade-in duration-500">
             <div className="flex items-center gap-2 mb-6 text-[#9d4edd] font-bold">
               <BarChart3 className="w-5 h-5" /><span>{dict.statsTitle}</span>
             </div>
-            <div className="flex flex-col gap-2">
+            
+            {/* 공격 및 흐름 지표 */}
+            <div className="mb-4">
               <StatBar label={dict.statPossession} home={match.stats.possession.home} away={match.stats.possession.away} />
               <StatBar label={dict.statShotsTotal} home={match.stats.shotsTotal.home} away={match.stats.shotsTotal.away} />
               <StatBar label={dict.statShotsOn} home={match.stats.shotsOn.home} away={match.stats.shotsOn.away} />
+              <StatBar label={dict.statShotsOff} home={match.stats.shotsOff.home} away={match.stats.shotsOff.away} />
+              <StatBar label={dict.statShotsBlocked} home={match.stats.shotsBlocked.home} away={match.stats.shotsBlocked.away} />
+              <StatBar label={dict.statShotsInside} home={match.stats.shotsInside.home} away={match.stats.shotsInside.away} />
+              <StatBar label={dict.statShotsOutside} home={match.stats.shotsOutside.home} away={match.stats.shotsOutside.away} />
+            </div>
+
+            {/* 패스 지표 */}
+            <div className="mb-4 border-t border-slate-50 pt-4">
+              <StatBar label={dict.statPassesTotal} home={match.stats.passesTotal.home} away={match.stats.passesTotal.away} />
+              <StatBar label={dict.statPassesAccurate} home={match.stats.passesAccurate.home} away={match.stats.passesAccurate.away} />
+              <StatBar label={dict.statPassesPct} home={match.stats.passesPct.home} away={match.stats.passesPct.away} />
+            </div>
+
+            {/* 세트피스 및 수비/징계 지표 */}
+            <div className="border-t border-slate-50 pt-4">
               <StatBar label={dict.statCorners} home={match.stats.corners.home} away={match.stats.corners.away} />
+              <StatBar label={dict.statOffsides} home={match.stats.offsides.home} away={match.stats.offsides.away} />
               <StatBar label={dict.statFouls} home={match.stats.fouls.home} away={match.stats.fouls.away} />
+              <StatBar label={dict.statSaves} home={match.stats.saves.home} away={match.stats.saves.away} />
               {(match.stats.yellows.home > 0 || match.stats.yellows.away > 0) && (
                 <StatBar label={dict.statYellows} home={match.stats.yellows.home} away={match.stats.yellows.away} />
               )}
@@ -323,7 +350,7 @@ function MatchDetail({ match, onBack, lang }: { match: any, onBack: () => void, 
           <p className="mt-5 text-[10px] text-slate-400 text-center italic leading-relaxed break-keep">{dict.predictionDisclaimer}</p>
         </div>
 
-        {/* 해외 배당 */}
+        {/* 해외 배당 히스토리 */}
         <div className="bg-white rounded-[24px] p-6 border border-slate-100 shadow-sm mb-6">
           <div className="flex items-center gap-2 mb-6 text-[#bf953f] font-bold"><Info className="w-5 h-5" /><span>{dict.oddsInfo}</span></div>
           {history.length > 0 && hProps && dProps && aProps ? (
@@ -469,8 +496,6 @@ export default function App() {
   const goToPage = (page: string) => { setSelectedPage(page); window.history.pushState({}, '', `/?page=${page}`); };
   const goHome = () => { setSelectedMatch(null); setSelectedPage('main'); setSelectedDateIdx(2); window.history.pushState({}, '', '/'); };
   const goBackToList = () => { setSelectedMatch(null); window.history.pushState({}, '', `/?date=${dates[selectedDateIdx].dateStr}`); };
-
-  const userAgent = navigator.userAgent; const isiOS = /iPhone|iPad|iPod/i.test(userAgent); const isAndroid = /Android/i.test(userAgent); const isMac = /Mac/i.test(userAgent);
 
   if (selectedPage === 'about') return <About onBack={goHome} />;
   if (selectedPage === 'terms') return <Terms onBack={goHome} />;
