@@ -95,7 +95,7 @@ const teamNameMap: { [key: string]: string } = {
   "Al Sadd": "알 사드", "Al-Duhail SC": "알 두하일", "Al-Gharafa": "알 가라파", "Al Wakrah": "알 와크라", "Al-Arabi SC": "알 아라비", "Al-Rayyan SC": "알 라이얀", "UMM Salal": "움 살랄", "Al Ahli Doha": "알 아흘리 도하",
   "Qatar SC": "카타르 SC", "Al Shamal": "알 샤말", "Al-Khor": "알 코르", "Al Shahaniya": "알 샤하니야", "Al-Wasl": "알 와슬", "Shabab Al Ahli": "샤밥 알 아흘리", "Al-Ain": "알 아인", "Al-Sharjah": "알 샤르자",
   "Al Wahda": "알 와흐다", "Al-Nasr": "알 나스르", "Al-Bataeh": "알 바타에흐", "Al-Ittihad Kalba": "칼바", "Bani Yas": "바니야스", "Ajman": "아지만", "Khorfakkan": "코르파칸", "Al-Jazira": "알 자지라",
-  "Al-Uruba": "알 우루바", "Dibba Al Hisn": "딥바 알 히슨", "Johor Darul Ta'zim": "조호르 다룰 타짐", "Selangor": "슬랑오르", "Terengganu": "트렝가누", "Sabah": "사바", "Kedah": "케다",
+  "Al-Uruba": "알 우루바", "Dibba Al Hisn": "딥바 알 히슨", "Johor Darul Takzim FC": "조호르 다룰 타짐", "Selangor": "슬랑오르", "Terengganu": "트렝가누", "Sabah": "사바", "Kedah": "케다",
   "Kuala Lumpur City": "쿠알라룸푸르 시티", "PDRM": "PDRM", "Sri Pahang": "스리 파항", "Perak": "페락", "Penang": "페낭", "Kuching City": "쿠칭 시티", "Negeri Sembilan": "느그리 셈빌란", "Kelantan Darul Naim": "클란탄 다룰 나임",
   "Al-Faisaly Amman": "알 파이살리 암만", "Al-Wehdat": "알 웨흐다트", "Al-Hussein": "알 후세인", "Ramtha": "람타", "Shabab Al-Ordon": "샤밥 알 오르돈", "Al-Jazeera Amman": "알 자지라 암만", "Al-Salt": "알 살트",
   "Ma'an": "마안", "Moghayer Al-Sarhan": "모가예르 알 사르한", "Al-Ahli Amman": "알 아흘리 암만", "Al-Sareeh": "알 사리흐", "Al-Baqa'a": "알 바카아", "Inter Miami": "인터 마이애미", "Columbus Crew": "콜럼버스 크루",
