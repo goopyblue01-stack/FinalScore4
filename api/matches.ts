@@ -289,8 +289,7 @@ function factorial(n: number): number { return n <= 1 ? 1 : n * factorial(n - 1)
 function poissonProb(lambda: number, k: number) { return (Math.pow(lambda, k) * Math.exp(-lambda)) / factorial(k); }
 
 function poisson(homeGoals: number, awayGoals: number) {
-  const max = 6;
-  let matrix = [];
+  const max = 6; let matrix = [];
   for (let i = 0; i <= max; i++) {
     for (let j = 0; j <= max; j++) {
       const p = poissonProb(homeGoals, i) * poissonProb(awayGoals, j);
@@ -301,11 +300,9 @@ function poisson(homeGoals: number, awayGoals: number) {
   const draw = matrix.filter((m) => m.homeScore === m.awayScore).reduce((sum, m) => sum + m.p, 0);
   const awayWin = matrix.filter((m) => m.homeScore < m.awayScore).reduce((sum, m) => sum + m.p, 0);
   const total = homeWin + draw + awayWin;
-  
   return { prob: { home: Math.round((homeWin / total) * 100), draw: Math.round((draw / total) * 100), away: Math.round((awayWin / total) * 100) } };
 }
 
-// 🛡️ API 보호용 글로벌 메모리 수첩
 let fixturesCache: { [dateStr: string]: { timestamp: number, data: any } } = {};
 let predictionCache: { [leagueSeason: string]: { timestamp: number, data: any[] } } = {};
 let oddsCache: { [fixtureId: number]: { timestamp: number, data: any } } = {}; 
@@ -327,10 +324,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const targetDateStr = typeof date === 'string' ? date : new Date().toISOString().split('T')[0];
 
   try {
-    const prevDate = new Date(targetDateStr);
-    prevDate.setDate(prevDate.getDate() - 1);
+    const prevDate = new Date(targetDateStr); prevDate.setDate(prevDate.getDate() - 1);
     const prevDateStr = prevDate.toISOString().split('T')[0];
-
     const now = Date.now();
 
     const fetchAPI = (endpoint: string, params: string) => 
@@ -339,19 +334,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }).then(r => r.json());
 
     const getFixturesWithCache = async (dateString: string) => {
-      if (fixturesCache[dateString] && (now - fixturesCache[dateString].timestamp < FIXTURES_CACHE_TTL)) {
-        return fixturesCache[dateString].data;
-      }
+      if (fixturesCache[dateString] && (now - fixturesCache[dateString].timestamp < FIXTURES_CACHE_TTL)) return fixturesCache[dateString].data;
       const data = await fetchAPI('fixtures', `date=${dateString}`);
-      fixturesCache[dateString] = { timestamp: now, data };
-      return data;
+      fixturesCache[dateString] = { timestamp: now, data }; return data;
     };
 
-    const [targetData, prevData] = await Promise.all([
-      getFixturesWithCache(targetDateStr),
-      getFixturesWithCache(prevDateStr)
-    ]);
-
+    const [targetData, prevData] = await Promise.all([ getFixturesWithCache(targetDateStr), getFixturesWithCache(prevDateStr) ]);
     const allMatches = [...(targetData.response || []), ...(prevData.response || [])];
 
     const rawFilteredMatches = allMatches.filter((item: any) => {
@@ -379,9 +367,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     standingsResults.forEach((res: any) => {
       try {
         if (res && res.response && res.response.length > 0 && res.response[0].league.standings) {
-          const leagueInfo = res.response[0].league;
-          const leagueKey = `${leagueInfo.id}-${leagueInfo.season}`;
-          
+          const leagueInfo = res.response[0].league; const leagueKey = `${leagueInfo.id}-${leagueInfo.season}`;
           leagueStandingsMap[leagueKey] = leagueInfo.standings.map((group: any[]) => {
             if (!Array.isArray(group)) return [];
             return group.map((t: any) => {
@@ -389,18 +375,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               return { rank: t.rank, team: { en: t.team.name, ko: mappedName }, played: t.all.played, win: t.all.win, draw: t.all.draw, lose: t.all.lose, goalDiff: t.goalsDiff, points: t.points };
             });
           });
-
           let totalGoals = 0, totalPlayed = 0;
           leagueInfo.standings.forEach((group: any[]) => {
-            if (Array.isArray(group)) {
-              group.forEach((team: any) => {
-                if (team.all?.goals?.for !== undefined) { totalGoals += team.all.goals.for; totalPlayed += team.all.played; }
-              });
-            }
+            if (Array.isArray(group)) group.forEach((team: any) => { if (team.all?.goals?.for !== undefined) { totalGoals += team.all.goals.for; totalPlayed += team.all.played; } });
           });
           let calcAvg = totalPlayed > 0 ? totalGoals / totalPlayed : 1.3;
-          if (calcAvg < 0.9) calcAvg = 1.2; if (calcAvg > 2.5) calcAvg = 2.0; 
-          leagueAvgMap[leagueKey] = calcAvg;
+          if (calcAvg < 0.9) calcAvg = 1.2; if (calcAvg > 2.5) calcAvg = 2.0; leagueAvgMap[leagueKey] = calcAvg;
         }
       } catch (e) {}
     });
@@ -414,30 +394,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }));
 
     const batchSize = 5; 
+    const delay = 600; // 🔥 API 과부하 방지를 위해 요청 휴식 시간을 600ms로 늘렸습니다!
 
     const fixturesToFetchOdds = rawFilteredMatches.filter(item => !oddsCache[item.fixture.id] || now - oddsCache[item.fixture.id].timestamp > ODDS_CACHE_TTL);
     for (let i = 0; i < fixturesToFetchOdds.length; i += batchSize) {
       const batch = fixturesToFetchOdds.slice(i, i + batchSize);
       await Promise.all(batch.map(async (item: any) => {
-        const fId = item.fixture.id;
         try {
-          const res = await fetchAPI('odds', `fixture=${fId}&bet=1`);
+          const res = await fetchAPI('odds', `fixture=${item.fixture.id}&bet=1`);
           let oddsData = null;
           if (res && res.response && res.response.length > 0) {
             let bookmaker = res.response[0].bookmakers.find((b: any) => b.id === 8 || b.name === 'Bet365') || res.response[0].bookmakers[0]; 
-            const market = bookmaker?.bets[0];
-            if (market) oddsData = { home: market.values.find((v: any) => v.value === 'Home' || v.value === '1')?.odd, draw: market.values.find((v: any) => v.value === 'Draw' || v.value === 'X')?.odd, away: market.values.find((v: any) => v.value === 'Away' || v.value === '2')?.odd };
+            if (bookmaker?.bets[0]) oddsData = { home: bookmaker.bets[0].values.find((v: any) => v.value === 'Home' || v.value === '1')?.odd, draw: bookmaker.bets[0].values.find((v: any) => v.value === 'Draw' || v.value === 'X')?.odd, away: bookmaker.bets[0].values.find((v: any) => v.value === 'Away' || v.value === '2')?.odd };
           }
-          oddsCache[fId] = { timestamp: now, data: oddsData };
-        } catch (e) { oddsCache[fId] = { timestamp: now, data: null }; }
+          oddsCache[item.fixture.id] = { timestamp: now, data: oddsData };
+        } catch (e) { oddsCache[item.fixture.id] = { timestamp: now, data: null }; }
       }));
-      await new Promise(r => setTimeout(r, 300));
+      await new Promise(r => setTimeout(r, delay));
     }
 
     const fixturesToFetchEvents = rawFilteredMatches.filter((item: any) => {
-      const fId = item.fixture.id; const status = item.fixture.status.short;
-      if (status === 'NS') return false; 
-      const cached = eventsCache[fId]; if (!cached) return true; 
+      const status = item.fixture.status.short; if (status === 'NS') return false; 
+      const cached = eventsCache[item.fixture.id]; if (!cached) return true; 
       return now - cached.timestamp > (['FT', 'AET', 'PEN'].includes(status) ? 24 * 60 * 60 * 1000 : 2 * 60 * 1000);
     });
     for (let i = 0; i < fixturesToFetchEvents.length; i += batchSize) {
@@ -448,14 +426,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           eventsCache[item.fixture.id] = { timestamp: now, data: res.response || [] };
         } catch (e) { eventsCache[item.fixture.id] = { timestamp: now, data: [] }; }
       }));
-      await new Promise(r => setTimeout(r, 300));
+      await new Promise(r => setTimeout(r, delay));
     }
 
     const fixturesToFetchLineups = rawFilteredMatches.filter((item: any) => {
-      const fId = item.fixture.id; const status = item.fixture.status.short;
-      if (['PST', 'CANC', 'TBD', 'ABD'].includes(status)) return false;
+      const status = item.fixture.status.short; if (['PST', 'CANC', 'TBD', 'ABD'].includes(status)) return false;
       if (status === 'NS' && (item.fixture.timestamp * 1000 - now) > 60 * 60 * 1000) return false;
-      const cached = lineupsCache[fId]; if (!cached) return true;
+      const cached = lineupsCache[item.fixture.id]; if (!cached) return true;
       return now - cached.timestamp > (['FT', 'AET', 'PEN'].includes(status) ? 24 * 60 * 60 * 1000 : 5 * 60 * 1000);
     });
     for (let i = 0; i < fixturesToFetchLineups.length; i += batchSize) {
@@ -466,16 +443,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           lineupsCache[item.fixture.id] = { timestamp: now, data: res.response || [] };
         } catch (e) { lineupsCache[item.fixture.id] = { timestamp: now, data: [] }; }
       }));
-      await new Promise(r => setTimeout(r, 300));
+      await new Promise(r => setTimeout(r, delay));
     }
 
-    // 🔥 4. 통계(Statistics) 가져오기 (대표님이 원하시는 데이터 대폭 추가!)
     const fixturesToFetchStats = rawFilteredMatches.filter((item: any) => {
-      const fId = item.fixture.id; const status = item.fixture.status.short;
-      const isFinished = ['FT', 'AET', 'PEN'].includes(status);
+      const status = item.fixture.status.short; const isFinished = ['FT', 'AET', 'PEN'].includes(status);
       const isLive = !isFinished && !['NS', 'PST', 'CANC', 'TBD', 'ABD'].includes(status);
       if (!isFinished && !isLive) return false; 
-      const cached = statisticsCache[fId]; if (!cached) return true;
+      const cached = statisticsCache[item.fixture.id]; if (!cached) return true;
       return now - cached.timestamp > (isFinished ? 24 * 60 * 60 * 1000 : 5 * 60 * 1000); 
     });
     for (let i = 0; i < fixturesToFetchStats.length; i += batchSize) {
@@ -486,7 +461,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           statisticsCache[item.fixture.id] = { timestamp: now, data: res.response || [] };
         } catch (e) { statisticsCache[item.fixture.id] = { timestamp: now, data: [] }; }
       }));
-      await new Promise(r => setTimeout(r, 300));
+      await new Promise(r => setTimeout(r, delay));
     }
 
     const filteredMatches = rawFilteredMatches.map((item: any) => {
@@ -496,7 +471,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       
       const pastMatches = predictionCache[leagueKey]?.data || [];
       const validPastMatches = pastMatches.filter((m: any) => m.fixture.id !== item.fixture.id && m.fixture.timestamp < item.fixture.timestamp);
-
       const leagueAvgGoals = leagueAvgMap[leagueKey] || 1.3;
 
       const rawEvents = eventsCache[item.fixture.id]?.data || [];
@@ -510,17 +484,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return { minute: ev.time.elapsed, team: ev.team.id === homeId ? "home" : "away", type: type, player: ev.player?.name, playerOut: type === "sub" ? ev.player?.name : undefined, playerIn: type === "sub" ? ev.assist?.name : undefined };
       }).filter((e: any) => e !== null); 
 
-      // 🔥 [핵심 추가] 확장된 통계 데이터 정제 로직
+      // 🔥 통계 데이터 안전하게 파싱 (데이터가 비어있어도 에러 안 나게 처리)
       const rawStats = statisticsCache[item.fixture.id]?.data || [];
       let parsedStats = null;
-      if (rawStats.length === 2) {
+      if (rawStats.length > 0) {
         const homeStatsObj = rawStats.find((s:any) => s.team.id === homeId)?.statistics || [];
         const awayStatsObj = rawStats.find((s:any) => s.team.id === awayId)?.statistics || [];
 
         const getStat = (arr: any[], type: string) => {
           const stat = arr.find(s => s.type === type);
           if (!stat || stat.value === null) return 0;
-          if (typeof stat.value === 'string') return parseInt(stat.value.replace(/\D/g, '')) || 0; // % 기호 제거하고 숫자만 추출
+          if (typeof stat.value === 'string') return parseInt(stat.value.replace(/\D/g, '')) || 0; 
           return stat.value;
         };
 
@@ -546,48 +520,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const getRecentMatches = (teamId: number, targetMatches: any[]) => {
         return targetMatches.filter((m: any) => m.teams.home.id === teamId || m.teams.away.id === teamId).sort((a: any, b: any) => b.fixture.timestamp - a.fixture.timestamp).slice(0, 5).map((m: any) => {
-            const isHome = m.teams.home.id === teamId;
-            return { date: m.fixture.date, isHome, goals: isHome ? m.goals.home : m.goals.away, conceded: isHome ? m.goals.away : m.goals.home };
+            const isHome = m.teams.home.id === teamId; return { date: m.fixture.date, isHome, goals: isHome ? m.goals.home : m.goals.away, conceded: isHome ? m.goals.away : m.goals.home };
           });
       };
 
-      const homeRecent = getRecentMatches(homeId, validPastMatches);
-      const awayRecent = getRecentMatches(awayId, validPastMatches);
-
-      let homeAttack = calcForm(homeRecent.filter((m: any) => m.isHome), true);
-      let homeDefense = calcForm(homeRecent.filter((m: any) => m.isHome), false);
-      let awayAttack = calcForm(awayRecent.filter((m: any) => !m.isHome), true);
-      let awayDefense = calcForm(awayRecent.filter((m: any) => !m.isHome), false);
+      const homeRecent = getRecentMatches(homeId, validPastMatches); const awayRecent = getRecentMatches(awayId, validPastMatches);
+      let homeAttack = calcForm(homeRecent.filter((m: any) => m.isHome), true); let homeDefense = calcForm(homeRecent.filter((m: any) => m.isHome), false);
+      let awayAttack = calcForm(awayRecent.filter((m: any) => !m.isHome), true); let awayDefense = calcForm(awayRecent.filter((m: any) => !m.isHome), false);
 
       const getRestDays = (recentMatches: any[], currentTimestamp: number) => {
         if (recentMatches.length === 0) return 7; 
-        const lastMatchTimestamp = new Date(recentMatches[0].date).getTime() / 1000;
-        return (currentTimestamp - lastMatchTimestamp) / (24 * 3600); 
+        const lastMatchTimestamp = new Date(recentMatches[0].date).getTime() / 1000; return (currentTimestamp - lastMatchTimestamp) / (24 * 3600); 
       };
-      const homeRestDays = getRestDays(homeRecent, item.fixture.timestamp);
-      const awayRestDays = getRestDays(awayRecent, item.fixture.timestamp);
+      const homeRestDays = getRestDays(homeRecent, item.fixture.timestamp); const awayRestDays = getRestDays(awayRecent, item.fixture.timestamp);
 
-      if (homeRestDays <= 4) { homeAttack *= 0.90; homeDefense *= 0.90; } 
-      else if (homeRestDays >= 6) { homeAttack *= 1.05; homeDefense *= 1.05; }
+      if (homeRestDays <= 4) { homeAttack *= 0.90; homeDefense *= 0.90; } else if (homeRestDays >= 6) { homeAttack *= 1.05; homeDefense *= 1.05; }
+      if (awayRestDays <= 4) { awayAttack *= 0.85; awayDefense *= 0.85; } else if (awayRestDays >= 6) { awayAttack *= 1.05; awayDefense *= 1.05; }
 
-      if (awayRestDays <= 4) { awayAttack *= 0.85; awayDefense *= 0.85; } 
-      else if (awayRestDays >= 6) { awayAttack *= 1.05; awayDefense *= 1.05; }
-
-      const allGroups = leagueStandingsMap[leagueKey] || [];
-      let correctStandings: any[] = [];
-      for (const group of allGroups) {
-        if (Array.isArray(group) && group.some((s: any) => s.team?.en === hName || s.team?.en === aName)) { correctStandings = group; break; }
-      }
+      const allGroups = leagueStandingsMap[leagueKey] || []; let correctStandings: any[] = [];
+      for (const group of allGroups) { if (Array.isArray(group) && group.some((s: any) => s.team?.en === hName || s.team?.en === aName)) { correctStandings = group; break; } }
       if (correctStandings.length === 0 && allGroups.length > 0) correctStandings = allGroups[0];
 
-      const homeRank = correctStandings.find((s: any) => s.team?.en === hName)?.rank || 999;
-      const awayRank = correctStandings.find((s: any) => s.team?.en === aName)?.rank || 999;
+      const homeRank = correctStandings.find((s: any) => s.team?.en === hName)?.rank || 999; const awayRank = correctStandings.find((s: any) => s.team?.en === aName)?.rank || 999;
       let homeAdv = 1.10; let awayDis = 0.90;
       if (homeRank < awayRank) { homeAdv = 1.15; awayDis = 0.85; } else if (homeRank > awayRank) { homeAdv = 1.05; awayDis = 0.95; }
 
       const expectedHomeGoals = Math.min(Math.max(0.5, homeAttack * (awayDefense / leagueAvgGoals) * homeAdv), 4.0);
       const expectedAwayGoals = Math.min(Math.max(0.5, awayAttack * (homeDefense / leagueAvgGoals) * awayDis), 4.0);
-
       const logicBPredictions = poisson(expectedHomeGoals, expectedAwayGoals);
       let finalProbHome = logicBPredictions.prob.home; let finalProbDraw = logicBPredictions.prob.draw; let finalProbAway = logicBPredictions.prob.away;
 
@@ -601,9 +560,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       let predictHome = Math.round(expectedHomeGoals); let predictAway = Math.round(expectedAwayGoals);
-      if (predictHome === predictAway) {
-        if (finalProbHome - finalProbAway >= 10) predictHome += 1; else if (finalProbAway - finalProbHome >= 10) predictAway += 1;
-      }
+      if (predictHome === predictAway) { if (finalProbHome - finalProbAway >= 10) predictHome += 1; else if (finalProbAway - finalProbHome >= 10) predictAway += 1; }
 
       const kstDate = new Date(new Date(item.fixture.date).toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
       const timeKo = `${kstDate.getMonth() + 1}/${kstDate.getDate()} (${['일', '월', '화', '수', '목', '금', '토'][kstDate.getDay()]}) ${String(kstDate.getHours()).padStart(2, '0')}:${String(kstDate.getMinutes()).padStart(2, '0')}`;
@@ -618,7 +575,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         status: item.fixture.status.short, elapsed: item.fixture.status.elapsed,
         predict: { home: predictHome, away: predictAway }, probs: { home: finalProbHome, draw: finalProbDraw, away: finalProbAway },
         odds: matchOdds, events: mappedEvents, lineups: lineupsCache[item.fixture.id]?.data || [], 
-        stats: parsedStats, 
+        stats: parsedStats, // 🔥 통계 정상 탑재
         homeId: homeId, awayId: awayId, standings: correctStandings
       };
     }).sort((a: any, b: any) => {
