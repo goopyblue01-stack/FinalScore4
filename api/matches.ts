@@ -269,7 +269,7 @@ const teamNameMap: { [key: string]: string } = {
 };
 
 // ==========================
-// 🔥 시간 가중치 폼 계산 함수
+// 🔥 로직: 시간 가중치 폼 계산 함수
 // ==========================
 function calcForm(matches: any[], isAttack: boolean) {
   if (matches.length === 0) return 1.3;
@@ -302,28 +302,21 @@ function poisson(homeGoals: number, awayGoals: number) {
   const awayWin = matrix.filter((m) => m.homeScore < m.awayScore).reduce((sum, m) => sum + m.p, 0);
   const total = homeWin + draw + awayWin;
   
-  return {
-    prob: { 
-      home: Math.round((homeWin / total) * 100), 
-      draw: Math.round((draw / total) * 100), 
-      away: Math.round((awayWin / total) * 100) 
-    }
-  };
+  return { prob: { home: Math.round((homeWin / total) * 100), draw: Math.round((draw / total) * 100), away: Math.round((awayWin / total) * 100) } };
 }
 
-// ==========================
 // 🛡️ API 보호용 글로벌 메모리 수첩
-// ==========================
 let fixturesCache: { [dateStr: string]: { timestamp: number, data: any } } = {};
 let predictionCache: { [leagueSeason: string]: { timestamp: number, data: any[] } } = {};
 let oddsCache: { [fixtureId: number]: { timestamp: number, data: any } } = {}; 
 let standingsCache: { [leagueSeason: string]: { timestamp: number, data: any } } = {};
 let eventsCache: { [fixtureId: number]: { timestamp: number, data: any[] } } = {};
 let lineupsCache: { [fixtureId: number]: { timestamp: number, data: any[] } } = {};
+let statisticsCache: { [fixtureId: number]: { timestamp: number, data: any[] } } = {}; // 🔥 통계 수첩 추가!
 
 const FIXTURES_CACHE_TTL = 1 * 60 * 1000;
 const CACHE_TTL = 60 * 60 * 1000; 
-const ODDS_CACHE_TTL = 5 * 60 * 1000; // 🔥 해외 배당 실시간 갱신 (5분)
+const ODDS_CACHE_TTL = 5 * 60 * 1000; 
 const STANDINGS_CACHE_TTL = 6 * 60 * 60 * 1000; 
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -350,11 +343,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return fixturesCache[dateString].data;
       }
       const data = await fetchAPI('fixtures', `date=${dateString}`);
-      if (data.errors && Object.keys(data.errors).length > 0) {
-        console.error(`API Error for ${dateString}:`, data.errors);
-      } else {
-        fixturesCache[dateString] = { timestamp: now, data };
-      }
+      fixturesCache[dateString] = { timestamp: now, data };
       return data;
     };
 
@@ -378,9 +367,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const [leagueId, season] = key.split('-');
       if (!standingsCache[key] || now - standingsCache[key].timestamp > STANDINGS_CACHE_TTL) {
         const res = await fetchAPI('standings', `league=${leagueId}&season=${season}`);
-        if (res && res.response && res.response.length > 0) {
-          standingsCache[key] = { timestamp: now, data: res };
-        }
+        if (res && res.response && res.response.length > 0) standingsCache[key] = { timestamp: now, data: res };
       }
       return standingsCache[key]?.data || null;
     });
@@ -398,19 +385,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           leagueStandingsMap[leagueKey] = leagueInfo.standings.map((group: any[]) => {
             if (!Array.isArray(group)) return [];
             return group.map((t: any) => {
-              const tName = t.team.name;
-              const mappedName = typeof teamNameMap !== 'undefined' && teamNameMap[tName] ? teamNameMap[tName] : tName;
-              return {
-                rank: t.rank,
-                team: { en: tName, ko: mappedName },
-                groupName: t.group,
-                played: t.all.played,
-                win: t.all.win,
-                draw: t.all.draw,
-                lose: t.all.lose,
-                goalDiff: t.goalsDiff,
-                points: t.points
-              };
+              const mappedName = typeof teamNameMap !== 'undefined' && teamNameMap[t.team.name] ? teamNameMap[t.team.name] : t.team.name;
+              return { rank: t.rank, team: { en: t.team.name, ko: mappedName }, played: t.all.played, win: t.all.win, draw: t.all.draw, lose: t.all.lose, goalDiff: t.goalsDiff, points: t.points };
             });
           });
 
@@ -418,137 +394,112 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           leagueInfo.standings.forEach((group: any[]) => {
             if (Array.isArray(group)) {
               group.forEach((team: any) => {
-                if (team.all && team.all.goals && team.all.goals.for !== undefined) {
-                  totalGoals += team.all.goals.for;
-                  totalPlayed += team.all.played;
-                }
+                if (team.all?.goals?.for !== undefined) { totalGoals += team.all.goals.for; totalPlayed += team.all.played; }
               });
             }
           });
           let calcAvg = totalPlayed > 0 ? totalGoals / totalPlayed : 1.3;
-          if (calcAvg < 0.9) calcAvg = 1.2; 
-          if (calcAvg > 2.5) calcAvg = 2.0; 
-          
+          if (calcAvg < 0.9) calcAvg = 1.2; if (calcAvg > 2.5) calcAvg = 2.0; 
           leagueAvgMap[leagueKey] = calcAvg;
         }
-      } catch (e) {
-        console.error("Standings processing error:", e);
-      }
+      } catch (e) {}
     });
 
     await Promise.all(Array.from(uniqueLeagues).map(async (key) => {
       const [leagueId, season] = key.split('-');
       if (!predictionCache[key] || now - predictionCache[key].timestamp > CACHE_TTL) {
-        const pastMatchesRes = await fetchAPI('fixtures', `league=${leagueId}&season=${season}&status=FT`);
-        predictionCache[key] = { timestamp: now, data: pastMatchesRes.response || [] };
+        const pastRes = await fetchAPI('fixtures', `league=${leagueId}&season=${season}&status=FT`);
+        predictionCache[key] = { timestamp: now, data: pastRes.response || [] };
       }
     }));
 
     const batchSize = 5; 
 
-    // 해외 배당 가져오기
-    const fixturesToFetchOdds = rawFilteredMatches.filter(item => {
-      const fId = item.fixture.id;
-      return !oddsCache[fId] || now - oddsCache[fId].timestamp > ODDS_CACHE_TTL;
-    });
-
+    // 1. 배당 가져오기
+    const fixturesToFetchOdds = rawFilteredMatches.filter(item => !oddsCache[item.fixture.id] || now - oddsCache[item.fixture.id].timestamp > ODDS_CACHE_TTL);
     for (let i = 0; i < fixturesToFetchOdds.length; i += batchSize) {
       const batch = fixturesToFetchOdds.slice(i, i + batchSize);
       await Promise.all(batch.map(async (item: any) => {
         const fId = item.fixture.id;
         try {
-          const oddsRes = await fetchAPI('odds', `fixture=${fId}&bet=1`);
+          const res = await fetchAPI('odds', `fixture=${fId}&bet=1`);
           let oddsData = null;
-          
-          if (oddsRes && oddsRes.response && oddsRes.response.length > 0) {
-            let bookmaker = oddsRes.response[0].bookmakers.find((b: any) => b.id === 8 || b.name === 'Bet365');
-            if (!bookmaker) bookmaker = oddsRes.response[0].bookmakers[0]; 
-
+          if (res && res.response && res.response.length > 0) {
+            let bookmaker = res.response[0].bookmakers.find((b: any) => b.id === 8 || b.name === 'Bet365') || res.response[0].bookmakers[0]; 
             const market = bookmaker?.bets[0];
-            if (market) {
-              oddsData = {
-                home: market.values.find((v: any) => v.value === 'Home' || v.value === '1')?.odd,
-                draw: market.values.find((v: any) => v.value === 'Draw' || v.value === 'X')?.odd,
-                away: market.values.find((v: any) => v.value === 'Away' || v.value === '2')?.odd
-              };
-            }
+            if (market) oddsData = { home: market.values.find((v: any) => v.value === 'Home' || v.value === '1')?.odd, draw: market.values.find((v: any) => v.value === 'Draw' || v.value === 'X')?.odd, away: market.values.find((v: any) => v.value === 'Away' || v.value === '2')?.odd };
           }
           oddsCache[fId] = { timestamp: now, data: oddsData };
-        } catch (e) {
-          oddsCache[fId] = { timestamp: now, data: null };
-        }
+        } catch (e) { oddsCache[fId] = { timestamp: now, data: null }; }
       }));
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise(r => setTimeout(r, 300));
     }
 
-    // 경기 주요 이벤트 가져오기
+    // 2. 이벤트 가져오기
     const fixturesToFetchEvents = rawFilteredMatches.filter((item: any) => {
-      const fId = item.fixture.id;
-      const status = item.fixture.status.short;
+      const fId = item.fixture.id; const status = item.fixture.status.short;
       if (status === 'NS') return false; 
-      const cached = eventsCache[fId];
-      if (!cached) return true; 
-      const isFinished = ['FT', 'AET', 'PEN'].includes(status);
-      const ttl = isFinished ? 24 * 60 * 60 * 1000 : 2 * 60 * 1000;
-      return now - cached.timestamp > ttl;
+      const cached = eventsCache[fId]; if (!cached) return true; 
+      return now - cached.timestamp > (['FT', 'AET', 'PEN'].includes(status) ? 24 * 60 * 60 * 1000 : 2 * 60 * 1000);
     });
-
     for (let i = 0; i < fixturesToFetchEvents.length; i += batchSize) {
       const batch = fixturesToFetchEvents.slice(i, i + batchSize);
       await Promise.all(batch.map(async (item: any) => {
-        const fId = item.fixture.id;
         try {
-          const eventsRes = await fetchAPI('fixtures/events', `fixture=${fId}`);
-          eventsCache[fId] = { timestamp: now, data: eventsRes.response || [] };
-        } catch (e) {
-          eventsCache[fId] = { timestamp: now, data: [] };
-        }
+          const res = await fetchAPI('fixtures/events', `fixture=${item.fixture.id}`);
+          eventsCache[item.fixture.id] = { timestamp: now, data: res.response || [] };
+        } catch (e) { eventsCache[item.fixture.id] = { timestamp: now, data: [] }; }
       }));
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise(r => setTimeout(r, 300));
     }
 
-    // 🔥 [복구 완료] 선발 명단 가져오기
+    // 3. 선발 명단 가져오기
     const fixturesToFetchLineups = rawFilteredMatches.filter((item: any) => {
-      const fId = item.fixture.id;
-      const status = item.fixture.status.short;
-      const timeToKickoff = item.fixture.timestamp * 1000 - now;
+      const fId = item.fixture.id; const status = item.fixture.status.short;
       if (['PST', 'CANC', 'TBD', 'ABD'].includes(status)) return false;
-      if (status === 'NS' && timeToKickoff > 60 * 60 * 1000) return false;
-      const cached = lineupsCache[fId];
-      if (!cached) return true;
-      const isFinished = ['FT', 'AET', 'PEN'].includes(status);
-      const ttl = isFinished ? 24 * 60 * 60 * 1000 : 5 * 60 * 1000;
-      return now - cached.timestamp > ttl;
+      if (status === 'NS' && (item.fixture.timestamp * 1000 - now) > 60 * 60 * 1000) return false;
+      const cached = lineupsCache[fId]; if (!cached) return true;
+      return now - cached.timestamp > (['FT', 'AET', 'PEN'].includes(status) ? 24 * 60 * 60 * 1000 : 5 * 60 * 1000);
     });
-
     for (let i = 0; i < fixturesToFetchLineups.length; i += batchSize) {
       const batch = fixturesToFetchLineups.slice(i, i + batchSize);
       await Promise.all(batch.map(async (item: any) => {
-        const fId = item.fixture.id;
         try {
-          const res = await fetchAPI('fixtures/lineups', `fixture=${fId}`);
-          lineupsCache[fId] = { timestamp: now, data: res.response || [] };
-        } catch (e) {
-          lineupsCache[fId] = { timestamp: now, data: [] };
-        }
+          const res = await fetchAPI('fixtures/lineups', `fixture=${item.fixture.id}`);
+          lineupsCache[item.fixture.id] = { timestamp: now, data: res.response || [] };
+        } catch (e) { lineupsCache[item.fixture.id] = { timestamp: now, data: [] }; }
       }));
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise(r => setTimeout(r, 300));
     }
 
+    // 🔥 4. [신규] 통계(Statistics) 가져오기 (라이브 중이거나 끝난 경기만!)
+    const fixturesToFetchStats = rawFilteredMatches.filter((item: any) => {
+      const fId = item.fixture.id; const status = item.fixture.status.short;
+      const isFinished = ['FT', 'AET', 'PEN'].includes(status);
+      const isLive = !isFinished && !['NS', 'PST', 'CANC', 'TBD', 'ABD'].includes(status);
+      if (!isFinished && !isLive) return false; 
+      const cached = statisticsCache[fId]; if (!cached) return true;
+      return now - cached.timestamp > (isFinished ? 24 * 60 * 60 * 1000 : 5 * 60 * 1000); // 라이브는 5분 단위 갱신
+    });
+    for (let i = 0; i < fixturesToFetchStats.length; i += batchSize) {
+      const batch = fixturesToFetchStats.slice(i, i + batchSize);
+      await Promise.all(batch.map(async (item: any) => {
+        try {
+          const res = await fetchAPI('fixtures/statistics', `fixture=${item.fixture.id}`);
+          statisticsCache[item.fixture.id] = { timestamp: now, data: res.response || [] };
+        } catch (e) { statisticsCache[item.fixture.id] = { timestamp: now, data: [] }; }
+      }));
+      await new Promise(r => setTimeout(r, 300));
+    }
+
+    // 최종 데이터 조립
     const filteredMatches = rawFilteredMatches.map((item: any) => {
-      const hName = item.teams.home.name;
-      const aName = item.teams.away.name;
-      const homeId = item.teams.home.id;
-      const awayId = item.teams.away.id;
+      const hName = item.teams.home.name; const aName = item.teams.away.name;
+      const homeId = item.teams.home.id; const awayId = item.teams.away.id;
       const leagueKey = `${item.league.id}-${item.league.season}`;
       
       const pastMatches = predictionCache[leagueKey]?.data || [];
-      
-      // 🔥 [복구 완료] 예상 스코어 박제 (미래 경기 차단)
-      const validPastMatches = pastMatches.filter((m: any) => 
-        m.fixture.id !== item.fixture.id && 
-        m.fixture.timestamp < item.fixture.timestamp
-      );
+      const validPastMatches = pastMatches.filter((m: any) => m.fixture.id !== item.fixture.id && m.fixture.timestamp < item.fixture.timestamp);
 
       const leagueAvgGoals = leagueAvgMap[leagueKey] || 1.3;
 
@@ -556,36 +507,42 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const mappedEvents = rawEvents.map((ev: any) => {
         let type = "";
         if (ev.type === "Goal") type = "goal";
-        // 🔥 [에러 원인 수정 완료] 옵셔널 체이닝(?.)을 달아서 빈 내용물이 와도 서버가 죽지 않게 방어막 설치!
         else if (ev.type === "Card" && ev.detail?.includes("Yellow")) type = "yellow";
         else if (ev.type === "Card" && ev.detail?.includes("Red")) type = "red";
         else if (ev.type === "subst") type = "sub";
-
         if (!type) return null; 
-
-        return {
-          minute: ev.time.elapsed,
-          team: ev.team.id === homeId ? "home" : "away",
-          type: type,
-          player: ev.player?.name,
-          playerOut: type === "sub" ? ev.player?.name : undefined,
-          playerIn: type === "sub" ? ev.assist?.name : undefined
-        };
+        return { minute: ev.time.elapsed, team: ev.team.id === homeId ? "home" : "away", type: type, player: ev.player?.name, playerOut: type === "sub" ? ev.player?.name : undefined, playerIn: type === "sub" ? ev.assist?.name : undefined };
       }).filter((e: any) => e !== null); 
 
+      // 🔥 [신규] 통계 데이터 정제 로직
+      const rawStats = statisticsCache[item.fixture.id]?.data || [];
+      let parsedStats = null;
+      if (rawStats.length === 2) {
+        const homeStatsObj = rawStats.find((s:any) => s.team.id === homeId)?.statistics || [];
+        const awayStatsObj = rawStats.find((s:any) => s.team.id === awayId)?.statistics || [];
+
+        const getStat = (arr: any[], type: string) => {
+          const stat = arr.find(s => s.type === type);
+          if (!stat || stat.value === null) return 0;
+          if (typeof stat.value === 'string') return parseInt(stat.value.replace(/\D/g, '')) || 0; // % 기호 제거
+          return stat.value;
+        };
+
+        parsedStats = {
+          possession: { home: getStat(homeStatsObj, "Ball Possession"), away: getStat(awayStatsObj, "Ball Possession") },
+          shotsTotal: { home: getStat(homeStatsObj, "Total Shots"), away: getStat(awayStatsObj, "Total Shots") },
+          shotsOn: { home: getStat(homeStatsObj, "Shots on Goal"), away: getStat(awayStatsObj, "Shots on Goal") },
+          corners: { home: getStat(homeStatsObj, "Corner Kicks"), away: getStat(awayStatsObj, "Corner Kicks") },
+          fouls: { home: getStat(homeStatsObj, "Fouls"), away: getStat(awayStatsObj, "Fouls") },
+          yellows: { home: getStat(homeStatsObj, "Yellow Cards"), away: getStat(awayStatsObj, "Yellow Cards") },
+          reds: { home: getStat(homeStatsObj, "Red Cards"), away: getStat(awayStatsObj, "Red Cards") }
+        };
+      }
+
       const getRecentMatches = (teamId: number, targetMatches: any[]) => {
-        return targetMatches
-          .filter((m: any) => m.teams.home.id === teamId || m.teams.away.id === teamId)
-          .sort((a: any, b: any) => b.fixture.timestamp - a.fixture.timestamp)
-          .slice(0, 5) 
-          .map((m: any) => {
+        return targetMatches.filter((m: any) => m.teams.home.id === teamId || m.teams.away.id === teamId).sort((a: any, b: any) => b.fixture.timestamp - a.fixture.timestamp).slice(0, 5).map((m: any) => {
             const isHome = m.teams.home.id === teamId;
-            return { 
-              date: m.fixture.date, 
-              isHome, 
-              goals: isHome ? m.goals.home : m.goals.away, 
-              conceded: isHome ? m.goals.away : m.goals.home
-            };
+            return { date: m.fixture.date, isHome, goals: isHome ? m.goals.home : m.goals.away, conceded: isHome ? m.goals.away : m.goals.home };
           });
       };
 
@@ -597,152 +554,75 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       let awayAttack = calcForm(awayRecent.filter((m: any) => !m.isHome), true);
       let awayDefense = calcForm(awayRecent.filter((m: any) => !m.isHome), false);
 
-      // 🔥 [신규 기능] 휴식일 기반 피로도 (Rest Days & Fatigue) 로직 장착!
+      // 🔥 4일 기준 피로도 가중치
       const getRestDays = (recentMatches: any[], currentTimestamp: number) => {
-        if (recentMatches.length === 0) return 7; // 과거 데이터가 없으면 푹 쉰 것으로 간주
+        if (recentMatches.length === 0) return 7; 
         const lastMatchTimestamp = new Date(recentMatches[0].date).getTime() / 1000;
-        return (currentTimestamp - lastMatchTimestamp) / (24 * 3600); // 며칠 쉬었는지 계산
+        return (currentTimestamp - lastMatchTimestamp) / (24 * 3600); 
       };
-
       const homeRestDays = getRestDays(homeRecent, item.fixture.timestamp);
       const awayRestDays = getRestDays(awayRecent, item.fixture.timestamp);
 
-      // 🔻 홈팀 피로도 가중치 (4일 이하 휴식 시 10% 하락, 6일 이상 휴식 시 5% 상승)
-      if (homeRestDays <= 4) { // 🔥 기존 3에서 4로 수정!
-        homeAttack *= 0.90;  
-        homeDefense *= 0.90;
-      } else if (homeRestDays >= 6) {
-        homeAttack *= 1.05;  
-        homeDefense *= 1.05;
-      }
+      if (homeRestDays <= 4) { homeAttack *= 0.90; homeDefense *= 0.90; } 
+      else if (homeRestDays >= 6) { homeAttack *= 1.05; homeDefense *= 1.05; }
 
-      // 🔻 원정팀 피로도 가중치 (원정 이동 피로 고려! 4일 이하 휴식 시 15% 하락)
-      if (awayRestDays <= 4) { // 🔥 기존 3에서 4로 수정!
-        awayAttack *= 0.85;  
-        awayDefense *= 0.85;
-      } else if (awayRestDays >= 6) {
-        awayAttack *= 1.05;  
-        awayDefense *= 1.05;
-      }
+      if (awayRestDays <= 4) { awayAttack *= 0.85; awayDefense *= 0.85; } 
+      else if (awayRestDays >= 6) { awayAttack *= 1.05; awayDefense *= 1.05; }
 
       const allGroups = leagueStandingsMap[leagueKey] || [];
       let correctStandings: any[] = [];
-
       for (const group of allGroups) {
-        if (Array.isArray(group) && group.some((s: any) => s.team?.en === hName || s.team?.en === aName)) {
-          correctStandings = group; 
-          break;
-        }
+        if (Array.isArray(group) && group.some((s: any) => s.team?.en === hName || s.team?.en === aName)) { correctStandings = group; break; }
       }
-      if (correctStandings.length === 0 && allGroups.length > 0) {
-        correctStandings = allGroups[0];
-      }
+      if (correctStandings.length === 0 && allGroups.length > 0) correctStandings = allGroups[0];
 
-      const homeTeamInfo = correctStandings.find((s: any) => s.team?.en === hName);
-      const awayTeamInfo = correctStandings.find((s: any) => s.team?.en === aName);
-      const homeRank = homeTeamInfo ? homeTeamInfo.rank : 999;
-      const awayRank = awayTeamInfo ? awayTeamInfo.rank : 999;
+      const homeRank = correctStandings.find((s: any) => s.team?.en === hName)?.rank || 999;
+      const awayRank = correctStandings.find((s: any) => s.team?.en === aName)?.rank || 999;
+      let homeAdv = 1.10; let awayDis = 0.90;
+      if (homeRank < awayRank) { homeAdv = 1.15; awayDis = 0.85; } else if (homeRank > awayRank) { homeAdv = 1.05; awayDis = 0.95; }
 
-      let homeAdv = 1.10; 
-      let awayDis = 0.90;
-
-      if (homeRank < awayRank) { 
-        homeAdv = 1.15;
-        awayDis = 0.85;
-      } else if (homeRank > awayRank) {
-        homeAdv = 1.05;
-        awayDis = 0.95;
-      }
-
-      let expectedHomeGoals = Math.max(0.5, homeAttack * (awayDefense / leagueAvgGoals) * homeAdv);
-      let expectedAwayGoals = Math.max(0.5, awayAttack * (homeDefense / leagueAvgGoals) * awayDis);
-
-      expectedHomeGoals = Math.min(expectedHomeGoals, 4.0);
-      expectedAwayGoals = Math.min(expectedAwayGoals, 4.0);
+      const expectedHomeGoals = Math.min(Math.max(0.5, homeAttack * (awayDefense / leagueAvgGoals) * homeAdv), 4.0);
+      const expectedAwayGoals = Math.min(Math.max(0.5, awayAttack * (homeDefense / leagueAvgGoals) * awayDis), 4.0);
 
       const logicBPredictions = poisson(expectedHomeGoals, expectedAwayGoals);
-      const logicBProbHome = logicBPredictions.prob.home;
-      const logicBProbDraw = logicBPredictions.prob.draw;
-      const logicBProbAway = logicBPredictions.prob.away;
+      let finalProbHome = logicBPredictions.prob.home; let finalProbDraw = logicBPredictions.prob.draw; let finalProbAway = logicBPredictions.prob.away;
 
-      let logicCProbHome = 33, logicCProbDraw = 33, logicCProbAway = 34;
-      let hasOdds = false;
-      
       const matchOdds = oddsCache[item.fixture.id]?.data || null;
       if (matchOdds && matchOdds.home && matchOdds.draw && matchOdds.away) {
-        const invHome = 1 / parseFloat(matchOdds.home);
-        const invDraw = 1 / parseFloat(matchOdds.draw);
-        const invAway = 1 / parseFloat(matchOdds.away);
+        const invHome = 1 / parseFloat(matchOdds.home); const invDraw = 1 / parseFloat(matchOdds.draw); const invAway = 1 / parseFloat(matchOdds.away);
         const totalInv = invHome + invDraw + invAway;
-
-        logicCProbHome = (invHome / totalInv) * 100;
-        logicCProbDraw = (invDraw / totalInv) * 100;
-        logicCProbAway = (invAway / totalInv) * 100;
-        hasOdds = true;
-      }
-
-      let finalProbHome = logicBProbHome;
-      let finalProbDraw = logicBProbDraw;
-      let finalProbAway = logicBProbAway;
-
-      if (hasOdds) {
-        finalProbHome = Math.round((logicBProbHome * 0.6) + (logicCProbHome * 0.4));
-        finalProbDraw = Math.round((logicBProbDraw * 0.6) + (logicCProbDraw * 0.4));
+        finalProbHome = Math.round((logicBPredictions.prob.home * 0.6) + ((invHome / totalInv) * 100 * 0.4));
+        finalProbDraw = Math.round((logicBPredictions.prob.draw * 0.6) + ((invDraw / totalInv) * 100 * 0.4));
         finalProbAway = Math.max(0, 100 - finalProbHome - finalProbDraw); 
       }
 
-      let predictHome = Math.round(expectedHomeGoals);
-      let predictAway = Math.round(expectedAwayGoals);
-
+      let predictHome = Math.round(expectedHomeGoals); let predictAway = Math.round(expectedAwayGoals);
       if (predictHome === predictAway) {
-        if (finalProbHome - finalProbAway >= 10) predictHome += 1;
-        else if (finalProbAway - finalProbHome >= 10) predictAway += 1;
+        if (finalProbHome - finalProbAway >= 10) predictHome += 1; else if (finalProbAway - finalProbHome >= 10) predictAway += 1;
       }
 
       const kstDate = new Date(new Date(item.fixture.date).toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
-      const m = kstDate.getMonth() + 1;
-      const d = kstDate.getDate();
-      const daysKo = ['일', '월', '화', '수', '목', '금', '토'];
-      const daysEn = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-      const h = String(kstDate.getHours()).padStart(2, '0');
-      const min = String(kstDate.getMinutes()).padStart(2, '0');
-      const timeKo = `${m}/${d} (${daysKo[kstDate.getDay()]}) ${h}:${min}`;
-      const timeEn = `${m}/${d} (${daysEn[kstDate.getDay()]}) ${h}:${min}`;
+      const timeKo = `${kstDate.getMonth() + 1}/${kstDate.getDate()} (${['일', '월', '화', '수', '목', '금', '토'][kstDate.getDay()]}) ${String(kstDate.getHours()).padStart(2, '0')}:${String(kstDate.getMinutes()).padStart(2, '0')}`;
+      const timeEn = `${kstDate.getMonth() + 1}/${kstDate.getDate()} (${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][kstDate.getDay()]}) ${String(kstDate.getHours()).padStart(2, '0')}:${String(kstDate.getMinutes()).padStart(2, '0')}`;
 
       return {
-        id: item.fixture.id,
-        timestamp: item.fixture.timestamp,
-        leagueId: item.fixture.league?.id ?? item.league.id, // 🔥 [복구 완료] 프로토 판별 ID
+        id: item.fixture.id, timestamp: item.fixture.timestamp, leagueId: item.fixture.league?.id ?? item.league.id,
         league: { en: item.league.name, ko: leagueNameMap[item.league.id] || item.league.name },
-        home: { en: hName, ko: teamNameMap[hName] || hName },
-        away: { en: aName, ko: teamNameMap[aName] || aName },
-        time: { en: timeEn, ko: timeKo },
-        scoreHome: item.goals.home ?? 0,
-        scoreAway: item.goals.away ?? 0,
-        penHome: item.score?.penalty?.home ?? null,
-        penAway: item.score?.penalty?.away ?? null,
-        status: item.fixture.status.short,
-        elapsed: item.fixture.status.elapsed,
-        predict: { home: predictHome, away: predictAway },
-        probs: { home: finalProbHome, draw: finalProbDraw, away: finalProbAway },
-        odds: matchOdds,
-        events: mappedEvents,
-        lineups: lineupsCache[item.fixture.id]?.data || [], // 🔥 [복구 완료] 선발 명단 추가
-        homeId: homeId,
-        awayId: awayId,
-        standings: correctStandings
+        home: { en: hName, ko: teamNameMap[hName] || hName }, away: { en: aName, ko: teamNameMap[aName] || aName },
+        time: { en: timeEn, ko: timeKo }, scoreHome: item.goals.home ?? 0, scoreAway: item.goals.away ?? 0,
+        penHome: item.score?.penalty?.home ?? null, penAway: item.score?.penalty?.away ?? null,
+        status: item.fixture.status.short, elapsed: item.fixture.status.elapsed,
+        predict: { home: predictHome, away: predictAway }, probs: { home: finalProbHome, draw: finalProbDraw, away: finalProbAway },
+        odds: matchOdds, events: mappedEvents, lineups: lineupsCache[item.fixture.id]?.data || [], 
+        stats: parsedStats, // 🔥 통계 데이터 탑재 완료!
+        homeId: homeId, awayId: awayId, standings: correctStandings
       };
-    })
-    .sort((a: any, b: any) => {
+    }).sort((a: any, b: any) => {
       const statusOrder: any = { 'LIVE': 0, '1H': 0, 'HT': 0, '2H': 0, 'ET': 0, 'P': 0, 'BT': 0, 'NS': 1, 'FT': 2, 'AET': 2, 'PEN': 2 };
-      const orderA = statusOrder[a.status] ?? 3;
-      const orderB = statusOrder[b.status] ?? 3;
-      if (orderA !== orderB) return orderA - orderB;
-      return a.timestamp - b.timestamp;
+      const orderA = statusOrder[a.status] ?? 3; const orderB = statusOrder[b.status] ?? 3;
+      if (orderA !== orderB) return orderA - orderB; return a.timestamp - b.timestamp;
     });
 
     return res.status(200).json({ matches: filteredMatches });
-  } catch (error) {
-    return res.status(200).json({ matches: [] });
-  }
+  } catch (error) { return res.status(200).json({ matches: [] }); }
 }
