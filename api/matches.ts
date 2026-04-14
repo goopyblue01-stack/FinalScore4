@@ -312,7 +312,7 @@ let oddsCache: { [fixtureId: number]: { timestamp: number, data: any } } = {};
 let standingsCache: { [leagueSeason: string]: { timestamp: number, data: any } } = {};
 let eventsCache: { [fixtureId: number]: { timestamp: number, data: any[] } } = {};
 let lineupsCache: { [fixtureId: number]: { timestamp: number, data: any[] } } = {};
-let statisticsCache: { [fixtureId: number]: { timestamp: number, data: any[] } } = {}; // 🔥 통계 수첩 추가!
+let statisticsCache: { [fixtureId: number]: { timestamp: number, data: any[] } } = {};
 
 const FIXTURES_CACHE_TTL = 1 * 60 * 1000;
 const CACHE_TTL = 60 * 60 * 1000; 
@@ -415,7 +415,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const batchSize = 5; 
 
-    // 1. 배당 가져오기
     const fixturesToFetchOdds = rawFilteredMatches.filter(item => !oddsCache[item.fixture.id] || now - oddsCache[item.fixture.id].timestamp > ODDS_CACHE_TTL);
     for (let i = 0; i < fixturesToFetchOdds.length; i += batchSize) {
       const batch = fixturesToFetchOdds.slice(i, i + batchSize);
@@ -435,7 +434,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       await new Promise(r => setTimeout(r, 300));
     }
 
-    // 2. 이벤트 가져오기
     const fixturesToFetchEvents = rawFilteredMatches.filter((item: any) => {
       const fId = item.fixture.id; const status = item.fixture.status.short;
       if (status === 'NS') return false; 
@@ -453,7 +451,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       await new Promise(r => setTimeout(r, 300));
     }
 
-    // 3. 선발 명단 가져오기
     const fixturesToFetchLineups = rawFilteredMatches.filter((item: any) => {
       const fId = item.fixture.id; const status = item.fixture.status.short;
       if (['PST', 'CANC', 'TBD', 'ABD'].includes(status)) return false;
@@ -472,14 +469,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       await new Promise(r => setTimeout(r, 300));
     }
 
-    // 🔥 4. [신규] 통계(Statistics) 가져오기 (라이브 중이거나 끝난 경기만!)
+    // 🔥 4. 통계(Statistics) 가져오기 (대표님이 원하시는 데이터 대폭 추가!)
     const fixturesToFetchStats = rawFilteredMatches.filter((item: any) => {
       const fId = item.fixture.id; const status = item.fixture.status.short;
       const isFinished = ['FT', 'AET', 'PEN'].includes(status);
       const isLive = !isFinished && !['NS', 'PST', 'CANC', 'TBD', 'ABD'].includes(status);
       if (!isFinished && !isLive) return false; 
       const cached = statisticsCache[fId]; if (!cached) return true;
-      return now - cached.timestamp > (isFinished ? 24 * 60 * 60 * 1000 : 5 * 60 * 1000); // 라이브는 5분 단위 갱신
+      return now - cached.timestamp > (isFinished ? 24 * 60 * 60 * 1000 : 5 * 60 * 1000); 
     });
     for (let i = 0; i < fixturesToFetchStats.length; i += batchSize) {
       const batch = fixturesToFetchStats.slice(i, i + batchSize);
@@ -492,7 +489,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       await new Promise(r => setTimeout(r, 300));
     }
 
-    // 최종 데이터 조립
     const filteredMatches = rawFilteredMatches.map((item: any) => {
       const hName = item.teams.home.name; const aName = item.teams.away.name;
       const homeId = item.teams.home.id; const awayId = item.teams.away.id;
@@ -514,7 +510,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return { minute: ev.time.elapsed, team: ev.team.id === homeId ? "home" : "away", type: type, player: ev.player?.name, playerOut: type === "sub" ? ev.player?.name : undefined, playerIn: type === "sub" ? ev.assist?.name : undefined };
       }).filter((e: any) => e !== null); 
 
-      // 🔥 [신규] 통계 데이터 정제 로직
+      // 🔥 [핵심 추가] 확장된 통계 데이터 정제 로직
       const rawStats = statisticsCache[item.fixture.id]?.data || [];
       let parsedStats = null;
       if (rawStats.length === 2) {
@@ -524,7 +520,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const getStat = (arr: any[], type: string) => {
           const stat = arr.find(s => s.type === type);
           if (!stat || stat.value === null) return 0;
-          if (typeof stat.value === 'string') return parseInt(stat.value.replace(/\D/g, '')) || 0; // % 기호 제거
+          if (typeof stat.value === 'string') return parseInt(stat.value.replace(/\D/g, '')) || 0; // % 기호 제거하고 숫자만 추출
           return stat.value;
         };
 
@@ -532,6 +528,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           possession: { home: getStat(homeStatsObj, "Ball Possession"), away: getStat(awayStatsObj, "Ball Possession") },
           shotsTotal: { home: getStat(homeStatsObj, "Total Shots"), away: getStat(awayStatsObj, "Total Shots") },
           shotsOn: { home: getStat(homeStatsObj, "Shots on Goal"), away: getStat(awayStatsObj, "Shots on Goal") },
+          shotsOff: { home: getStat(homeStatsObj, "Shots off Goal"), away: getStat(awayStatsObj, "Shots off Goal") },
+          shotsBlocked: { home: getStat(homeStatsObj, "Blocked Shots"), away: getStat(awayStatsObj, "Blocked Shots") },
+          shotsInside: { home: getStat(homeStatsObj, "Shots insidebox"), away: getStat(awayStatsObj, "Shots insidebox") },
+          shotsOutside: { home: getStat(homeStatsObj, "Shots outsidebox"), away: getStat(awayStatsObj, "Shots outsidebox") },
+          passesTotal: { home: getStat(homeStatsObj, "Total passes"), away: getStat(awayStatsObj, "Total passes") },
+          passesAccurate: { home: getStat(homeStatsObj, "Passes accurate"), away: getStat(awayStatsObj, "Passes accurate") },
+          passesPct: { home: getStat(homeStatsObj, "Passes %"), away: getStat(awayStatsObj, "Passes %") },
+          offsides: { home: getStat(homeStatsObj, "Offsides"), away: getStat(awayStatsObj, "Offsides") },
+          saves: { home: getStat(homeStatsObj, "Goalkeeper Saves"), away: getStat(awayStatsObj, "Goalkeeper Saves") },
           corners: { home: getStat(homeStatsObj, "Corner Kicks"), away: getStat(awayStatsObj, "Corner Kicks") },
           fouls: { home: getStat(homeStatsObj, "Fouls"), away: getStat(awayStatsObj, "Fouls") },
           yellows: { home: getStat(homeStatsObj, "Yellow Cards"), away: getStat(awayStatsObj, "Yellow Cards") },
@@ -554,7 +559,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       let awayAttack = calcForm(awayRecent.filter((m: any) => !m.isHome), true);
       let awayDefense = calcForm(awayRecent.filter((m: any) => !m.isHome), false);
 
-      // 🔥 4일 기준 피로도 가중치
       const getRestDays = (recentMatches: any[], currentTimestamp: number) => {
         if (recentMatches.length === 0) return 7; 
         const lastMatchTimestamp = new Date(recentMatches[0].date).getTime() / 1000;
@@ -614,7 +618,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         status: item.fixture.status.short, elapsed: item.fixture.status.elapsed,
         predict: { home: predictHome, away: predictAway }, probs: { home: finalProbHome, draw: finalProbDraw, away: finalProbAway },
         odds: matchOdds, events: mappedEvents, lineups: lineupsCache[item.fixture.id]?.data || [], 
-        stats: parsedStats, // 🔥 통계 데이터 탑재 완료!
+        stats: parsedStats, 
         homeId: homeId, awayId: awayId, standings: correctStandings
       };
     }).sort((a: any, b: any) => {
