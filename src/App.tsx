@@ -683,12 +683,12 @@ export default function App() {
           <span className="text-slate-700 hidden sm:inline">|</span>
           <button onClick={() => setSelectedPage('privacy')} className="hover:text-white transition-colors">{dict.privacy}</button>
           <span className="text-slate-700 hidden sm:inline">|</span>
-          <a href="mailto:admin@scoredlab.com" className="hover:text-white transition-colors font-bold text-[#84cc16]">{dict.contact}</a>
+          <a href="mailto:goopyblue01@gmail.com" className="hover:text-white transition-colors font-bold text-[#84cc16]">{dict.contact}</a>
         </div>
         
         <div className="text-[10px] text-slate-500 flex flex-col gap-1.5 leading-relaxed">
           {/* 👇 대표님 정보로 수정할 부분! 👇 */}
-          <p>ScoredLab | 대표: [강현민] | 이메일: admin@scoredlab.com</p>
+          <p>ScoredLab | 대표: [강현민] | 이메일: goopyblue01@gmail.com</p>
           <p>주소: 경기도 광주시 오포로 171번길 17-174</p>
           {/* 👆 여기까지 수정해주세요! 👆 */}
           <p className="mt-3 text-slate-600 font-medium">© {new Date().getFullYear()} ScoredLab. All rights reserved.</p>
