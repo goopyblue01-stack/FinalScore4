@@ -205,7 +205,7 @@ const teamNameMap: { [key: string]: string } = {
   "Bandirmaspor": "반디르마스포르", "FC Winterthur": "빈터투어", "Grasshoppers": "그라스호퍼", "FC Lugano": "루가노", "KVC Westerlo": "베스테를로", "Stenhousemuir": "스텐하우스뮤어", "Inverness CT": "인버네스",
   "FC St. Pauli": "장크트 파울리", "Budapest Honved": "부다페스트 혼베드", "Kozarmisleny FC": "코자르미슬레니", "Fenerbahçe": "페네르바흐체", "União de Leiria": "우니앙 레이리아", "Górnik kęczna": "고르니크 렝치나",
   "Wieczysta Kraków": "비에치스타 크라쿠프", "Stal Rzeszów": "스탈 제슈프", "FC BW Linz": "블라우바이스 린츠", "WSG Wattens": "바텐스", "Paks": "팍시", "GO Ahead Eagles": "고 어헤드 이글스", "Francs Borains": "프랑 보랭",
-  "KRC Genk I!": "헹크 2군", "Olympic Charleroi": "올림픽 샤를루아", "K. Lierse S.K.": "리르세", "Lommel United": "롬멜", "Club Brugge II": "클럽 브뤼헤 2군", "Austin": "오스틴", "Los Angeles Galaxy": "LA 갤럭시",
+  "KRC Genk II": "헹크 2군", "Olympic Charleroi": "올림픽 샤를루아", "K. Lierse S.K.": "리르세", "Lommel United": "롬멜", "Club Brugge II": "클럽 브뤼헤 2군", "Austin": "오스틴", "Los Angeles Galaxy": "LA 갤럭시",
   "CF Montreal": "CF 몬트리올", "FC Thun": "툰", "FC Basel 1893": "바젤", "Almagro": "알마그로", "Patronato": "파트로나토", "San Miguel": "산 미겔", "Deportivo Moron": "데포르티보 모론", "San Telmo": "산 텔모", "St. Truiden": "신트트라위던",
   "Remo": "레모", "Vasco DA Gama": "바스쿠 다 가마", "Detroit City": "디트로이트 시티", "Sporting JAX": "스포르팅 JAX", "Union Santa Fe": "우니온 산타페", "Ponte Preta": "폰치 프레타", "Vila Nova": "빌라 노바",
   "Sport Recife": "스포르트 헤시피", "Avai": "아바이", "Colon Santa Fe": "콜론 산타페", "Racing Cordoba": "라싱 코르도바", "Santos": "산투스", "Atletico-MG": "아틀레치쿠 미네이루", "Guadalajara Chivas": "과달라하라",
@@ -224,7 +224,7 @@ const teamNameMap: { [key: string]: string } = {
   "Altınordu": "알튼오르두", "Ankara Demirspor": "앙카라 데미르스포르", "Bursaspor": "부르사스포르", "Somaspor": "소마스포르", "68 Aksaray Belediyespor": "악사라이", "1461 Trabzon FK": "트라브존 1461",
   "Isparta 32 Spor": "이스파르타", "Güzide Gebzespor": "게브제스포르", "Fethiyespor": "페티예스포르", "Aliağa FAŞ": "알리아아", "Menemen FK": "메네멘", "Muş Sport Klübü": "무슈 스포르", "Arnavutköy Belediyespor": "아르나부트쾨이",
   "Mardin 1969": "마르딘", "Kahramanmaraş istiklal Spor": "카흐라만마라쉬", "Sichuan Jiuniu": "쓰촨 지우니우", "Wisla Krakow": "비스와 크라쿠프", "TSV Hartberg": "하르트베르크", "Padova": "파도바",
-  "1. FC Köln": "쾰른", "Kasımpaşa": "카슴파샤", "KAA Gent Il": "헨트 2군", "Liège": "리에주", "Atletico Paranaense": "아틀레치쿠 파라나엔시", "Chapecoense-sc": "샤페코엔시", "OH Leuven": "루벤",
+  "1. FC Köln": "쾰른", "Kasımpaşa": "카슴파샤", "KAA Gent II": "헨트 2군", "Liège": "리에주", "Atletico Paranaense": "아틀레치쿠 파라나엔시", "Chapecoense-sc": "샤페코엔시", "OH Leuven": "루벤",
   "FC ST. Gallen": "장크트갈렌", "FC Sion": "시옹", "Lausanne": "로잔", "BSC Young Boys": "영 보이즈", "Servette FC": "세르베트", "Almere City FC": "알메러 시티", "Yeni Mersin Idmanyurdu": "메르신",
   "Adanaspor": "아다나스포르", "Yeni Malatyaspor": "말라티아스포르", "Kirklarelispor": "키르클라렐리스포르", "Ajka": "아이카", "Tiszakecske FC": "티서케치케", "Csakvar": "차크바르",
   "Karcag SE": "카르차그", "Fehérvár FC": "페헤르바르", "Soroksar": "쇼로크샤르", "Kecskeméti TE": "케치케메트", "Bekescsaba 1912": "베케슈차바", "SCR Altach": "알타흐", "Grazer AK": "그라처 AK",
@@ -264,8 +264,8 @@ const teamNameMap: { [key: string]: string } = {
   "Lusitânia Lourosa": "루지타니아 루로사", "Raufoss": "라우포스", "FC Fredericia": "프레데리시아", "Kisvarda FC": "키슈바르다", "Debreceni VSC": "데브레체니", "FC OSS": "오스", "Jong PSV U21": "용 PSV",
   "Estac Troyes": "트루아", "GIL Vicente": "질 비센테", "Atletico DE Rafaela": "아틀레티코 라파엘라", "Central Cordoba de Santiago": "센트랄 코르도바", "San Martin S.J.": "산 마르틴 SJ", "Tractor Sazi": "트락토르 사지",
   "Shabab Al Ahli Dubai": "샤밥 알 아흘리", "ŁKS Łódź": "우치", "Pogoń Grod. Mazowiecki": "포곤 그로지스크 마조비에츠키",  "Westchester SC": "웨스트체스터", "Colorado Springs": "콜로라도 스프링스", "Union Omaha": "유니언 오마하",
-  "O'Connor Knights": "오코너 나이츠", "Naples": "나폴리", "Charlotte Independence": "샬럿 인디펜던스", "Chattanooga": "채터누가", "One Knoxville": "원 녹스빌", "Richmond Kickers": "리치먼드 키커스"  
-
+  "O'Connor Knights": "오코너 나이츠", "Naples": "나폴리", "Charlotte Independence": "샬럿 인디펜던스", "Chattanooga": "채터누가", "One Knoxville": "원 녹스빌", "Richmond Kickers": "리치먼드 키커스", "Yantra 2019": "얀트라 2019",
+  "Patro Eisden": "파트로 에이스던", "AS Eupen": "오이펜", "Dorados": "도라도스", "Suwon Bluewings": "수원삼성 블루윙즈"
 };
 
 // ==========================
