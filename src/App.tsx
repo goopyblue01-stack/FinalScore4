@@ -693,7 +693,7 @@ export default function App() {
         
         <div className="text-[10px] text-slate-500 flex flex-col gap-1.5 leading-relaxed">
           {/* 👇 대표님 정보로 수정할 부분! 👇 */}
-          <p>ScoredLab | 대표: 강현민 | 이메일: goopyblue01@gmail.com</p>
+          <p>ScoredLab (스코어드랩) | 대표: 강현민 | 이메일: goopyblue01@gmail.com</p>
           <p>주소: 경기도 광주시 오포로 171번길 17-174</p>
           {/* 👆 여기까지 수정해주세요! 👆 */}
           <p className="mt-3 text-slate-600 font-medium">© {new Date().getFullYear()} ScoredLab. All rights reserved.</p>
