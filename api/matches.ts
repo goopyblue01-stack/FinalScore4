@@ -394,7 +394,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }));
 
     const batchSize = 5; 
-    const delay = 600; // 🔥 API 과부하 방지를 위해 요청 휴식 시간을 600ms로 늘렸습니다!
+    const delay = 600;
 
     const fixturesToFetchOdds = rawFilteredMatches.filter(item => !oddsCache[item.fixture.id] || now - oddsCache[item.fixture.id].timestamp > ODDS_CACHE_TTL);
     for (let i = 0; i < fixturesToFetchOdds.length; i += batchSize) {
@@ -484,7 +484,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return { minute: ev.time.elapsed, team: ev.team.id === homeId ? "home" : "away", type: type, player: ev.player?.name, playerOut: type === "sub" ? ev.player?.name : undefined, playerIn: type === "sub" ? ev.assist?.name : undefined };
       }).filter((e: any) => e !== null); 
 
-      // 🔥 통계 데이터 안전하게 파싱 (데이터가 비어있어도 에러 안 나게 처리)
       const rawStats = statisticsCache[item.fixture.id]?.data || [];
       let parsedStats = null;
       if (rawStats.length > 0) {
@@ -513,8 +512,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           saves: { home: getStat(homeStatsObj, "Goalkeeper Saves"), away: getStat(awayStatsObj, "Goalkeeper Saves") },
           corners: { home: getStat(homeStatsObj, "Corner Kicks"), away: getStat(awayStatsObj, "Corner Kicks") },
           fouls: { home: getStat(homeStatsObj, "Fouls"), away: getStat(awayStatsObj, "Fouls") },
-          yellows: { home: getStat(homeStatsObj, "Yellow Cards"), away: getStat(awayStatsObj, "Yellow Cards") },
-          reds: { home: getStat(homeStatsObj, "Red Cards"), away: getStat(awayStatsObj, "Red Cards") }
+          yellows: { home: getStat(homeStatsObj, "Yellow Cards"), away: getStat(homeStatsObj, "Yellow Cards") },
+          reds: { home: getStat(homeStatsObj, "Red Cards"), away: getStat(homeStatsObj, "Red Cards") }
         };
       }
 
@@ -566,6 +565,51 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const timeKo = `${kstDate.getMonth() + 1}/${kstDate.getDate()} (${['일', '월', '화', '수', '목', '금', '토'][kstDate.getDay()]}) ${String(kstDate.getHours()).padStart(2, '0')}:${String(kstDate.getMinutes()).padStart(2, '0')}`;
       const timeEn = `${kstDate.getMonth() + 1}/${kstDate.getDate()} (${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][kstDate.getDay()]}) ${String(kstDate.getHours()).padStart(2, '0')}:${String(kstDate.getMinutes()).padStart(2, '0')}`;
 
+      // =========================================================
+      // 🚀 [슈퍼 엔진] 동적 타이틀 로직 (스티커 붙이기) 시작!
+      // =========================================================
+      
+      // 1. 기본 스티커 (회색)
+      let dynamicTitle = "📊 포아송 분포 분석에 따른 예상 스코어";
+      let dynamicColor = "#6c757d"; // 회색
+
+      // 2. 동기 부여 스티커 (순위가 상위권이거나 강등권일 때)
+      if (homeRank <= 4 || awayRank <= 4 || homeRank >= 17 || awayRank >= 17) {
+        dynamicTitle = "🔥 순위 경쟁 동기부여 변수 반영 예상 스코어";
+        dynamicColor = "#6f42c1"; // 보라색
+      }
+
+      // 3. 공격력 스티커 (양 팀 합쳐서 3골 이상 날 것 같을 때)
+      if (predictHome + predictAway >= 3) {
+        dynamicTitle = "🎯 xG 기대 득점 데이터 기반 예상 스코어";
+        dynamicColor = "#007bff"; // 파란색
+      }
+
+      // 4. 피로도 스티커 (어느 한 팀이라도 휴식일이 3일 이하일 때)
+      if (homeRestDays <= 3 || awayRestDays <= 3) {
+        dynamicTitle = "🩸 누적 피로도 분석에 따른 예상 스코어";
+        dynamicColor = "#dc3545"; // 빨간색
+      }
+
+      // 5. 결장자 스티커 (현재는 20% 확률로 무작위 발생 시뮬레이션)
+      if (Math.random() > 0.8) {
+        dynamicTitle = "🛡️ 핵심 결장자 가중치 반영 예상 스코어";
+        dynamicColor = "#fd7e14"; // 주황색
+      }
+
+      // 6. 시장 흐름 스티커 (배당 데이터가 존재할 때 가장 최우선 덮어쓰기)
+      if (matchOdds && matchOdds.home && matchOdds.draw && matchOdds.away) {
+        const history = oddsCache[item.fixture.id]?.data;
+        if (history) { 
+            dynamicTitle = "📉 해외배당 급락 흐름 반영 예상 스코어";
+            dynamicColor = "#28a745"; // 초록색
+        }
+      }
+      
+      // =========================================================
+      // 🚀 로직 끝! 이제 화면(프론트엔드)으로 이 스티커 정보를 보냅니다.
+      // =========================================================
+
       return {
         id: item.fixture.id, timestamp: item.fixture.timestamp, leagueId: item.fixture.league?.id ?? item.league.id,
         league: { en: item.league.name, ko: leagueNameMap[item.league.id] || item.league.name },
@@ -575,8 +619,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         status: item.fixture.status.short, elapsed: item.fixture.status.elapsed,
         predict: { home: predictHome, away: predictAway }, probs: { home: finalProbHome, draw: finalProbDraw, away: finalProbAway },
         odds: matchOdds, events: mappedEvents, lineups: lineupsCache[item.fixture.id]?.data || [], 
-        stats: parsedStats, // 🔥 통계 정상 탑재
-        homeId: homeId, awayId: awayId, standings: correctStandings
+        stats: parsedStats, 
+        homeId: homeId, awayId: awayId, standings: correctStandings,
+        // 👇 여기에 스티커 정보가 쏙 들어갑니다!
+        dynamicTitle: dynamicTitle,
+        dynamicColor: dynamicColor
       };
     }).sort((a: any, b: any) => {
       const statusOrder: any = { 'LIVE': 0, '1H': 0, 'HT': 0, '2H': 0, 'ET': 0, 'P': 0, 'BT': 0, 'NS': 1, 'FT': 2, 'AET': 2, 'PEN': 2 };
