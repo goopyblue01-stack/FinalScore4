@@ -651,7 +651,7 @@ export default function App() {
                         </div>
                         <div className="flex flex-col items-center gap-2">
                            <span 
-  className="px-2 py-0.5 rounded-full text-[9px] font-black text-white mb-1 shadow-sm transition-all animate-pulse"
+  className="px-2 py-0.5 rounded-full text-[11px] font-black text-white mb-1 shadow-sm transition-all animate-pulse"
   style={{ backgroundColor: match.dynamicColor }}
 >
   {match.dynamicTitle}
