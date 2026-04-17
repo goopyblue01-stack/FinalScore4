@@ -650,7 +650,12 @@ export default function App() {
                           <div className={`flex-1 text-left text-sm md:text-base truncate ${awayListNameClass}`}>{match.away[lang]}</div>
                         </div>
                         <div className="flex flex-col items-center gap-2">
-                           <span className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">{dict.expectedScore}</span>
+                           <sspan 
+  className="px-2 py-0.5 rounded-full text-[9px] font-black text-white mb-1 shadow-sm transition-all animate-pulse"
+  style={{ backgroundColor: match.dynamicColor }}
+>
+  {match.dynamicTitle}
+</span>
                            <div className="flex items-center gap-3 text-lg">
                              <div className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-colors duration-300 ${homePredBoxClass}`}>{hExp}</div>
                              <span className="text-slate-300 font-bold">:</span>
