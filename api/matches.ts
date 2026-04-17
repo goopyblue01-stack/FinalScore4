@@ -575,7 +575,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       // 2. 동기 부여 스티커 (순위가 상위권이거나 강등권일 때)
       if (homeRank <= 4 || awayRank <= 4 || homeRank >= 17 || awayRank >= 17) {
-        dynamicTitle = "🔥 순위 경쟁 동기부여 변수 반영 예상 스코어";
+        dynamicTitle = "🔥 동기부여 변수 반영 예상 스코어";
         dynamicColor = "#6f42c1"; // 보라색
       }
 
@@ -606,7 +606,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // 1.5 이하의 확실한 저배당(급락 신호)이 잡힐 때만 이 타이틀을 보여줍니다.
         // 이렇게 하면 '흐름'이 확실한 경기들만 초록색 배지로 강조됩니다!
         if (h <= 1.5 || a <= 1.5) { 
-          dynamicTitle = "📉 해외배당 급락 흐름 반영 예상 스코어";
+          dynamicTitle = "📉 해외배당 흐름 반영 예상 스코어";
           dynamicColor = "#28a745"; // 초록색
         }
       }
