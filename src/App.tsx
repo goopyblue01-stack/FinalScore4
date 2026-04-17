@@ -650,7 +650,7 @@ export default function App() {
                           <div className={`flex-1 text-left text-sm md:text-base truncate ${awayListNameClass}`}>{match.away[lang]}</div>
                         </div>
                         <div className="flex flex-col items-center gap-2">
-                           <sspan 
+                           <span 
   className="px-2 py-0.5 rounded-full text-[9px] font-black text-white mb-1 shadow-sm transition-all animate-pulse"
   style={{ backgroundColor: match.dynamicColor }}
 >
