@@ -587,7 +587,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       // 4. 피로도 스티커 (어느 한 팀이라도 휴식일이 3일 이하일 때)
       if (homeRestDays <= 3 || awayRestDays <= 3) {
-        dynamicTitle = "🩸 누적 피로도 분석에 따른 예상 스코어";
+        dynamicTitle = "🩸 누적 피로도에 따른 예상 스코어";
         dynamicColor = "#dc3545"; // 빨간색
       }
 
@@ -599,10 +599,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       // 6. 시장 흐름 스티커 (배당 데이터가 존재할 때 가장 최우선 덮어쓰기)
       if (matchOdds && matchOdds.home && matchOdds.draw && matchOdds.away) {
-        const history = oddsCache[item.fixture.id]?.data;
-        if (history) { 
-            dynamicTitle = "📉 해외배당 흐름 반영 예상 스코어";
-            dynamicColor = "#28a745"; // 초록색
+        const h = parseFloat(matchOdds.home);
+        const a = parseFloat(matchOdds.away);
+
+        // [민감도 조절] 배당이 한쪽으로 쏠리거나(흐름 발생), 
+        // 1.5 이하의 확실한 저배당(급락 신호)이 잡힐 때만 이 타이틀을 보여줍니다.
+        // 이렇게 하면 '흐름'이 확실한 경기들만 초록색 배지로 강조됩니다!
+        if (h <= 1.5 || a <= 1.5) { 
+          dynamicTitle = "📉 해외배당 급락 흐름 반영 예상 스코어";
+          dynamicColor = "#28a745"; // 초록색
         }
       }
       
