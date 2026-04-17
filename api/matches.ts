@@ -593,7 +593,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       // 5. 결장자 스티커 (현재는 20% 확률로 무작위 발생 시뮬레이션)
       if (Math.random() > 0.8) {
-        dynamicTitle = "🛡️ 핵심 결장자 가중치 반영 예상 스코어";
+        dynamicTitle = "🛡️ 결장자 변수 반영 예상 스코어";
         dynamicColor = "#fd7e14"; // 주황색
       }
 
@@ -601,7 +601,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (matchOdds && matchOdds.home && matchOdds.draw && matchOdds.away) {
         const history = oddsCache[item.fixture.id]?.data;
         if (history) { 
-            dynamicTitle = "📉 해외배당 급락 흐름 반영 예상 스코어";
+            dynamicTitle = "📉 해외배당 흐름 반영 예상 스코어";
             dynamicColor = "#28a745"; // 초록색
         }
       }
